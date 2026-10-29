@@ -102,3 +102,6 @@ addopts = "-ra --strict-markers --import-mode=importlib"
 testpaths = ["tests"]
 # record_property, in a live test say, warns under xunit2 when a run writes --junitxml.
 junit_family = "xunit1"
+# The FAO account's two variables hold core's placeholder in every test not marked live
+# (ADR-0013): the replayed login answers it with the recorded, scrubbed token.
+xippios_placeholder_key_envs = ["FAOSTAT_USERNAME", "FAOSTAT_PASSWORD"]

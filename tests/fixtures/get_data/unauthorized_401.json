@@ -1,0 +1,41 @@
+{
+  "recorded_at": "2026-10-29T05:39:41.200023Z",
+  "request": {
+    "body": null,
+    "body_base64": false,
+    "content_type": null,
+    "method": "GET",
+    "url": "https://faostatservices.fao.org/api/v1/en/data/QCL?area=231&element=2510&item=15&year=2015%2C2016%2C2017%2C2018%2C2019%2C2020%2C2021&show_codes=true&show_unit=true&show_flags=true&show_notes=true&null_values=false&output_type=objects"
+  },
+  "response": {
+    "body": "Missing Authorization Header",
+    "body_base64": false,
+    "headers": [
+      [
+        "server",
+        "CloudFront"
+      ],
+      [
+        "date",
+        "Thu, 29 Oct 2026 05:39:38 GMT"
+      ],
+      [
+        "x-cache",
+        "LambdaGeneratedResponse from cloudfront"
+      ],
+      [
+        "via",
+        "1.1 b0b28ec8da60bdc40e5fb6dc8ad8eae8.cloudfront.net (CloudFront)"
+      ],
+      [
+        "x-amz-cf-pop",
+        "ZRH52-P1"
+      ],
+      [
+        "x-amz-cf-id",
+        "We9moltgfh459kOFXeI502Dg8v6DVctc_06NGG28a8kdpEnHIUupag=="
+      ]
+    ],
+    "status": 401
+  }
+}

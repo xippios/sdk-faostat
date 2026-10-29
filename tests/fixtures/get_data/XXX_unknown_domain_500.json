@@ -1,0 +1,45 @@
+{
+  "recorded_at": "2026-10-29T05:39:33.305135Z",
+  "request": {
+    "body": null,
+    "body_base64": false,
+    "content_type": null,
+    "method": "GET",
+    "url": "https://faostatservices.fao.org/api/v1/en/data/XXX?area=231&show_codes=true&show_unit=true&show_flags=true&show_notes=true&null_values=false&output_type=objects"
+  },
+  "response": {
+    "body": "Index: 0, Size: 0",
+    "body_base64": false,
+    "headers": [
+      [
+        "content-type",
+        "text/plain"
+      ],
+      [
+        "date",
+        "Thu, 29 Oct 2026 05:39:31 GMT"
+      ],
+      [
+        "server",
+        "nginx/1.28.0"
+      ],
+      [
+        "x-cache",
+        "Error from cloudfront"
+      ],
+      [
+        "via",
+        "1.1 b0b28ec8da60bdc40e5fb6dc8ad8eae8.cloudfront.net (CloudFront)"
+      ],
+      [
+        "x-amz-cf-pop",
+        "ZRH52-P1"
+      ],
+      [
+        "x-amz-cf-id",
+        "xOsKkZLlUU8s9-PCyAhNzIdEirZs5SOaOYVdV0S2DHC3-mMbgokSqQ=="
+      ]
+    ],
+    "status": 500
+  }
+}

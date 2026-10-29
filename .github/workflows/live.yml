@@ -1,6 +1,9 @@
 # Nightly live smoke tests (conventions §10): every test marked `live` against the real
 # upstream, on a schedule and on demand, never on a pull request.
-# Rendered by the template (the one workflow that is): its start time derives from the slug.
+# Rendered by the template, its start time derived from the slug; differs from the render
+# from the first tasks PR on, by hand: FAOSTAT logs in with an account, whose two variables
+# the template cannot render (it renders the source's key variable and its dependencies'),
+# so the live step takes the account's two secrets, FAOSTAT_USERNAME and FAOSTAT_PASSWORD.
 name: Live
 
 on:
@@ -31,3 +34,5 @@ jobs:
       - run: uv run pytest -m live --tb=short
         env:
           XIPPIOS_LIVE_TESTS: "1"
+          FAOSTAT_USERNAME: ${{ secrets.FAOSTAT_USERNAME }}
+          FAOSTAT_PASSWORD: ${{ secrets.FAOSTAT_PASSWORD }}
