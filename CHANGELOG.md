@@ -8,8 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.1.0] - 2026-10-29
 
-First release, on xippios-core 0.3.0 from PyPI (`~=0.3.0`), sdk-template v0.3.0 and
-conventions 1.22, its floor. It wraps FAOSTAT, the statistical database of the Food and
+First release, on xippios-core 0.3.0 from PyPI (`~=0.3.0`), sdk-template v0.3.0 and the
+family's conventions 1.22. It wraps FAOSTAT, the statistical database of the Food and
 Agriculture Organization of the United Nations (FAO): its data API, which needs a FAO
 account, and its bulk downloads, which need none. The client logs in with the account
 (`FAOSTAT_USERNAME`, `FAOSTAT_PASSWORD`) once per process, sends the access token as a

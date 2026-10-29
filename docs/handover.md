@@ -149,7 +149,8 @@ examples name (`codes/countries/QCL`, QCL's 210 countries without its 68 aggrega
   bulk catalogue, and MDDW's 12 KB ZIP, read by `parse_bulk_csv` as the live parser
   test); `tests/test_live.py` counts them.
 - The release's live evidence: `live.yml` dispatched on `main` (2d4392b) at 2026-10-29
-  08:17:35Z, success at 08:18:19Z, 21 passed, 192 deselected in 19.73 s,
+  08:17:35Z, completed with success at 08:18:08Z (the job at 08:18:07Z), 21 passed, 192
+  deselected in 19.73 s,
   https://github.com/xippios/sdk-faostat/actions/runs/40841092969: 9 keyed calls and 3
   without the account. It also proved that the two org secrets reach the pytest step (G5
   third round, question 18). This release PR ran no live test.
@@ -206,7 +207,7 @@ G5 question 7, and row 254 asks for a rule.
   environment) and set `GATES_CALLER=1`, the PyPI pending publisher and the two org
   secrets.
 - 06:03, the session, on PR 1's review: the scaffold's key sentences corrected in PR 2;
-  rows 255, 258 and 259 filed.
+  rows 258 and 259 filed, row 255 corrected.
 - 06:19, the session: FETCHED.md's two S3 ETags as audited baseline entries, class
   `human` (row 144, as sdk-comtrade did).
 - 07:51, G5 second round, Johannes: Q13 the bulk model `BulkRecord`, mirroring the
