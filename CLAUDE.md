@@ -103,9 +103,14 @@ used.
 
 `_client.LoginAuth` logs in once per process (`auth_login`, `POST /auth/login`, form
 fields `username` and `password`), keeps the access token alone, a `SecretStr`, for its
-`ExpiresIn` less 60 s, and logs in once more on a 401 or 403 (queue row 252). Offline
-tests send core's placeholder as both variables (`xippios_placeholder_key_envs` in
-`pyproject.toml`); the replayed `tests/fixtures/auth_login/login.json` answers it.
+`ExpiresIn` less 60 s, and logs in once more on a 401 or 403 (queue row 252). The login
+runs inside `httpx`'s auth flow, below core's limiter, so the 30-per-minute pace does not
+pace it, and two requests that start together before the first login answers may each
+log in. A login refused with HTTP 400 and Cognito's `UserNotFoundException` or
+`NotAuthorizedException` is `AuthError` (`classify`, and `LoginAuth` for any status but
+200), naming the status and the `__type`. Offline tests send core's placeholder as both
+variables (`xippios_placeholder_key_envs` in `pyproject.toml`); the replayed
+`tests/fixtures/auth_login/login.json` answers it.
 
 A recording that spends the account's calls:
 
@@ -114,18 +119,22 @@ A recording that spends the account's calls:
   inside Python and prints fixture paths and statuses only;
 - scrubs with one `Scrub(secrets=[...])` naming the user name and the password, each as
   given and percent-encoded (`urllib.parse.quote(value, safe="")` and `quote_plus`, the
-  form body's encoding), and the login answer's three token values (`AccessToken`,
-  `IdToken`, `RefreshToken`), which core's credential rule does not catch by name; the
+  form body's encoding), a made-up login's password likewise
+  (`auth_login/user_not_found.json`), and the login answer's three token values
+  (`AccessToken`, `IdToken`, `RefreshToken`), which core's credential rule does not catch
+  by name; the
   login is recorded with `write_fixture` after its answer is read, since the tokens are
   known only then, and the data through `record` on the client, whose `LoginAuth` logs in
   again (a keyed call to count); request headers, `Authorization` among them, are never
   recorded;
 - passes the key-free check before the commit, counts only: `grep -rc REDACTED
-  tests/fixtures/` (the login's two lines), `grep -rEc 'eyJ[A-Za-z0-9_-]{20,}'
+  tests/fixtures/` (two lines in `login.json`, one in `user_not_found.json`, 0
+  elsewhere), `grep -rEc 'eyJ[A-Za-z0-9_-]{20,}'
   tests/fixtures/` (0 everywhere), `grep -rEoh '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+'
-  tests/fixtures/ | sort | uniq -c` (upstream's `@fao.org` addresses only) and `grep -rc
-  Bearer tests/fixtures/` (the login's `TokenType` only). A match outside these: delete
-  the file and stop.
+  tests/fixtures/ | sort | uniq -c` (upstream's `@fao.org` addresses only), `grep -rc
+  Bearer tests/fixtures/` (the login's `TokenType` only) and `grep -rc password
+  tests/fixtures/` (the form field's name in the two login fixtures, its value
+  `REDACTED`). A match outside these: delete the file and stop.
 
 ### Two element code systems
 
@@ -138,8 +147,11 @@ Production), and a filter with the answer's code matches nothing. See
 ### Columns by domain
 
 QCL's rows carry 15 columns, `Note` last; PP's carry `Months Code` and `Months` and no
-`Note` (`tests/fixtures/get_data/PP_231_2020_page_size_2.json`). `models.DataRecord` reads
-both shapes; the live tests check every domain they read against its columns.
+`Note` (`tests/fixtures/get_data/PP_231_2020_page_size_2.json`). `models.DataRecord` names
+both shapes' columns, and keeps every column a domain prints beyond the named ones in
+`columns`, under upstream's headers (ADR-0003: nothing dropped), so a named column is
+never there too; the live tests check that every column of each domain they read is
+named or kept there.
 
 ### What the OpenAPI document does not state
 

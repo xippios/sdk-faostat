@@ -25,10 +25,11 @@ All notable changes to this project are documented here. The format follows
   Neither the credentials nor a token is logged; the access token alone is kept, masked.
 - `get_data(domain, *, area, item, element, year, area_cs, item_cs, page_size,
   page_number)`, a domain's rows from FAOSTAT's data endpoint, each filter a code or a
-  list of codes, every row's value a number where upstream's text is one; a query without
-  a filter is refused before sending, an unknown domain is `NotFoundError`; `meta.vintage`
-  is the domain's last update as `groupsanddomains` prints it, `meta.published_at` stays
-  empty. Tool `faostat_get_data`.
+  list of codes, every row's value a number where upstream's text is one, every column a
+  domain prints beyond the named ones kept in `columns` under upstream's header; a query
+  without a filter is refused before sending, an unknown domain is `NotFoundError`;
+  `meta.vintage` is the domain's last update as `groupsanddomains` prints it,
+  `meta.published_at` stays empty. Tool `faostat_get_data`.
 - `list_domains(*, search)`, FAOSTAT's domains and subgroups with their groups and release
   dates (`groupsanddomains`). Tool `faostat_list_domains`.
 - The wrappers `api.auth_login`, `api.get_data` and `api.get_groupsanddomains`, their
