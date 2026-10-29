@@ -375,21 +375,21 @@ async def get_series_async(
     other, or ``since`` after ``until``, is refused with ``InvalidRequestError`` before
     any request. Rows come in upstream's order, area, item, year ascending in the
     recorded answers, so one area, item and element give one series, oldest year first;
-    lists of codes give their series one after the other. A year the domain does not
-    hold, not yet released or without a value, has no row: nothing is filled in.
-    ``list_domains`` prints each domain's latest year as ``year_current`` (``"2024"`` for
-    QCL on 2026-10-29). The element codes a query filters by are not those the rows
-    print: ``element="2510"`` (Production Quantity) answers rows with ``element_code``
-    ``"5510"`` (Production), and ``list_elements`` lists the filter codes. For QCL, TCL,
-    FBS, PP and RL every area, element and item code is checked against the package's
-    code tables before the request, as ``get_data`` checks them: one the domain's table
-    lacks raises ``UnknownCode`` naming the closest codes, so ``element="5510"`` on QCL
-    is refused naming ``2510``. Another domain's codes are sent unchecked, and a code
-    that matches nothing there gives an empty list; an unknown domain raises
-    ``NotFoundError``. ``meta`` is ``get_data``'s: ``meta.vintage`` the domain's last
-    update as ``list_domains`` prints it (``"2025-12-31"``), ``meta.published_at``
-    ``None``, ``meta.request`` the year list sent, plus ``since`` and ``until`` as given.
-    ``value`` is a number where upstream's text is one.
+    lists of codes give several series in one list, in upstream's order. A year the
+    domain does not hold, not yet released or without a value, has no row: nothing is
+    filled in. ``list_domains`` prints each domain's latest year as ``year_current``
+    (``"2024"`` for QCL on 2026-10-29). The element codes a query filters by are not
+    those the rows print: ``element="2510"`` (Production Quantity) answers rows with
+    ``element_code`` ``"5510"`` (Production), and ``list_elements`` lists the filter
+    codes. For QCL, TCL, FBS, PP and RL every area, element and item code is checked
+    against the package's code tables before the request, as ``get_data`` checks them:
+    one the domain's table lacks raises ``UnknownCode`` naming the closest codes, so
+    ``element="5510"`` on QCL is refused naming ``2510``. Another domain's codes are sent
+    unchecked, and a code that matches nothing there gives an empty list; an unknown
+    domain raises ``NotFoundError``. ``meta`` is ``get_data``'s: ``meta.vintage`` the
+    domain's last update as ``list_domains`` prints it (``"2025-12-31"``),
+    ``meta.published_at`` ``None``, ``meta.request`` the year list sent, plus ``since``
+    and ``until`` as given. ``value`` is a number where upstream's text is one.
 
     Args:
         domain: The domain's code, as ``list_domains`` lists it, e.g. ``"QCL"`` (Crops

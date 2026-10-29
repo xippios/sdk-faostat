@@ -63,8 +63,8 @@ stays `None`, since a date is no release time.
 for a yearly series: `since` and `until` become the year filter, the years from one to
 the other as upstream's comma list, or no year filter when both are left out, which
 answers every year the domain holds; one without the other is refused before sending.
-The rows come in upstream's order, area, item, year ascending, and a year the domain
-does not hold has no row. The codes are checked as `get_data` checks them, and `meta` is
+The rows come in upstream's order, area, item, year ascending in the recorded answers,
+and a year the domain does not hold has no row. The codes are checked as `get_data` checks them, and `meta` is
 `get_data`'s, with `since` and `until` added to `meta.request`.
 
 `list_areas(domain, *, search)`, `list_elements(domain, *, search)` and
