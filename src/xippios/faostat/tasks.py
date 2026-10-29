@@ -3,8 +3,8 @@
 ``/add-endpoint`` adds them.
 
 ``get_data`` sends one ``get_data`` request (``api.get_data``) for a domain and the codes
-given and returns the answer's rows; every request of the package carries the FAO
-account's bearer token, ``_client.LoginAuth``'s. It sends ``lang=en`` and the output
+given and returns the answer's rows; every request of the package to the API carries the
+FAO account's bearer token, ``_client.LoginAuth``'s. It sends ``lang=en`` and the output
 options the portal sends, fixed (``OUTPUT_OPTIONS``: ``show_codes``, ``show_unit``,
 ``show_flags`` and ``show_notes`` true, ``null_values`` false, ``output_type`` objects;
 not in the OpenAPI document, observed on 2026-10-29, FETCHED.md's "How this is
@@ -42,37 +42,67 @@ no rows: a code the domain's table lacks is refused with core's ``UnknownCode``,
 the table, its fetch date and the closest codes (conventions §5; ADR-0022, amendment
 2026-10-27, decision 3). The element tables hold the filter codes, not the codes the
 rows print, and nothing is translated between the two (ADR-0003; G5, question 10).
+
+``list_bulk_datasets`` answers from the bulk downloads' catalogue, ``datasets_E.json`` on
+``bulks-faostat.fao.org`` (``api.datasets_e``), fetched without the account and cached for
+five minutes, filtered by ``search`` over ``dataset_code`` and ``dataset_name``
+(Johannes, G5 2026-10-29, question 4); ``meta.endpoint`` is the catalogue's path
+``production/datasets_E.json``, ``meta.vintage`` ``None``, since the catalogue carries no
+version, and ``meta.total`` ``None``.
+
+``download_dataset`` is the bulk task, named in ``BULK_TASKS`` and so Python-only: the
+adapters skip it, and no tool or route returns a file path (ADR-0019 decision 4). It
+looks the domain up in the catalogue and streams the ZIP its ``FileLocation`` names to the
+file the caller gives, through core's ``download`` with ``auth=None``, so the account's
+token never goes to the bulk host (conventions §6); ``parse.parse_bulk_csv`` reads the
+file. Its release metadata is the catalogue's: ``meta.vintage`` the dataset's
+``DateUpdate`` as printed (``"2026-10-02T00:00:00"``) and ``meta.published_at`` the same
+time, which the catalogue prints without a zone, ``published_at_naive`` set (conventions
+§4, ADR-0022 rule 2). That is a time, unlike the API's date-only ``date_update``, which
+``get_data`` keeps in ``meta.vintage`` alone (queue row 263). ``meta.endpoint`` is the
+file kind as upstream names the member it holds, ``All_Data_(Normalized).csv`` (ADR-0020
+decision 5), ``meta.request`` the domain and the file's URL.
 """
 
+import os
 from collections.abc import Mapping, Sequence
+from datetime import datetime
+from pathlib import Path
 from typing import Any, Final
 
 from xippios.core import (
+    Downloaded,
     InvalidRequestError,
+    NotFoundError,
     Result,
     ResultCap,
     ResultMeta,
     UnknownCode,
+    ValidationError,
     closest,
     matches,
     sync,
 )
 
 from xippios.faostat import api, params
-from xippios.faostat._client import FILTER_REFUSAL, SOURCE
-from xippios.faostat.models import CodeItem, DataRecord, Domain
+from xippios.faostat._client import FILTER_REFUSAL, SOURCE, client
+from xippios.faostat.models import BulkDataset, CodeItem, DataRecord, Domain
 
 __all__ = [
+    "download_dataset",
     "get_data",
     "get_series",
     "list_areas",
+    "list_bulk_datasets",
     "list_domains",
     "list_elements",
     "list_items",
 ]
 
-# A task named here is Python-only: no tool, no route; the adapters skip it (ADR-0019 decision 4).
-BULK_TASKS: frozenset[str] = frozenset()
+BULK_TASKS: frozenset[str] = frozenset({"download_dataset"})
+"""Tasks the adapters skip (ADR-0019 decision 4): ``download_dataset``, which writes a file
+and is Python-only. Core's ``build_server`` and ``router_from_tasks`` read it from this
+module and leave its names out, so ``mcp.py`` and ``http.py`` pass ``__all__`` whole."""
 
 MCP_CAPS: Mapping[str, ResultCap] = {
     "get_data": ResultCap(
@@ -109,6 +139,13 @@ MCP_CAPS: Mapping[str, ResultCap] = {
         max_rows=1000,
         note="pass search, a part of the code or of the label (15, wheat, maize), to see the rest",
     ),
+    "list_bulk_datasets": ResultCap(
+        max_rows=100,
+        max_bytes=160 * 1024,
+        note=(
+            "pass search, a part of a dataset's code or name (QCL, trade, prices), to see the rest"
+        ),
+    ),
 }
 """MCP result caps of their own, by task function name (conventions §8, ADR-0016).
 
@@ -125,6 +162,12 @@ to the byte bound: a code is about 85 to 110 bytes as compact JSON, and of the f
 tables packaged on 2026-10-29 fourteen fit, the largest QCL's 338 items at 32,872 bytes;
 TCL's 674 items, 66,970 bytes, are cut by the bytes at 657 rows, with the note naming
 ``search``.
+
+``list_bulk_datasets`` takes a cap of its own, 100 rows and 160 KiB (163,840 bytes), so
+the whole catalogue, which an agent needs to choose a dataset, comes uncut (ADR-0016): on
+2026-10-29 it measured 69 datasets and 107,481 bytes as compact JSON, a dataset 399 to
+4,104 bytes, its description the most of it, where the family's 64 KB would cut it at 39
+rows. The note names ``search`` for a catalogue grown past the bound.
 """
 
 LANG: Final = "en"
@@ -553,3 +596,146 @@ async def list_items_async(domain: str, *, search: str | None = None) -> Result[
 
 
 list_items = sync(list_items_async)
+
+
+NORMALIZED_TABLE: Final = "All_Data_(Normalized).csv"
+"""The file kind ``download_dataset`` names in ``meta.endpoint``: the normalized table, as
+upstream names its member, ``<Name>_E_All_Data_(Normalized).csv``."""
+
+
+def _target(dest: str | os.PathLike[str]) -> Path:
+    """``dest`` as a path, refused when it is a directory or its directory is missing.
+
+    Core's own text (``AsyncClient.download``), as the taxonomy's refusal, before any
+    request.
+
+    Raises:
+        InvalidRequestError: ``dest`` is a directory, or its directory does not exist.
+    """
+    target = Path(dest)
+    if target.is_dir():
+        raise InvalidRequestError("dest is a directory; name the file to write", source=SOURCE)
+    if not target.parent.is_dir():
+        raise InvalidRequestError("dest's directory does not exist; create it first", source=SOURCE)
+    return target
+
+
+def _released(dataset: BulkDataset) -> datetime:
+    """The dataset's ``DateUpdate`` as a time, without a zone where the catalogue prints none.
+
+    Raises:
+        ValidationError: The catalogue's ``DateUpdate`` is not an ISO 8601 time.
+    """
+    try:
+        return datetime.fromisoformat(dataset.date_update)
+    except ValueError:
+        raise ValidationError(
+            f"{SOURCE} {api.datasets_e.ENDPOINT}: the DateUpdate of {dataset.dataset_code} is "
+            "not printed as an ISO 8601 time (2026-10-02T00:00:00)",
+            raw=dataset.date_update,
+            source=SOURCE,
+        ) from None
+
+
+async def list_bulk_datasets_async(*, search: str | None = None) -> Result[list[BulkDataset]]:
+    """List FAOSTAT's bulk downloads, one ZIP per dataset, with its size, rows and last update.
+
+    One request, without the account, to the bulk downloads' catalogue
+    (``https://bulks-faostat.fao.org/production/datasets_E.json``), cached for five
+    minutes: every dataset FAOSTAT publishes as a file, 69 on 2026-10-29, each with its
+    code (``dataset_code``, the domain code ``get_data`` takes), name, topic and
+    description, contact, last update as printed (``date_update``,
+    ``"2026-10-02T00:00:00"``), the ZIP's size as printed (``file_size``, ``"2902KB"``),
+    the normalized table's rows (``file_rows``) and the ZIP's URL (``file_location``).
+    The files run from 12 KB (MDDW) to 410,792 KB (TM, the detailed trade matrix; TCL,
+    trade in crops and livestock products, is 267,104 KB) and are downloaded in Python
+    only, with ``download_dataset``; no tool returns a file. ``meta.vintage`` is empty,
+    as the catalogue carries no version.
+
+    Args:
+        search: Text to look for, ignoring case, in a dataset's ``dataset_code`` or
+            ``dataset_name``, e.g. ``"QCL"``, ``"trade"`` or ``"prices"``; ``None`` lists
+            every dataset.
+    """
+    answer = await api.datasets_e.datasets_e()
+    rows = [
+        dataset
+        for dataset in answer.response.datasets.dataset
+        if matches(search, dataset.dataset_code, dataset.dataset_name)
+    ]
+    meta = ResultMeta(
+        source=SOURCE,
+        endpoint=api.datasets_e.ENDPOINT,
+        retrieved_at=answer.retrieved_at,
+        published_at=None,
+        vintage=None,
+        request={"search": search},
+        total=None,
+    )
+    return Result(data=rows, meta=meta)
+
+
+list_bulk_datasets = sync(list_bulk_datasets_async)
+
+
+async def download_dataset_async(domain: str, dest: str | os.PathLike[str]) -> Result[Downloaded]:
+    """Download a FAOSTAT dataset's bulk file, a ZIP holding its normalized table as CSV.
+
+    Python only, no MCP tool or HTTP route (a bulk task). Two requests, neither with the
+    account: the bulk catalogue, as ``list_bulk_datasets`` reads it (cached for five
+    minutes), for the dataset's ``FileLocation``, and the ZIP there, streamed to ``dest``
+    by core's ``download``, never held in memory or cached; nothing in it is read.
+    ``parse_bulk_csv(result.data.path)`` from ``xippios.faostat.parse`` reads its
+    normalized table, the member ``<Name>_E_All_Data_(Normalized).csv``, row by row. The
+    files are large: TCL's (trade in crops and livestock products) is 267 MB, TM's (the
+    detailed trade matrix) 410 MB, QCL's 33 MB, RL's 3 MB, MDDW's 12 KB, the smallest;
+    the table inside is larger still (RL's 50 MB); ``list_bulk_datasets`` prints each
+    ``file_size`` and ``file_rows``. ``result.data`` is core's ``Downloaded``: the path,
+    its size, the content type, ``ETag`` and ``Last-Modified``. ``meta.vintage`` is the
+    catalogue's ``date_update`` for the dataset as printed (``"2026-10-02T00:00:00"``)
+    and ``meta.published_at`` the same time, which the catalogue prints without a zone
+    (``meta.published_at_naive``): a time, unlike ``get_data``'s ``meta.vintage``, the
+    API's ``date_update``, a date, which stays out of ``published_at``.
+    ``meta.endpoint`` is ``"All_Data_(Normalized).csv"``, the file kind as upstream names
+    its member; ``meta.request`` the domain and the file's URL. A code the catalogue does
+    not list raises ``NotFoundError`` naming the closest; ``dest`` must name a file in a
+    directory that exists, and a directory, or a missing one, is refused with
+    ``InvalidRequestError``, both before the file is requested.
+
+    Args:
+        domain: The dataset's code, as ``list_bulk_datasets`` lists it (its
+            ``dataset_code``, the domain code ``get_data`` takes), e.g. ``"RL"`` (Land
+            Use), ``"QCL"`` (Crops and livestock products), ``"MDDW"`` (Minimum Dietary
+            Diversity for Women) or ``"TCL"`` (trade in crops and livestock products).
+        dest: The file to write, e.g. ``"RL.zip"`` or ``Path("data") / "QCL.zip"``, in a
+            directory that exists; a file there is replaced once the download is
+            complete.
+    """
+    target = _target(dest)
+    answer = await api.datasets_e.datasets_e()
+    listed = {dataset.dataset_code: dataset for dataset in answer.response.datasets.dataset}
+    dataset = listed.get(domain)
+    if dataset is None:
+        near = closest(domain, {code: entry.dataset_name for code, entry in listed.items()})
+        hint = f" Did you mean {', '.join(code for code, _ in near)}?" if near else ""
+        raise NotFoundError(
+            f"FAOSTAT's bulk catalogue lists no dataset {domain!r}.{hint} list_bulk_datasets "
+            "lists them",
+            source=SOURCE,
+        )
+    released = _released(dataset)
+    downloaded = await client.download(dataset.file_location, target, auth=None)
+    meta = ResultMeta(
+        source=SOURCE,
+        endpoint=NORMALIZED_TABLE,
+        retrieved_at=downloaded.retrieved_at,
+        published_at=released,
+        published_at_naive=released.tzinfo is None,
+        vintage=dataset.date_update,
+        request={"domain": domain, "url": dataset.file_location},
+        total=None,
+    )
+    return Result(data=downloaded, meta=meta)
+
+
+download_dataset = sync(download_dataset_async)

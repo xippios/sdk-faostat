@@ -21,13 +21,22 @@ and one ``getCodeList`` request; the other look-ups, ``get_series``'s among them
 ``list_domains`` answer from the client's cache, which lives for the run, and each
 ``get_data`` test's check that every column the answer prints is named or kept in
 ``columns`` reads its data request from the cache as well. The reachability check sends
-one more request, without the account. The tests assert shape and release metadata,
-never values, which FAOSTAT revises.
+one more request, without the account. The bulk tasks have one each, without the
+account: ``list_bulk_datasets``'s fetches the catalogue, and ``download_dataset``'s
+downloads MDDW's ZIP, the smallest dataset's (12 KB), to a temporary file and reads it
+with ``parse_bulk_csv``, the live parser test of the file kind ``bulk-csv`` (ADR-0020
+decision 6), its look-up in the catalogue a cache hit: two requests, and a guard fails
+either test if a request goes through the account's login. The tests assert shape and
+release metadata, never values, which FAOSTAT revises.
 """
 
+import csv
+import io
 import re
+import zipfile
 from datetime import UTC, datetime
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -35,8 +44,10 @@ import pytest
 from xippios.core.testing import assert_time_between
 
 from xippios.faostat import api, params, tasks
-from xippios.faostat._client import BASE_URL, config
-from xippios.faostat.models import CodeItem, DataRecord, Domain
+from xippios.faostat._client import BASE_URL, auth, config
+from xippios.faostat.models import BulkDataset, BulkRecord, CodeItem, DataRecord, Domain
+from xippios.faostat.parse import parse_bulk_csv
+from xippios.faostat.parse.bulk_csv import MEMBER_SUFFIX
 
 pytestmark = [pytest.mark.live, pytest.mark.anyio]
 
@@ -185,3 +196,72 @@ async def test_list_items(domain: str) -> None:
     assert all(code.code and code.label for code in result.data)
     assert result.meta.endpoint == "getCodeList"
     assert result.meta.retrieved_at == params.packaged(f"item_{domain}").fetched
+
+
+DATE_UPDATE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$")
+"""The catalogue's ``DateUpdate`` as printed, e.g. ``2026-10-02T00:00:00``, no zone."""
+BULK_HEADERS = {
+    field.validation_alias for field in BulkRecord.model_fields.values() if field.validation_alias
+}
+"""The columns ``BulkRecord`` names, under the headers the files print."""
+
+
+@pytest.fixture
+def without_the_account(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fail a request that goes through the client's ``LoginAuth``: the bulk side sends none."""
+
+    def refused(request: httpx.Request) -> Any:
+        raise AssertionError(f"{request.method} {request.url.path} went through LoginAuth")
+
+    monkeypatch.setattr(auth, "async_auth_flow", refused)
+
+
+@pytest.mark.usefixtures("without_the_account")
+async def test_list_bulk_datasets() -> None:
+    """The catalogue: one request, without the account."""
+    before = datetime.now(UTC)
+    result = await tasks.list_bulk_datasets_async()
+    after = datetime.now(UTC)
+    rows = result.data
+    assert rows
+    assert all(isinstance(row, BulkDataset) for row in rows)
+    codes = [row.dataset_code for row in rows]
+    assert len(set(codes)) == len(codes), "one row per dataset"
+    assert {"MDDW", *DOMAINS} <= set(codes), "the download test's and the data tests' domains"
+    assert all(row.file_location.startswith(f"{api.datasets_e.BULK_URL}/") for row in rows)
+    assert all(row.file_location.endswith(".zip") for row in rows)
+    assert all(DATE_UPDATE.fullmatch(row.date_update) for row in rows)
+    assert result.meta.endpoint == "production/datasets_E.json"
+    assert result.meta.vintage is None
+    assert result.meta.total is None
+    assert_time_between(result.meta.retrieved_at, before, after)
+
+
+@pytest.mark.usefixtures("without_the_account")
+async def test_download_dataset_mddw(tmp_path: Path) -> None:
+    """MDDW's ZIP, read with ``parse_bulk_csv``: every column of its table named or kept."""
+    dest = tmp_path / "MDDW.zip"
+    result = await tasks.download_dataset_async("MDDW", dest)
+    assert result.data.path == dest
+    assert result.data.bytes == dest.stat().st_size
+    assert dest.read_bytes()[:4] == b"PK\x03\x04", "a ZIP"
+    with zipfile.ZipFile(dest) as archive:
+        tables = [name for name in archive.namelist() if name.endswith(MEMBER_SUFFIX)]
+        assert len(tables) == 1, "one normalized table"
+        with archive.open(tables[0]) as raw:
+            header = next(csv.reader(io.TextIOWrapper(raw, encoding="utf-8-sig", newline="")))
+    rows = list(parse_bulk_csv(dest))
+    assert rows, "the table has rows"
+    assert all(isinstance(row, BulkRecord) for row in rows)
+    others = [column for column in header if column not in BULK_HEADERS]
+    assert all(list(row.columns) == others for row in rows), "every other column in columns"
+    assert all(isinstance(row.value, Decimal | str | None) for row in rows)
+    meta = result.meta
+    assert meta.endpoint == "All_Data_(Normalized).csv"
+    assert meta.vintage is not None
+    assert DATE_UPDATE.fullmatch(meta.vintage)
+    assert meta.published_at is not None
+    assert meta.published_at.tzinfo is None
+    assert meta.published_at_naive is True
+    assert meta.request["domain"] == "MDDW"
+    assert meta.request["url"].endswith("_All_Data_(Normalized).zip")

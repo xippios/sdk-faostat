@@ -16,23 +16,33 @@ answers spell it (``docs/upstream/samples/data_QCL_231_2510_15_2015-2021.json``)
 and ``CodeItem`` schemas (``docs/upstream/samples/codes_element_QCL.json``). Each field
 is upstream's name snake_cased, the upstream spelling accepted with ``validation_alias``,
 so every output surface stays snake_case.
+
+Two models mirror the bulk downloads, which are files on ``bulks-faostat.fao.org``, not
+answers of the API: ``DatasetsCatalogue`` with ``Datasets`` and ``BulkDataset`` is the
+catalogue ``datasets_E.json`` (``docs/upstream/bulk/datasets_E.json``), and
+``BulkRecord`` one row of a dataset's normalized CSV, ``<Name>_E_All_Data_(Normalized).csv``
+in its ZIP, the fields the file's headers snake_cased (ADR-0020 decision 2).
 """
 
 from collections.abc import Mapping
 from decimal import Decimal
 from typing import Any
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from xippios.core import UpstreamModel
 
 __all__ = [
     "Auth",
     "AuthenticationResult",
+    "BulkDataset",
+    "BulkRecord",
     "CodeItem",
     "CodeResponse",
     "DataMetadata",
     "DataRecord",
     "DataResponse",
+    "Datasets",
+    "DatasetsCatalogue",
     "Domain",
     "DsdColumn",
     "GroupsAndDomainsResponse",
@@ -40,24 +50,33 @@ __all__ = [
 ]
 
 
-def _gather_columns(model: type[UpstreamModel], data: Any) -> Any:
-    """``data`` with the keys no field of ``model`` names gathered into ``columns``.
+class _KeepsColumns(UpstreamModel):
+    """A model that keeps every column no field of its own names in its ``columns``.
 
-    A row's columns under upstream's headers, as sent and in the row's order, for a
-    model that keeps every column it does not name (ADR-0003: nothing dropped). A
-    mapping that carries ``columns`` already (a record dumped by field name) is taken as
-    it is.
+    ``DataRecord``, ``CodeItem`` and ``BulkRecord`` share it: each declares ``columns``
+    itself, last, and the validator below fills it with the keys that no field and no
+    ``validation_alias`` names, under upstream's names, as sent and in the record's order
+    (ADR-0003: nothing dropped), so a named column is never there too.
     """
-    if not isinstance(data, Mapping) or "columns" in data:
-        return data
-    named = set(model.model_fields)
-    named |= {
-        field.validation_alias
-        for field in model.model_fields.values()
-        if isinstance(field.validation_alias, str)
-    }
-    others = {header: value for header, value in data.items() if header not in named}
-    return {**data, "columns": others}
+
+    @model_validator(mode="before")
+    @classmethod
+    def _other_columns(cls, data: Any) -> Any:
+        """``data`` with the keys no field names gathered into ``columns``.
+
+        A mapping that carries ``columns`` already (a record dumped by field name) is
+        taken as it is.
+        """
+        if not isinstance(data, Mapping) or "columns" in data:
+            return data
+        named = set(cls.model_fields)
+        named |= {
+            field.validation_alias
+            for field in cls.model_fields.values()
+            if isinstance(field.validation_alias, str)
+        }
+        others = {header: value for header, value in data.items() if header not in named}
+        return {**data, "columns": others}
 
 
 class AuthenticationResult(UpstreamModel):
@@ -143,7 +162,7 @@ class DataMetadata(Metadata):
     dsd: list[DsdColumn] = Field(default_factory=list)
 
 
-class DataRecord(UpstreamModel):
+class DataRecord(_KeepsColumns):
     """One row of a data answer: one value with its domain, area, element, item and year.
 
     The columns as the answers print them, each a field snake_cased: ``Domain Code``,
@@ -222,12 +241,6 @@ class DataRecord(UpstreamModel):
     flag_description: str = Field(validation_alias="Flag Description")
     note: str | None = Field(default=None, validation_alias="Note")
     columns: Mapping[str, Any] = Field(default_factory=dict)
-
-    @model_validator(mode="before")
-    @classmethod
-    def _other_columns(cls, data: Any) -> Any:
-        """Gather the columns no field names into ``columns``, under upstream's headers."""
-        return _gather_columns(cls, data)
 
 
 class DataResponse(UpstreamModel):
@@ -314,7 +327,7 @@ class GroupsAndDomainsResponse(UpstreamModel):
     data: list[Domain]
 
 
-class CodeItem(UpstreamModel):
+class CodeItem(_KeepsColumns):
     """One code of a domain's dimension, as ``getCodeList`` lists it: the document's ``CodeItem``.
 
     The codes a data query filters by: ``codes/area/QCL`` lists the areas QCL's
@@ -352,12 +365,6 @@ class CodeItem(UpstreamModel):
     aggregate_type: str | None = None
     columns: Mapping[str, Any] = Field(default_factory=dict)
 
-    @model_validator(mode="before")
-    @classmethod
-    def _other_columns(cls, data: Any) -> Any:
-        """Gather the fields no field names into ``columns``, under upstream's names."""
-        return _gather_columns(cls, data)
-
     def dump_upstream(self) -> dict[str, Any]:
         """This code as upstream sent it, for a packaged table (conventions §3).
 
@@ -389,3 +396,162 @@ class CodeResponse(UpstreamModel):
 
     metadata: Metadata
     data: list[CodeItem]
+
+
+class BulkDataset(UpstreamModel):
+    """One dataset of FAOSTAT's bulk downloads, as the catalogue ``datasets_E.json`` lists it.
+
+    A dataset is one ZIP file under ``https://bulks-faostat.fao.org/production/``: every
+    one of the 69 the catalogue listed on 2026-10-29 a ``zip`` of ``csv``, whose
+    normalized table is one member ``<Name>_E_All_Data_(Normalized).csv`` beside small
+    code lists (``docs/upstream/bulk/datasets_E.json``). ``dataset_code`` is the code the
+    API takes as its domain (``"QCL"``, ``"RL"``). The fields as the catalogue prints them,
+    in its order, upstream's PascalCase names snake_cased; ``date_update`` and
+    ``file_size`` are text as printed, ``file_rows`` a number.
+
+    Attributes:
+        dataset_code: The dataset's code, e.g. ``"QCL"``, ``"RL"`` or ``"MDDW"``, the
+            API's domain code; upstream's ``DatasetCode``.
+        dataset_name: The dataset's name, e.g. ``"Production: Crops and livestock
+            products"``; upstream's ``DatasetName``.
+        topic: What the dataset covers, as printed, e.g. ``"Women of reproductive age
+            (15-49 years) from 30 countries, ..."`` (MDDW); ``None`` where the catalogue
+            prints ``null`` (12 datasets on 2026-10-29). Upstream's ``Topic``.
+        dataset_description: The dataset's description as printed; ``None`` where the
+            catalogue prints ``null`` (3 datasets). Upstream's ``DatasetDescription``.
+        contact: The team responsible, e.g. ``"Food and Agriculture Organization of the
+            United Nations (FAO): Statistics Division (ESS), Environment Statistics
+            Team"``; upstream's ``Contact``.
+        email: The contact's address as printed, e.g. ``"faostat@fao.org"``, at times two
+            separated by ``; ``; ``None`` where the catalogue prints ``null`` (3
+            datasets). Upstream's ``Email``.
+        date_update: The dataset's last update as printed, a time without a zone, e.g.
+            ``"2026-10-02T00:00:00"``; upstream's ``DateUpdate``.
+        compression_format: The file's compression, ``"zip"`` for every dataset on
+            2026-10-29; upstream's ``CompressionFormat``.
+        file_type: The format inside it, ``"csv"`` for every dataset on 2026-10-29;
+            upstream's ``FileType``.
+        file_size: The ZIP's size as printed, in kilobytes, e.g. ``"2902KB"`` (RL),
+            ``"12KB"`` (MDDW) or ``"267104KB"`` (TCL); upstream's ``FileSize``.
+        file_rows: The rows of the normalized table as the catalogue counts them, e.g.
+            ``421850`` (RL); upstream's ``FileRows``.
+        file_location: The ZIP's URL, e.g.
+            ``"https://bulks-faostat.fao.org/production/Inputs_LandUse_E_All_Data_(Normalized).zip"``;
+            upstream's ``FileLocation``.
+    """
+
+    dataset_code: str = Field(validation_alias="DatasetCode")
+    dataset_name: str = Field(validation_alias="DatasetName")
+    topic: str | None = Field(default=None, validation_alias="Topic")
+    dataset_description: str | None = Field(default=None, validation_alias="DatasetDescription")
+    contact: str | None = Field(default=None, validation_alias="Contact")
+    email: str | None = Field(default=None, validation_alias="Email")
+    date_update: str = Field(validation_alias="DateUpdate")
+    compression_format: str = Field(validation_alias="CompressionFormat")
+    file_type: str = Field(validation_alias="FileType")
+    file_size: str = Field(validation_alias="FileSize")
+    file_rows: int = Field(validation_alias="FileRows")
+    file_location: str = Field(validation_alias="FileLocation")
+
+
+class Datasets(UpstreamModel):
+    """The catalogue's ``Datasets`` object: its list of datasets.
+
+    The object also carries ``-xmlns:xsi``, an XML namespace left over from the XML the
+    catalogue was converted from (``"http://www.w3.org/2001/XMLSchema-instance"``), which
+    names no dataset and is not kept.
+
+    Attributes:
+        dataset: The datasets in the catalogue's order, by code, e.g. 69 on 2026-10-29;
+            upstream's ``Dataset``.
+    """
+
+    dataset: list[BulkDataset] = Field(validation_alias="Dataset")
+
+
+class DatasetsCatalogue(UpstreamModel):
+    """The bulk downloads' catalogue, ``datasets_E.json``: one object, ``Datasets``.
+
+    Attributes:
+        datasets: The catalogue's ``Datasets``, its list of datasets under ``dataset``.
+    """
+
+    datasets: Datasets = Field(validation_alias="Datasets")
+
+
+class BulkRecord(_KeepsColumns):
+    """One row of a bulk dataset's normalized table, as its CSV prints it.
+
+    The file is the member ``<Name>_E_All_Data_(Normalized).csv`` of the dataset's ZIP:
+    one header row, then one row per value, comma-separated, every cell quoted text but
+    an empty one, lines ending in CRLF (ADR-0020 decision 2: the model mirrors the file).
+    The named fields are the columns of RL's header (2026-10-29), ``Area Code``, ``Area
+    Code (M49)``, ``Area``, ``Item Code``, ``Item``, ``Element Code``, ``Element``, ``Year
+    Code``, ``Year``, ``Unit``, ``Value``, ``Flag``, ``Note``, and ``Item Code (CPC)``,
+    which the OpenAPI document's ``DataResponse`` names beside ``Area Code (M49)`` and the
+    production and trade files are expected to print; each header snake_cased, the
+    parenthesised system a suffix. Each is ``None`` in a dataset that does not print the
+    column: the normalized table is the dataset's own, not one table. MDDW's prints
+    ``Survey Code``, ``Survey``, ``Food Group Code``, ``Food Group``, ``Indicator Code``,
+    ``Indicator``, ``Geographic Level Code``, ``Geographic Level``, ``Element Code``,
+    ``Element``, ``Unit``, ``Value`` and ``Flag``: its rows have ``element_code``,
+    ``element``, ``unit``, ``value`` and ``flag``, the rest under their headers in
+    ``columns``. Every column the row prints beyond the named ones is kept there, so
+    nothing is dropped (ADR-0003). Every value is text as printed, an empty cell ``""``,
+    but ``value``. ``DataRecord`` stays the API's row: the files print other columns
+    (no ``Domain Code`` or ``Flag Description``) and other forms (``Value`` with six
+    decimals).
+
+    Attributes:
+        area_code: The area's FAO code, e.g. ``"2"`` (Afghanistan); upstream's ``Area
+            Code``.
+        area_code_m49: The area's M49 code as printed, with a leading apostrophe, e.g.
+            ``"'004"``; upstream's ``Area Code (M49)``.
+        area: The area's name, e.g. ``"Afghanistan"``.
+        item_code: The item's FAO code, e.g. ``"6600"`` (Country area); upstream's
+            ``Item Code``.
+        item_code_cpc: The item's CPC code as printed; upstream's ``Item Code (CPC)``.
+            ``None`` in RL and MDDW, which do not print it.
+        item: The item's name, e.g. ``"Country area"``.
+        element_code: The element's code as the file prints it, e.g. ``"5110"``;
+            upstream's ``Element Code``.
+        element: The element's name, e.g. ``"Area"``.
+        year_code: The year's code, e.g. ``"1961"``; upstream's ``Year Code``.
+        year: The year, e.g. ``"1961"``.
+        unit: The value's unit as printed, e.g. ``"1000 ha"`` or ``"%"``.
+        value: The value, a number where its text is one, e.g.
+            ``Decimal("65286.000000")``, the six decimals as printed, else the text as
+            printed; ``None`` for an empty cell (RL's 85 values flagged ``L``, "Missing
+            value", on 2026-10-29). Upstream's ``Value``.
+        flag: The value's flag, e.g. ``"A"`` (Official value) or ``"E"`` (Estimated
+            value); the ZIP's ``..._Flags.csv`` lists them.
+        note: The value's note as printed, ``""`` when it has none (every row of RL on
+            2026-10-29); ``None`` in a dataset without the column (MDDW).
+        columns: The row's other columns, under upstream's headers, as printed, in the
+            row's order, e.g. ``{"Survey Code": "076_2014", "Survey": "Brazil - 2014",
+            ...}`` in MDDW; ``{}`` in RL, whose columns are all named.
+    """
+
+    area_code: str | None = Field(default=None, validation_alias="Area Code")
+    area_code_m49: str | None = Field(default=None, validation_alias="Area Code (M49)")
+    area: str | None = Field(default=None, validation_alias="Area")
+    item_code: str | None = Field(default=None, validation_alias="Item Code")
+    item_code_cpc: str | None = Field(default=None, validation_alias="Item Code (CPC)")
+    item: str | None = Field(default=None, validation_alias="Item")
+    element_code: str | None = Field(default=None, validation_alias="Element Code")
+    element: str | None = Field(default=None, validation_alias="Element")
+    year_code: str | None = Field(default=None, validation_alias="Year Code")
+    year: str | None = Field(default=None, validation_alias="Year")
+    unit: str | None = Field(default=None, validation_alias="Unit")
+    value: Decimal | str | None = Field(
+        default=None, validation_alias="Value", union_mode="left_to_right"
+    )
+    flag: str | None = Field(default=None, validation_alias="Flag")
+    note: str | None = Field(default=None, validation_alias="Note")
+    columns: Mapping[str, str] = Field(default_factory=dict)
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def _empty_value(cls, value: Any) -> Any:
+        """An empty cell, a value the file does not print, is ``None``."""
+        return None if value == "" else value

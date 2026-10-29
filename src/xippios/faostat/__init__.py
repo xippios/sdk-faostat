@@ -5,9 +5,11 @@ Upstream: FAOSTAT.
 
 from xippios.faostat._version import __version__
 from xippios.faostat.tasks import (
+    download_dataset,
     get_data,
     get_series,
     list_areas,
+    list_bulk_datasets,
     list_domains,
     list_elements,
     list_items,
@@ -15,9 +17,11 @@ from xippios.faostat.tasks import (
 
 __all__ = [
     "__version__",
+    "download_dataset",
     "get_data",
     "get_series",
     "list_areas",
+    "list_bulk_datasets",
     "list_domains",
     "list_elements",
     "list_items",
