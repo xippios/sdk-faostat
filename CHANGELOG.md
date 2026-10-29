@@ -49,3 +49,9 @@ All notable changes to this project are documented here. The format follows
   PP or RL lacks with `UnknownCode` before sending, naming the table, its fetch date and
   the closest codes (`element=5510` on QCL names 2510, Production Quantity), since
   FAOSTAT answers an unknown code with no rows; another domain's codes are sent unchecked.
+- `get_series(domain, area, item, element, *, since, until)`, one `get_data` request for
+  a yearly series: the years `since` to `until` as upstream's `year` list, or no year
+  filter when both are left out, every year the domain holds; one without the other, or
+  `since` after `until`, is refused before sending. Rows in upstream's order, `get_data`'s
+  code checks and `meta`, `since` and `until` added to `meta.request`. Tool
+  `faostat_get_series`, 200 rows with a note naming `since` and `until`.

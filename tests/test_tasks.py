@@ -22,6 +22,13 @@ replay tests of ``get_data`` and ``list_domains`` send exactly the recorded quer
 (``sent_query`` against ``recorded_query``); the MCP test of ``get_data`` sends two
 years where the fixture recorded seven, and checks the years sent.
 
+``get_series`` replays ``QCL_231_2510_15_2015_2021`` too, its recorded query being the
+year list ``since=2015, until=2021`` sends: the route matches the recorded ``area``,
+``item``, ``element`` and ``year`` (``match_params``), so a request with other years finds
+no route. Without ``since`` and ``until`` the same answer is served at its path, whatever
+the query, and the test checks that no ``year`` filter was sent; the refusals send
+nothing.
+
 ``list_areas``, ``list_elements`` and ``list_items`` answer from the fifteen packaged
 tables under ``src/xippios/faostat/reference/``, without a request; their tests, and
 ``get_data``'s refusals of a code a table lacks, read the codes, labels, counts and fetch
@@ -57,6 +64,7 @@ from xippios.core.testing import (
 from xippios.faostat import (
     api,
     get_data,
+    get_series,
     list_areas,
     list_domains,
     list_elements,
@@ -510,6 +518,165 @@ def test_get_data_route_takes_a_json_body(replay_fixture: ReplayFixture) -> None
     assert answered.status_code == 200
     assert sent_query(route) == recorded_query(recorded(GET_DATA, QCL))
     assert len(answered.json()["data"]) == 7
+
+
+SERIES = ("QCL", "231", "15", "2510")
+"""``get_series``'s domain, area, item and element: wheat production in the United States."""
+SERIES_FILTERS = ["area", "item", "element", "year"]
+"""The recorded query parameters a ``get_series`` replay must send as recorded."""
+
+
+def test_get_series_qcl(replay_fixture: ReplayFixture) -> None:
+    route = replay_fixture(GET_DATA, QCL, match_params=SERIES_FILTERS)
+    domains = replay_fixture(DOMAINS, "all")
+    before = datetime.now(UTC)
+    result = get_series(*SERIES, since=2015, until=2021)
+    after = datetime.now(UTC)
+    assert route.call_count == 1
+    assert sent_query(route) == recorded_query(recorded(GET_DATA, QCL))
+    assert domains.call_count == 1, "the release date, as get_data looks it up"
+    assert result.data == recorded_rows(QCL)
+    assert [row.year for row in result.data] == [str(year) for year in range(2015, 2022)]
+    assert {(row.area_code, row.item_code, row.element_code) for row in result.data} == {
+        ("231", "15", "5510")
+    }, "the answer's element code, not the 2510 sent"
+    assert all(isinstance(row.value, Decimal) for row in result.data)
+    meta = result.meta
+    assert meta.source == SOURCE
+    assert meta.endpoint == "get_data"
+    assert_time_between(meta.retrieved_at, before, after)
+    assert meta.published_at is None
+    assert meta.published_at_naive is False
+    assert meta.vintage == date_update("QCL")
+    assert meta.total is None
+    assert meta.request == {
+        "lang": "en",
+        "domain_code": "QCL",
+        "area": "231",
+        "item": "15",
+        "element": "2510",
+        "year": "2015,2016,2017,2018,2019,2020,2021",
+        **SENT_OPTIONS,
+        "since": 2015,
+        "until": 2021,
+    }
+
+
+def test_get_series_without_since_and_until_sends_no_year_filter(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """Every year the domain holds: no ``year`` filter; the recorded answer served at its path."""
+    route = replay_fixture(GET_DATA, QCL)
+    replay_fixture(DOMAINS, "all")
+    result = get_series(*SERIES)
+    recorded_filters = recorded_query(recorded(GET_DATA, QCL))
+    assert "year" not in sent_query(route)
+    assert sent_query(route) == {
+        name: value for name, value in recorded_filters.items() if name != "year"
+    }
+    assert result.data == recorded_rows(QCL)
+    assert "year" not in result.meta.request
+    assert "since" not in result.meta.request
+    assert "until" not in result.meta.request
+    assert result.meta.vintage == date_update("QCL")
+
+
+@pytest.mark.parametrize(
+    ("since", "until", "alone"), [(2015, None, "since"), (None, 2021, "until")]
+)
+def test_get_series_refuses_one_of_since_and_until(
+    respx_mock: respx.MockRouter, since: int | None, until: int | None, alone: str
+) -> None:
+    with pytest.raises(InvalidRequestError) as raised:
+        get_series(*SERIES, since=since, until=until)
+    message = str(raised.value)
+    assert message.startswith("since and until go together: give both"), message
+    assert message.endswith(f"{alone} came alone")
+    assert not isinstance(raised.value, UnknownCode)
+    assert not respx_mock.calls, "nothing sent, not even the login"
+
+
+def test_get_series_refuses_since_after_until(respx_mock: respx.MockRouter) -> None:
+    with pytest.raises(InvalidRequestError) as raised:
+        get_series(*SERIES, since=2021, until=2015)
+    assert str(raised.value) == (
+        "since 2021 is after until 2015: since is the first year of the series and until the last"
+    )
+    assert not respx_mock.calls
+
+
+def test_get_series_one_year(replay_fixture: ReplayFixture) -> None:
+    """``since`` equal to ``until``: one year in the filter."""
+    route = replay_fixture(GET_DATA, QCL)
+    replay_fixture(DOMAINS, "all")
+    result = get_series(*SERIES, since=2020, until=2020)
+    assert sent_query(route)["year"] == "2020"
+    assert result.meta.request["year"] == "2020"
+    assert (result.meta.request["since"], result.meta.request["until"]) == (2020, 2020)
+
+
+def test_get_series_checks_codes_as_get_data_does(respx_mock: respx.MockRouter) -> None:
+    """The rows' element code is refused before sending, by ``get_data``'s own check."""
+    with pytest.raises(UnknownCode) as raised:
+        get_series("QCL", "231", "15", "5510", since=2015, until=2021)
+    assert (raised.value.param, raised.value.value, raised.value.list_name) == (
+        "element",
+        "5510",
+        "element_QCL",
+    )
+    assert ("2510", params.labels("element_QCL")["2510"]) in raised.value.closest
+    assert not respx_mock.calls
+
+
+@pytest.mark.anyio
+async def test_get_series_tool_end_to_end(replay_fixture: ReplayFixture) -> None:
+    route = replay_fixture(GET_DATA, QCL, match_params=SERIES_FILTERS)
+    replay_fixture(DOMAINS, "all")
+    domain, area, item, element = SERIES
+    arguments = {"domain": domain, "area": area, "item": item, "element": element}
+    payload = await mcp_call(
+        server, "faostat_get_series", {**arguments, "since": 2015, "until": 2021}
+    )
+    assert sent_query(route) == recorded_query(recorded(GET_DATA, QCL))
+    assert [row["year"] for row in payload["data"]] == [str(year) for year in range(2015, 2022)]
+    assert "note" not in payload, "7 rows, under the cap"
+    assert payload["meta"]["endpoint"] == "get_data"
+    assert payload["meta"]["vintage"] == date_update("QCL")
+    assert (payload["meta"]["request"]["since"], payload["meta"]["request"]["until"]) == (
+        2015,
+        2021,
+    )
+
+
+@pytest.mark.anyio
+async def test_get_series_tool_cap_note_names_since_and_until(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """``MCP_CAPS``'s note, through a server built as ``mcp.py`` builds it, rows cut to 2."""
+    replay_fixture(GET_DATA, QCL, match_params=SERIES_FILTERS)
+    replay_fixture(DOMAINS, "all")
+    cap = tasks.MCP_CAPS["get_series"]
+    assert cap.max_rows == 200
+    narrow = build_server(
+        SOURCE, [tasks.get_series], caps={"get_series": dataclasses.replace(cap, max_rows=2)}
+    )
+    domain, area, item, element = SERIES
+    payload = await mcp_call(
+        narrow,
+        "faostat_get_series",
+        {
+            "domain": domain,
+            "area": area,
+            "item": item,
+            "element": element,
+            "since": 2015,
+            "until": 2021,
+        },
+    )
+    assert [row["year"] for row in payload["data"]] == ["2015", "2016"]
+    shown = f"showing 2 of 7 rows (cap: 2 rows or {cap.max_bytes} bytes)"
+    assert payload["note"] == f"{shown}; {cap.note}"
+    assert "narrow since and until, or one code per dimension" in payload["note"]
 
 
 def test_list_domains(replay_fixture: ReplayFixture) -> None:

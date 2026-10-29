@@ -24,7 +24,7 @@ tasks return neither. The bulk downloads need none.
 ## 30-second example
 
 ```python
-from xippios.faostat import get_data, list_domains, list_elements
+from xippios.faostat import get_data, get_series, list_domains, list_elements
 
 wheat = get_data("QCL", area="231", element="2510", item="15", year=range(2015, 2022))
 row = wheat.data[0]  # wheat production in the United States of America, 2015
@@ -33,6 +33,9 @@ row.element_code, row.element  # ("5510", "Production"): the answer's code, not 
 row.value, row.unit, row.flag_description  # (Decimal("55839540"), "t", "Official value")
 wheat.meta.vintage  # "2025-12-31": QCL's last update, as list_domains prints it
 wheat.meta.request  # {"lang": "en", "domain_code": "QCL", "area": "231", ...}
+
+series = get_series("QCL", "231", "15", "2510", since=2015, until=2021)  # the same seven rows
+series.meta.request["year"], series.meta.request["since"]  # ("2015,2016,...,2021", 2015)
 
 list_domains(search="prices").data  # PP, CP, PD, PE (group Prices) and PA, an archive
 list_elements("QCL", search="production").data[0]  # code "2510", "Production Quantity"
@@ -55,6 +58,14 @@ closest codes; another domain's codes are sent unchecked, and a code that matche
 there gives an empty list. An unknown domain raises `NotFoundError`. `meta.vintage` is
 the domain's `date_update` from `list_domains` (`groupsanddomains`); `meta.published_at`
 stays `None`, since a date is no release time.
+
+`get_series(domain, area, item, element, *, since, until)` is one `get_data` request
+for a yearly series: `since` and `until` become the year filter, the years from one to
+the other as upstream's comma list, or no year filter when both are left out, which
+answers every year the domain holds; one without the other is refused before sending.
+The rows come in upstream's order, area, item, year ascending, and a year the domain
+does not hold has no row. The codes are checked as `get_data` checks them, and `meta` is
+`get_data`'s, with `since` and `until` added to `meta.request`.
 
 `list_areas(domain, *, search)`, `list_elements(domain, *, search)` and
 `list_items(domain, *, search)` list the codes those filters take, for the same five
@@ -92,6 +103,7 @@ exactly tasks.__all__. -->
 | Upstream operation | Task function | MCP tool | Status |
 | --- | --- | --- | --- |
 | `get_data` (`GET /{lang}/data/{domain_code}`), the release date from `get_groupsanddomains` | `get_data(domain, area, item, element, year, area_cs, item_cs, page_size, page_number)`, a domain's rows | `faostat_get_data` | alpha |
+| `get_data` with a `year` list, the release date from `get_groupsanddomains` | `get_series(domain, area, item, element, since, until)`, one domain's series over a year range | `faostat_get_series` | alpha |
 | `get_groupsanddomains` (`GET /{lang}/groupsanddomains`) | `list_domains(search)`, the domains and subgroups with their groups and release dates | `faostat_list_domains` | alpha |
 | `getCodeList` (`GET /{lang}/codes/{dimension_id}/{domain_code}`), `area`, packaged for QCL, TCL, FBS, PP and RL | `list_areas(domain, search)`, a domain's area codes | `faostat_list_areas` | alpha |
 | `getCodeList`, `element`, packaged for the same five domains | `list_elements(domain, search)`, a domain's element codes, the filter codes | `faostat_list_elements` | alpha |
