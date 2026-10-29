@@ -23,9 +23,10 @@ trade), FBS (Food Balances, 2010-), PP (Producer Prices) and RL (Land Use), each
 English, `show_lists` left to upstream's default (true). A file is named
 `<dimension>_<domain>.json`, the domain's code as upstream writes it; its `param` is the
 dimension, the data endpoint's filter that takes the codes, and its records carry `code`,
-`label` and `aggregate_type`, the item tables `parent` too, in upstream's order and as
-upstream sends them: QCL's item list names its five top groups (`QC>` Crops, primary
-> (List), and four more) twice, and so does the table. `list_areas`, `list_elements` and
+`label` and `aggregate_type`, and `parent` in QCL's, TCL's and RL's item tables (RL's on
+51 of 57 records) and in TCL's and RL's element tables, in upstream's order and as
+upstream sends them: QCL's item list names its five top groups (`QC>`, "Crops, primary >
+(List)", and four more) twice, and so does the table. `list_areas`, `list_elements` and
 `list_items` answer from them, and `get_data` checks a packaged domain's area, element
 and item codes against them before it sends.
 
