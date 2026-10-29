@@ -14,7 +14,8 @@ uv add "xippios-faostat[mcp]"     # + MCP server
 uv add "xippios-faostat[http]"    # + FastAPI router
 ```
 
-No API key is needed.
+A FAO account is needed: `FAOSTAT_USERNAME` and `FAOSTAT_PASSWORD` in the environment;
+the client logs in for you (from 0.1.0's first tasks on). The bulk downloads need none.
 
 ## 30-second example
 
@@ -58,9 +59,18 @@ exactly tasks.__all__. -->
 
 ## Upstream terms and attribution
 
-Data comes from FAOSTAT (https://www.fao.org/faostat/), on whatever terms upstream
-states for it, if any; this package adds no rights to it. Documentation snapshot and its
-attribution: `docs/upstream/FETCHED.md`.
+Data comes from FAOSTAT (https://www.fao.org/faostat/) under the
+[FAO Statistical Database Terms of Use](https://www.fao.org/contact-us/terms/db-terms-of-use/en/):
+unless their metadata or webpage say otherwise, the datasets FAO's corporate statistical
+databases disseminate, FAOSTAT among them (the terms' Annex 1), are licensed under the
+Creative Commons Attribution-4.0 International licence (CC BY 4.0), as complemented by
+those terms. The terms ask for this citation:
+
+> FAO. [YYYY (year of last update)]. [Name of database: Name of dataset OR Name of
+> database]. [Accessed on [DD Month YYYY]]. [URL] Licence: CC-BY-4.0.
+
+This package adds no rights to the data. Documentation snapshot and its attribution:
+`docs/upstream/FETCHED.md`.
 
 ## Licence
 
