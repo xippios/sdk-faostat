@@ -1,0 +1,4051 @@
+{
+  "param": "item",
+  "endpoint": "getCodeList",
+  "fetched": "2026-10-29T07:06:47Z",
+  "records": [
+    {
+      "code": "809",
+      "label": "Abaca, manila hemp, raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "800",
+      "label": "Agave fibres, raw, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "221",
+      "label": "Almonds, in shell",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "231",
+      "label": "Almonds, shelled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1168",
+      "label": "Animal oils and fats n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1274",
+      "label": "Animal or vegetable fats and oils and their fractions, chemically modified, except those hydrogenated, inter-esterified, re-esterified or elaidinized; inedible mixtures or preparations of animal or vegetable fats or oils",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "711",
+      "label": "Anise, badian, coriander, cumin, caraway, fennel and juniper berries, raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "518",
+      "label": "Apple juice",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "519",
+      "label": "Apple juice, concentrated",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "515",
+      "label": "Apples",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "526",
+      "label": "Apricots",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "527",
+      "label": "Apricots, dried",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "226",
+      "label": "Areca nuts",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "366",
+      "label": "Artichokes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "367",
+      "label": "Asparagus",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1107",
+      "label": "Asses",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "572",
+      "label": "Avocados",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "170",
+      "label": "Bagasse",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "839",
+      "label": "Balata, gutta-percha, guayule, chicle and similar natural gums in primary forms or in plates, sheets or strip",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "203",
+      "label": "Bambara beans, dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "486",
+      "label": "Bananas",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "44",
+      "label": "Barley",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "48",
+      "label": "Barley flour and grits",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "46",
+      "label": "Barley, pearled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "176",
+      "label": "Beans, dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "875",
+      "label": "Beef and veal preparations nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "51",
+      "label": "Beer of barley, malted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "86",
+      "label": "Beer of sorghum, malted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1181",
+      "label": "Bees",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1183",
+      "label": "Beeswax",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "169",
+      "label": "Beet pulp",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "647",
+      "label": "Beets for fodder",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "552",
+      "label": "Blueberries",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "872",
+      "label": "Bovine meat, salted, dried or smoked",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "47",
+      "label": "Bran of barley",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "91",
+      "label": "Bran of buckwheat",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "112",
+      "label": "Bran of cereals n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "96",
+      "label": "Bran of fonio",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "59",
+      "label": "Bran of maize",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "81",
+      "label": "Bran of millet",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "105",
+      "label": "Bran of mixed grain",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "77",
+      "label": "Bran of oats",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "213",
+      "label": "Bran of pulses",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "35",
+      "label": "Bran of rice",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "73",
+      "label": "Bran of rye",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "85",
+      "label": "Bran of sorghum",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "17",
+      "label": "Bran of wheat",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "216",
+      "label": "Brazil nuts, in shell",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "229",
+      "label": "Brazil nuts, shelled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "20",
+      "label": "Bread",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "41",
+      "label": "Breakfast cereals",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "654",
+      "label": "Brewing or distilling dregs and waste",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "181",
+      "label": "Broad beans and horse beans, dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "420",
+      "label": "Broad beans and horse beans, green",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "89",
+      "label": "Buckwheat",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "946",
+      "label": "Buffalo",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "21",
+      "label": "Bulgur",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "983",
+      "label": "Butter and ghee of sheep milk",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "886",
+      "label": "Butter of cow milk",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "264",
+      "label": "Butter of karite nuts",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "893",
+      "label": "Buttermilk, curdled and acidified milk",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "899",
+      "label": "Buttermilk, dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "358",
+      "label": "Cabbages",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "253",
+      "label": "Cake of copra",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "332",
+      "label": "Cake of cottonseed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "245",
+      "label": "Cake of groundnuts",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "338",
+      "label": "Cake of hempseed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "314",
+      "label": "Cake of kapok",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "335",
+      "label": "Cake of linseed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "61",
+      "label": "Cake of maize",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "294",
+      "label": "Cake of mustard seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "259",
+      "label": "Cake of palm kernel",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "272",
+      "label": "Cake of rapeseed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "37",
+      "label": "Cake of rice bran",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "282",
+      "label": "Cake of safflowerseed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "291",
+      "label": "Cake of sesame seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "238",
+      "label": "Cake of soya beans",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "269",
+      "label": "Cake of sunflower seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "341",
+      "label": "Cake, oilseeds nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1126",
+      "label": "Camels",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "101",
+      "label": "Canary seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "163",
+      "label": "Cane sugar, non-centrifugal",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "630",
+      "label": "Cane tops",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "451",
+      "label": "Canned mushrooms",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "568",
+      "label": "Cantaloupes and other melons",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "426",
+      "label": "Carrots and turnips",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "217",
+      "label": "Cashew nuts, in shell",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "230",
+      "label": "Cashew nuts, shelled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "591",
+      "label": "Cashewapple",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "128",
+      "label": "Cassava, dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "125",
+      "label": "Cassava, fresh",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "265",
+      "label": "Castor oil seeds",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "866",
+      "label": "Cattle",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "869",
+      "label": "Cattle fat, unrendered",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "871",
+      "label": "Cattle, butcher fat",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "393",
+      "label": "Cauliflowers and broccoli",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "113",
+      "label": "Cereal preparations",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "635",
+      "label": "Cereal straw, husks, unprepared, ground, pressed, or in the form of pellets",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "108",
+      "label": "Cereals n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1021",
+      "label": "Cheese from milk of goats, fresh or processed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "984",
+      "label": "Cheese from milk of sheep, fresh or processed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "904",
+      "label": "Cheese from skimmed cow milk",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "901",
+      "label": "Cheese from whole cow milk",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "531",
+      "label": "Cherries",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "220",
+      "label": "Chestnuts, in shell",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "191",
+      "label": "Chick peas, dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1057",
+      "label": "Chickens",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "459",
+      "label": "Chicory roots",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "689",
+      "label": "Chillies and peppers, dry (Capsicum spp., Pimenta spp.), raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "401",
+      "label": "Chillies and peppers, green (Capsicum spp. and Pimenta spp.)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "666",
+      "label": "Chocolate products nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "517",
+      "label": "Cider and other fermented beverages",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "828",
+      "label": "Cigarettes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "829",
+      "label": "Cigars and cheroots",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "693",
+      "label": "Cinnamon and cinnamon-tree flowers, raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "514",
+      "label": "Citrus juice, concentrated n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "640",
+      "label": "Clover, for forage",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "698",
+      "label": "Cloves (whole stems), raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1031",
+      "label": "Coarse goat hair",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "661",
+      "label": "Cocoa beans",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "664",
+      "label": "Cocoa butter, fat and oil",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "663",
+      "label": "Cocoa husks and shells",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "662",
+      "label": "Cocoa paste not defatted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "665",
+      "label": "Cocoa powder and cake",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "252",
+      "label": "Coconut oil",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "250",
+      "label": "Coconuts, desiccated",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "249",
+      "label": "Coconuts, in shell",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "659",
+      "label": "Coffee extracts",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "660",
+      "label": "Coffee husks and skins",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "658",
+      "label": "Coffee substitutes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "657",
+      "label": "Coffee, decaffeinated or roasted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "656",
+      "label": "Coffee, green",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "813",
+      "label": "Coir, raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "110",
+      "label": "Communion wafers, empty cachets of a kind suitable for pharmaceutical use, sealing wafers, rice paper and similar products.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "845",
+      "label": "Compound feed n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "251",
+      "label": "Copra",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "767",
+      "label": "Cotton lint, ginned",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "770",
+      "label": "Cotton linters",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "329",
+      "label": "Cotton seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "769",
+      "label": "Cotton waste",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "768",
+      "label": "Cotton, carded or combed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "331",
+      "label": "Cottonseed oil",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "195",
+      "label": "Cow peas, dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "554",
+      "label": "Cranberries",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "885",
+      "label": "Cream, fresh",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1293",
+      "label": "Crude organic material n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "397",
+      "label": "Cucumbers and gherkins",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "550",
+      "label": "Currants",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "909",
+      "label": "Dairy products n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "577",
+      "label": "Dates",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1222",
+      "label": "Degras",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "843",
+      "label": "Dog or cat food, put up for retail sale",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "450",
+      "label": "Dried mushrooms",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1068",
+      "label": "Ducks",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "868",
+      "label": "Edible offal of cattle, fresh, chilled or frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1018",
+      "label": "Edible offal of goat, fresh, chilled or frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1036",
+      "label": "Edible offal of pigs, fresh, chilled or frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "978",
+      "label": "Edible offal of sheep, fresh, chilled or frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1059",
+      "label": "Edible offals and liver of chickens and guinea fowl, fresh, chilled or frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1075",
+      "label": "Edible offals and liver of ducks, fresh, chilled or frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1074",
+      "label": "Edible offals and liver of geese, fresh, chilled or frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1098",
+      "label": "Edible offals of horses and other equines, fresh, chilled or frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "151",
+      "label": "Edible roots and tubers with high starch or inulin content, n.e.c., dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "149",
+      "label": "Edible roots and tubers with high starch or inulin content, n.e.c., fresh",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "399",
+      "label": "Eggplants (aubergines)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1091",
+      "label": "Eggs from other birds in shell, fresh, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1064",
+      "label": "Eggs, dried",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1063",
+      "label": "Eggs, liquid",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "753",
+      "label": "Essential oils n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "873",
+      "label": "Extracts and juices of meat, fish, crustaceans, molluscs or other aquatic invertebrates",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "672",
+      "label": "Extracts, essences and concentrates of tea or mate, and preparations with a basis thereof or with a basis of tea or maté",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1129",
+      "label": "Fat of camels",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1037",
+      "label": "Fat of pigs",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1065",
+      "label": "Fat of poultry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1243",
+      "label": "Fat preparations n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1060",
+      "label": "Fatty liver preparations",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "854",
+      "label": "Feed additives",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "855",
+      "label": "Feed minerals",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "850",
+      "label": "Feed supplements",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "840",
+      "label": "Feed, compound, cattle",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "842",
+      "label": "Feed, compound, pigs",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "841",
+      "label": "Feed, compound, poultry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1259",
+      "label": "Feed, food waste preparations",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "852",
+      "label": "Feed, other concentrates nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "569",
+      "label": "Figs",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "570",
+      "label": "Figs, dried",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1218",
+      "label": "Fine animal hair, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "773",
+      "label": "Flax, processed but not spun",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "771",
+      "label": "Flax, raw or retted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "774",
+      "label": "Flax, tow and waste",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "90",
+      "label": "Flour of buckwheat",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "126",
+      "label": "Flour of cassava",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "111",
+      "label": "Flour of cereals n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "95",
+      "label": "Flour of fonio",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "624",
+      "label": "Flour of fruits",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "58",
+      "label": "Flour of maize",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "80",
+      "label": "Flour of millet",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "104",
+      "label": "Flour of mixed grain",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "295",
+      "label": "Flour of mustard seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "212",
+      "label": "Flour of pulses",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "38",
+      "label": "Flour of rice",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "150",
+      "label": "Flour of roots and tubers n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "72",
+      "label": "Flour of rye",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "84",
+      "label": "Flour of sorghum",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "117",
+      "label": "Flour, meal, powder, flakes, granules and pellets of potatoes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "343",
+      "label": "Flours and meals of oil seeds or oleaginous fruits, except those of mustard",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "94",
+      "label": "Fonio",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1232",
+      "label": "Food preparations n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "115",
+      "label": "Food preparations of flour, meal or malt extract",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "653",
+      "label": "Food wastes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "641",
+      "label": "Forage and silage, alfalfa",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "636",
+      "label": "Forage and silage, maize",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "623",
+      "label": "Fruit prepared n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "625",
+      "label": "Fruit, nuts, peel, sugar preserved",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1163",
+      "label": "Game meat, fresh, chilled or frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1072",
+      "label": "Geese",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "57",
+      "label": "Germ of maize",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "19",
+      "label": "Germ of wheat",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "953",
+      "label": "Ghee from buffalo milk",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "887",
+      "label": "Ghee from cow milk",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "720",
+      "label": "Ginger, raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "172",
+      "label": "Glucose and dextrose",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "846",
+      "label": "Gluten feed and meal",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1016",
+      "label": "Goats",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "549",
+      "label": "Gooseberries",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "562",
+      "label": "Grape juice",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "509",
+      "label": "Grapefruit juice",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "510",
+      "label": "Grapefruit juice, concentrated",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "560",
+      "label": "Grapes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "566",
+      "label": "Grapes, marc",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "446",
+      "label": "Green corn (maize)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "406",
+      "label": "Green garlic",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "244",
+      "label": "Groundnut oil",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "242",
+      "label": "Groundnuts, excluding shelled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "243",
+      "label": "Groundnuts, shelled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1008",
+      "label": "Hair, carded/combed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1219",
+      "label": "Hair, coarse nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1030",
+      "label": "Hair, goat, fine",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1100",
+      "label": "Hair, horse",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "858",
+      "label": "Hay for forage, from legumes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "859",
+      "label": "Hay for forage, from other crops n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "857",
+      "label": "Hay, non-leguminous",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "225",
+      "label": "Hazelnuts, in shell",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "233",
+      "label": "Hazelnuts, shelled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "336",
+      "label": "Hempseed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1062",
+      "label": "Hen eggs in shell, fresh",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1215",
+      "label": "Hides nes, dry salted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1136",
+      "label": "Hides of camels, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "922",
+      "label": "Hides, cattle nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "921",
+      "label": "Hides, cattle, dry salted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "959",
+      "label": "Hides, dry-salted of buffalo",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1104",
+      "label": "Hides, dry-salted of horses",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1105",
+      "label": "Hides, horse nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1103",
+      "label": "Hides, horse, wet salted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1214",
+      "label": "Hides, wet salted nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "958",
+      "label": "Hides, wet-salted of buffalo",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1134",
+      "label": "Hides, wet-salted of camels",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "920",
+      "label": "Hides, wet-salted of cattle",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "626",
+      "label": "Homogenized cooked fruit, prepared",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "877",
+      "label": "Homogenized meat preparations",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "476",
+      "label": "Homogenized vegetable preparations",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "677",
+      "label": "Hop cones",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1097",
+      "label": "Horse meat, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1096",
+      "label": "Horses",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "28",
+      "label": "Husked rice",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1275",
+      "label": "hydrogenated oils and fats",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "910",
+      "label": "Ice cream and other edible ice",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1276",
+      "label": "Industrial monocarboxylic fatty acids; acid oils from refining",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "109",
+      "label": "Infant food",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "175",
+      "label": "Isoglucose",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "278",
+      "label": "Jojoba oil",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "513",
+      "label": "Juice of citrus fruit n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "622",
+      "label": "Juice of fruits n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "498",
+      "label": "Juice of lemon",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "583",
+      "label": "Juice of mango",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "580",
+      "label": "Juice of pineapples, concentrated",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "538",
+      "label": "Juice of plum",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "539",
+      "label": "Juice of plum, concentrated",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "496",
+      "label": "Juice of tangerine",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "780",
+      "label": "Jute, raw or retted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "778",
+      "label": "Kapok fibre, raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "311",
+      "label": "Kapokseed in shell",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "312",
+      "label": "Kapokseed, shelled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "263",
+      "label": "Karite nuts (sheanuts)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "782",
+      "label": "Kenaf, and other textile bast fibres, raw or retted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "592",
+      "label": "Kiwi fruit",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "224",
+      "label": "Kola nuts",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "173",
+      "label": "Lactose",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1221",
+      "label": "Lard stearine and lard oil",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1217",
+      "label": "Leather used & waste",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "407",
+      "label": "Leeks and other alliaceous vegetables",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "499",
+      "label": "Lemon juice, concentrated",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "497",
+      "label": "Lemons and limes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "201",
+      "label": "Lentils, dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "372",
+      "label": "Lettuce and chicory",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "333",
+      "label": "Linseed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1241",
+      "label": "Liquid margarine",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "878",
+      "label": "Liver preparations",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "461",
+      "label": "Locust beans (carobs)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "862",
+      "label": "Lucerne (alfalfa) meal and pellets",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "210",
+      "label": "Lupins",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "56",
+      "label": "Maize (corn)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "50",
+      "label": "Malt extract",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "49",
+      "label": "Malt, whether or not roasted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "584",
+      "label": "Mango pulp",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "571",
+      "label": "Mangoes, guavas and mangosteens",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1242",
+      "label": "Margarine and shortening",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "671",
+      "label": "Maté leaves",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1173",
+      "label": "Meat meal",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1108",
+      "label": "Meat of asses, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "947",
+      "label": "Meat of buffalo, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1127",
+      "label": "Meat of camels, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "870",
+      "label": "Meat of cattle boneless, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "867",
+      "label": "Meat of cattle with the bone, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1058",
+      "label": "Meat of chickens, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1069",
+      "label": "Meat of ducks, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1073",
+      "label": "Meat of geese, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1017",
+      "label": "Meat of goat, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1038",
+      "label": "Meat of pig boneless, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1035",
+      "label": "Meat of pig with the bone, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1089",
+      "label": "Meat of pigeons and other birds n.e.c., fresh, chilled or frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1141",
+      "label": "Meat of rabbits and hares, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "977",
+      "label": "Meat of sheep, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1080",
+      "label": "Meat of turkeys, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1172",
+      "label": "Meat prepared n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "299",
+      "label": "Melonseed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "79",
+      "label": "Millet",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "103",
+      "label": "Mixed grain",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "114",
+      "label": "Mixes and doughs for the preparation of bakers' wares",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "165",
+      "label": "Molasses",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1110",
+      "label": "Mules and hinnies",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "449",
+      "label": "Mushrooms and truffles",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "563",
+      "label": "Must of grape",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "292",
+      "label": "Mustard seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "293",
+      "label": "Mustard seed oil, crude",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1182",
+      "label": "Natural honey",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "837",
+      "label": "Natural rubber in other forms",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "836",
+      "label": "Natural rubber in primary forms",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "702",
+      "label": "Nutmeg, mace, cardamoms, raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "75",
+      "label": "Oats",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "76",
+      "label": "Oats, rolled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1167",
+      "label": "Offals n.e.c. (excluding mammals), fresh, chilled or frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "266",
+      "label": "Oil of castor beans",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "737",
+      "label": "Oil of citronella",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "313",
+      "label": "Oil of kapok",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "334",
+      "label": "Oil of linseed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "60",
+      "label": "Oil of maize",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "274",
+      "label": "Oil of olive residues",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "258",
+      "label": "Oil of palm kernel",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "297",
+      "label": "Oil of poppy seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "36",
+      "label": "Oil of rice bran",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "290",
+      "label": "Oil of sesame seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "276",
+      "label": "Oil of tung nuts",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "430",
+      "label": "Okra",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "261",
+      "label": "Olive oil",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "273",
+      "label": "Olive residues",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "260",
+      "label": "Olives",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "262",
+      "label": "Olives preserved",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "403",
+      "label": "Onions and shallots, dry (excluding dehydrated)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "402",
+      "label": "Onions and shallots, green",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "491",
+      "label": "Orange juice",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "492",
+      "label": "Orange juice, concentrated",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "490",
+      "label": "Oranges",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "414",
+      "label": "Other beans, green",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "558",
+      "label": "Other berries and fruits of the genus vaccinium n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1157",
+      "label": "Other camelids",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "512",
+      "label": "Other citrus fruit, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "821",
+      "label": "Other fibre crops, raw, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "651",
+      "label": "Other forage products, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "166",
+      "label": "Other fructose and syrup",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "620",
+      "label": "Other fruit n.e.c., dried",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "619",
+      "label": "Other fruits, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "639",
+      "label": "Other grasses, for forage",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "643",
+      "label": "Other legumes, for forage",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1169",
+      "label": "Other live animals non food, n.e.c.",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1171",
+      "label": "Other live animals, n.e.c.",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "831",
+      "label": "Other manufactured tobacco and manufactured tobacco substitutes; \"homogenized\" or \"reconstituted\" tobacco; tobacco extracts and essences",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1164",
+      "label": "Other meat and edible meat offal, salted, in brine, dried or smoked; edible flours and meals of meat or meat offal",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1166",
+      "label": "Other meat of mammals, fresh or chilled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "633",
+      "label": "Other non-alcoholic caloric beverages",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "234",
+      "label": "Other nuts (excluding wild edible nuts and groundnuts), in shell, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "340",
+      "label": "Other oil of vegetable origin, crude n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "339",
+      "label": "Other oil seeds, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "211",
+      "label": "Other pulses n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1213",
+      "label": "Other raw skins of other animals, fresh",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1216",
+      "label": "Other raw skins of other animals, preserved",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1150",
+      "label": "Other rodents",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "723",
+      "label": "Other stimulant, spice and aromatic crops, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "541",
+      "label": "Other stone fruits",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "161",
+      "label": "Other sugar crops n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "604",
+      "label": "Other tropical fruit, dried",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "603",
+      "label": "Other tropical fruits, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "466",
+      "label": "Other vegetable juices",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "465",
+      "label": "Other vegetables and pulses, preserved other than by vinegar, acetic acid or sugar, n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "474",
+      "label": "Other vegetables provisionally preserved",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "463",
+      "label": "Other vegetables, fresh n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "256",
+      "label": "Palm kernels",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "257",
+      "label": "Palm oil",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "600",
+      "label": "Papayas",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "391",
+      "label": "Paste of tomatoes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "22",
+      "label": "Pastry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "534",
+      "label": "Peaches and nectarines",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "247",
+      "label": "Peanut butter",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "521",
+      "label": "Pears",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "187",
+      "label": "Peas, dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "417",
+      "label": "Peas, green",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "687",
+      "label": "Pepper (Piper spp.), raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "748",
+      "label": "Peppermint, spearmint",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "587",
+      "label": "Persimmons",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1043",
+      "label": "Pig fat, rendered",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1042",
+      "label": "Pig meat preparations",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1039",
+      "label": "Pig meat, cuts, salted, dried or smoked (bacon and ham)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1040",
+      "label": "Pig, butcher fat",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "197",
+      "label": "Pigeon peas, dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "576",
+      "label": "Pineapple juice",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "574",
+      "label": "Pineapples",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "575",
+      "label": "Pineapples, otherwise prepared or preserved",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "223",
+      "label": "Pistachios, in shell",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "489",
+      "label": "Plantains and cooking bananas",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "536",
+      "label": "Plums and sloes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "537",
+      "label": "Plums, dried",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "507",
+      "label": "Pomelos and grapefruits",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "296",
+      "label": "Poppy seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "45",
+      "label": "Pot barley",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "120",
+      "label": "Potato offals",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "116",
+      "label": "Potatoes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "118",
+      "label": "Potatoes, frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1066",
+      "label": "Poultry fat, rendered",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1061",
+      "label": "Poultry meat preparations",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "246",
+      "label": "Prepared groundnuts",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "235",
+      "label": "Prepared nuts",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "907",
+      "label": "Processed cheese",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "628",
+      "label": "Pulp, waste of fruit for feed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "394",
+      "label": "Pumpkins, squash and gourds",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "755",
+      "label": "Pyrethrum extract",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "754",
+      "label": "Pyrethrum, dried flowers",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "523",
+      "label": "Quinces",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "92",
+      "label": "Quinoa",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1140",
+      "label": "Rabbits and hares",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "561",
+      "label": "Raisins",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "788",
+      "label": "Ramie, raw or retted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "270",
+      "label": "Rape or colza seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "271",
+      "label": "Rapeseed or canola oil, crude",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "547",
+      "label": "Raspberries",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "162",
+      "label": "Raw cane or beet sugar (centrifugal only)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "957",
+      "label": "Raw hides and skins of buffaloes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "919",
+      "label": "Raw hides and skins of cattle",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1025",
+      "label": "Raw hides and skins of goats or kids",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "995",
+      "label": "Raw hides and skins of sheep or lambs",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "999",
+      "label": "Raw hides and skins of sheep or lambs, with wool",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "882",
+      "label": "Raw milk of cattle",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "982",
+      "label": "Raw milk of sheep",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1186",
+      "label": "Raw silk (not thrown)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "908",
+      "label": "Reconstituted milk",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "160",
+      "label": "Refined cane or beet sugar, in solid form, containing added flavouring or colouring matter; maple sugar and maple syrup",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "164",
+      "label": "Refined sugar",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1277",
+      "label": "Residues of fatty substances",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "27",
+      "label": "Rice",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "32",
+      "label": "Rice, broken",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "31",
+      "label": "Rice, milled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "29",
+      "label": "Rice, milled (husked)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "30",
+      "label": "Rice, paddy (rice milled equivalent)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "39",
+      "label": "Rice-fermented beverages",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "71",
+      "label": "Rye",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "280",
+      "label": "Safflower seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "281",
+      "label": "Safflower-seed oil, crude",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "874",
+      "label": "Sausages and similar products of meat, offal or blood of beef and veal",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1041",
+      "label": "Sausages and similar products of meat, offal or blood of pig",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "289",
+      "label": "Sesame seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "976",
+      "label": "Sheep",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "979",
+      "label": "Sheep fat, unrendered",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "987",
+      "label": "Shorn wool, greasy, including fleece-washed shorn wool",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1187",
+      "label": "Silk waste",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1185",
+      "label": "Silk-worm cocoons suitable for reeling",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "789",
+      "label": "Sisal, raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "898",
+      "label": "Skim milk and whey powder",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "888",
+      "label": "Skim milk of cows",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "896",
+      "label": "Skim milk, condensed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "895",
+      "label": "Skim milk, evaporated",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "930",
+      "label": "Skins, calve nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "929",
+      "label": "Skins, calve, dry salted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "997",
+      "label": "Skins, dry-salted of sheep",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1195",
+      "label": "Skins, furs",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1028",
+      "label": "Skins, goat nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1027",
+      "label": "Skins, goat, dry salted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1002",
+      "label": "Skins, karakul",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1047",
+      "label": "Skins, pig nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1046",
+      "label": "Skins, pig, dry salted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1045",
+      "label": "Skins, pig, wet salted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1146",
+      "label": "Skins, rabbit",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "998",
+      "label": "Skins, sheep nes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "928",
+      "label": "Skins, wet-salted of calves",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1026",
+      "label": "Skins, wet-salted of goats",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "996",
+      "label": "Skins, wet-salted of sheep",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "83",
+      "label": "Sorghum",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "530",
+      "label": "Sour cherries",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "237",
+      "label": "Soya bean oil",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "236",
+      "label": "Soya beans",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "241",
+      "label": "Soya curd",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "240",
+      "label": "Soya paste",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "239",
+      "label": "Soya sauce",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1295",
+      "label": "Spermaceti",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "373",
+      "label": "Spinach",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "129",
+      "label": "Starch of cassava",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "544",
+      "label": "Strawberries",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "423",
+      "label": "String beans",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "167",
+      "label": "Sugar and syrups n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "157",
+      "label": "Sugar beet",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "156",
+      "label": "Sugar cane",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "168",
+      "label": "Sugar confectionery",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "267",
+      "label": "Sunflower seed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "268",
+      "label": "Sunflower-seed oil, crude",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "649",
+      "label": "Swedes for fodder",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "447",
+      "label": "Sweet corn, frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "448",
+      "label": "Sweet corn, prepared or preserved",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "122",
+      "label": "Sweet potatoes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1034",
+      "label": "Swine / pigs",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1225",
+      "label": "Tallow",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "495",
+      "label": "Tangerines, mandarins, clementines",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "127",
+      "label": "Tapioca of cassava",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "121",
+      "label": "Tapioca of potatoes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "136",
+      "label": "Taro",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "667",
+      "label": "Tea leaves",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "390",
+      "label": "Tomato juice",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "388",
+      "label": "Tomatoes",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "392",
+      "label": "Tomatoes, peeled (o/t vinegar)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "97",
+      "label": "Triticale",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "777",
+      "label": "True hemp, raw or retted",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "275",
+      "label": "Tung nuts",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1079",
+      "label": "Turkeys",
+      "parent": "TA>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "646",
+      "label": "Turnips, for forage",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "18",
+      "label": "Uncooked pasta, not stuffed or otherwise prepared",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "634",
+      "label": "Undenatured ethyl alcohol of an alcoholic strength by volume of less than 80% vol; spirits, liqueurs and other spirituous beverages",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "826",
+      "label": "Unmanufactured tobacco",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "692",
+      "label": "Vanilla, raw",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "652",
+      "label": "Vegetable products for feed n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "460",
+      "label": "Vegetable products, fresh or dry n.e.c.",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "306",
+      "label": "Vegetable tallow",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1296",
+      "label": "Vegetable waxes (other than triglycerides), whether or not refined or coloured",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "655",
+      "label": "Vegetables and roots fodder",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "473",
+      "label": "Vegetables frozen",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "475",
+      "label": "Vegetables preserved (frozen)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "472",
+      "label": "Vegetables preserved nes (o/t vinegar)",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "469",
+      "label": "Vegetables, dehydrated",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "471",
+      "label": "Vegetables, pulses and potatoes, preserved by vinegar or acetic acid",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "565",
+      "label": "Vermouth and other wine of fresh grapes flavoured with plats or aromatic substances",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "205",
+      "label": "Vetches",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "853",
+      "label": "Vitamins",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "222",
+      "label": "Walnuts, in shell",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "232",
+      "label": "Walnuts, shelled",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "567",
+      "label": "Watermelons",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "15",
+      "label": "Wheat",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "16",
+      "label": "Wheat and meslin flour",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "905",
+      "label": "Whey cheese",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "890",
+      "label": "Whey, condensed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "900",
+      "label": "Whey, dry",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "903",
+      "label": "Whey, fresh",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "897",
+      "label": "Whole milk powder",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "889",
+      "label": "Whole milk, condensed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "894",
+      "label": "Whole milk, evaporated",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "564",
+      "label": "Wine",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "994",
+      "label": "Wool grease and lanolin",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "988",
+      "label": "Wool, degreased or carbonized, not carded or combed",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1009",
+      "label": "Wool, hair waste",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1007",
+      "label": "Wool, shoddy",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "137",
+      "label": "Yams",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "135",
+      "label": "Yautia",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "891",
+      "label": "Yoghurt",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "892",
+      "label": "Yoghurt, with additives",
+      "parent": "TP>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "TP>",
+      "label": "Crops and livestock products > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "TA>",
+      "label": "Live Animals > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "TP>",
+      "label": "Crops and livestock products > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1888",
+      "label": "- Cereals and Preparations + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1888>",
+      "label": "- Cereals and Preparations > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1944",
+      "label": "-- Cereals + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1944>",
+      "label": "-- Cereals > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1941",
+      "label": "-- Cereal preparations total + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1941>",
+      "label": "-- Cereal preparations total > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1844",
+      "label": "- Fats and Oils (excluding Butter) + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1844>",
+      "label": "- Fats and Oils (excluding Butter) > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1975",
+      "label": "-- Animal Fats and Oils (excl. Butter) + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1975>",
+      "label": "-- Animal Fats and Oils (excl. Butter) > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1788",
+      "label": "-- Vegetable Oil and Fat + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1788>",
+      "label": "-- Vegetable Oil and Fat > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1885",
+      "label": "- Meat and Meat Preparations + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1885>",
+      "label": "- Meat and Meat Preparations > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "2071",
+      "label": "-- Bovine Meat + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "2071>",
+      "label": "-- Bovine Meat > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "2074",
+      "label": "-- Poultry Meat + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "2074>",
+      "label": "-- Poultry Meat > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "2073",
+      "label": "-- Pigmeat (meat equivalent) + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "2073>",
+      "label": "-- Pigmeat (meat equivalent) > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "2076",
+      "label": "-- Other Meat + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "2076>",
+      "label": "-- Other Meat > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1890",
+      "label": "- Sugar and Honey + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1890>",
+      "label": "- Sugar and Honey > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1889",
+      "label": "- Fruit and Vegetables + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1889>",
+      "label": "- Fruit and Vegetables > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1802",
+      "label": "-- Fruit + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1802>",
+      "label": "-- Fruit > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1734",
+      "label": "-- Vegetables + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1734>",
+      "label": "-- Vegetables > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1954",
+      "label": "-- Pulses + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1954>",
+      "label": "-- Pulses > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1719",
+      "label": "-- Roots and Tubers + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1719>",
+      "label": "-- Roots and Tubers > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1773",
+      "label": "-- Nuts + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1773>",
+      "label": "-- Nuts > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1723",
+      "label": "-- Sugar Crops Primary + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1723>",
+      "label": "-- Sugar Crops Primary > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1886",
+      "label": "- Dairy Products and Eggs + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1886>",
+      "label": "- Dairy Products and Eggs > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1887",
+      "label": "-- Dairy Products + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1887>",
+      "label": "-- Dairy Products > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1782",
+      "label": "-- Eggs + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1782>",
+      "label": "-- Eggs > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1895",
+      "label": "- Beverages + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1895>",
+      "label": "- Beverages > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1907",
+      "label": "-- Alcoholic Beverages + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1907>",
+      "label": "-- Alcoholic Beverages > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1908",
+      "label": "-- Non-alcoholic Beverages + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1908>",
+      "label": "-- Non-alcoholic Beverages > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1848",
+      "label": "- Other food + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1848>",
+      "label": "- Other food > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1899",
+      "label": "-- Oilseeds + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1899>",
+      "label": "-- Oilseeds > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1849",
+      "label": "-- Other food nes + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1849>",
+      "label": "-- Other food nes > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1847",
+      "label": "Non-food + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1847>",
+      "label": "Non-food > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1892",
+      "label": "- Fodder and Feeding Stuff + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1892>",
+      "label": "- Fodder and Feeding Stuff > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1845",
+      "label": "- Non-edible Crude Materials + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1845>",
+      "label": "- Non-edible Crude Materials > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1972",
+      "label": "-- Flowers + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1972>",
+      "label": "-- Flowers > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1900",
+      "label": "-- Natural Rubber + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1900>",
+      "label": "-- Natural Rubber > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1901",
+      "label": "-- Textile Fibres + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1901>",
+      "label": "-- Textile Fibres > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1898",
+      "label": "-- Hides and skins + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1898>",
+      "label": "-- Hides and skins > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1902",
+      "label": "-- Crude Materials nes + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1902>",
+      "label": "-- Crude Materials nes > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1846",
+      "label": "- Non-edible Fats and Oils + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1846>",
+      "label": "- Non-edible Fats and Oils > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1896",
+      "label": "- Tobacco + (Total)",
+      "parent": "TP>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1896>",
+      "label": "- Tobacco > (List)",
+      "parent": "TP>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "TA>",
+      "label": "Live Animals > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1756",
+      "label": "-- Live Animals + (Total)",
+      "parent": "TA>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1756>",
+      "label": "-- Live Animals > (List)",
+      "parent": "TA>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1882",
+      "label": "Crops and livestock products + (Total)",
+      "parent": "#",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1982",
+      "label": "Food Excluding Fish + (Total)",
+      "parent": "#",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1982>",
+      "label": "Food Excluding Fish > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "10",
+      "label": "Total Merchandise Trade",
+      "parent": "#",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2073",
+      "label": "-- Pigmeat (meat equivalent) + (Total)",
+      "parent": "2080>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "2073>",
+      "label": "-- Pigmeat (meat equivalent) > (List)",
+      "parent": "2080>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "2080>",
+      "label": "Additional aggregates > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1806",
+      "label": "- Beef and Buffalo Meat, primary + (Total)",
+      "parent": "2080>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1806>",
+      "label": "- Beef and Buffalo Meat, primary > (List)",
+      "parent": "2080>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1807",
+      "label": "- Sheep and Goat Meat + (Total)",
+      "parent": "2080>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1807>",
+      "label": "- Sheep and Goat Meat > (List)",
+      "parent": "2080>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1808",
+      "label": "- Meat, Poultry + (Total)",
+      "parent": "2080>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1808>",
+      "label": "- Meat, Poultry > (List)",
+      "parent": "2080>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1811",
+      "label": "- Butter and Ghee + (Total)",
+      "parent": "2080>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1811>",
+      "label": "- Butter and Ghee > (List)",
+      "parent": "2080>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1745",
+      "label": "- Cheese (All Kinds) + (Total)",
+      "parent": "2080>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1745>",
+      "label": "- Cheese (All Kinds) > (List)",
+      "parent": "2080>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1816",
+      "label": "- Evaporated & Condensed Milk + (Total)",
+      "parent": "2080>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1816>",
+      "label": "- Evaporated & Condensed Milk > (List)",
+      "parent": "2080>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1809",
+      "label": "- Skim Milk & Buttermilk, Dry + (Total)",
+      "parent": "2080>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1809>",
+      "label": "- Skim Milk & Buttermilk, Dry > (List)",
+      "parent": "2080>",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1881",
+      "label": "- Dairy Products, milk equivalent + (Total)",
+      "parent": "2080>",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1881>",
+      "label": "- Dairy Products, milk equivalent > (List)",
+      "parent": "2080>",
+      "aggregate_type": ">"
+    }
+  ]
+}

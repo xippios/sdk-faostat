@@ -1,0 +1,31 @@
+{
+  "param": "element",
+  "endpoint": "getCodeList",
+  "fetched": "2026-10-29T07:06:48Z",
+  "records": [
+    {
+      "code": "2610",
+      "label": "Import quantity",
+      "parent": "#",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2620",
+      "label": "Import value",
+      "parent": "#",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2910",
+      "label": "Export quantity",
+      "parent": "#",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2920",
+      "label": "Export value",
+      "parent": "#",
+      "aggregate_type": "0"
+    }
+  ]
+}

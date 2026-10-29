@@ -1,0 +1,61 @@
+{
+  "param": "element",
+  "endpoint": "getCodeList",
+  "fetched": "2026-10-29T07:07:03Z",
+  "records": [
+    {
+      "code": "5110",
+      "label": "Area",
+      "parent": "#",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "7215",
+      "label": "Carbon stock in living biomass",
+      "parent": "#",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "72000>",
+      "label": "Indicators > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "7208",
+      "label": "-- Share in Agricultural land",
+      "parent": "72000>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "7209",
+      "label": "-- Share in Land area",
+      "parent": "72000>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "7210",
+      "label": "-- Share in Forest land",
+      "parent": "72000>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "7252",
+      "label": "-- Share in Cropland",
+      "parent": "72000>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "7277",
+      "label": "-- Area per capita",
+      "parent": "72000>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "7278",
+      "label": "-- Value of agricultural production (Int. $) per Area",
+      "parent": "72000>",
+      "aggregate_type": "0"
+    }
+  ]
+}

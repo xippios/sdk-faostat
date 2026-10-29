@@ -17,13 +17,31 @@ id for an ``IntEnum``).
 
 Only lists that are the same for every caller are packaged; a multi-tenant source
 packages no tenant data (ADR-0014). Run from the repository root, with whatever the list
-endpoints need in the environment (a key only where they take one)::
-
-    uv run python scripts/refresh_reference.py
+endpoints need in the environment: FAOSTAT's take the account, as the last paragraph
+says.
 
 ``--render-only`` regenerates ``enums.py`` from the packaged ``reference/*.json`` alone,
 without a request and without a key: after a core release changes the renderer
 (conventions §15, item 6), it changes ``enums.py`` and nothing else.
+
+FAOSTAT's packaged lists are fifteen tables and no enum (Johannes, G5 2026-10-29,
+questions 3 and 5): the codes of the dimensions ``area``, ``element`` and ``item`` of the
+domains QCL, TCL, FBS, PP and RL (``params.DIMENSIONS``, ``params.DOMAINS``), each
+fetched through ``api.get_code_list`` (``getCodeList``, ``GET
+/en/codes/<dimension>/<domain>``, ``show_lists`` left to upstream's default) and written
+to ``reference/<dimension>_<domain>.json`` with the dimension as ``param``, the filter of
+the data endpoint that takes the codes, so ``LISTS`` and ``ID_LISTS`` stay empty and
+``enums.py`` an empty module. The dimension ids are those ``get_dimensions`` answers and
+the data endpoint filters by; the subdimension ids the OpenAPI document's examples name
+(``countries``) answer a part of a dimension's codes (``reference/README.md``). After
+the files, the script rewrites the provenance table of ``reference/README.md`` from them,
+one row per file: the operation, the path, the fetch time. The API answers an account's
+requests only, so the script runs with the account's two variables in the environment,
+through ``direnv exec`` from the family workspace's root (``CLAUDE.md``)::
+
+    direnv exec <workspace root> uv run python scripts/refresh_reference.py
+
+One login and fifteen requests, paced by the package's client at 30 a minute.
 """
 
 import argparse
@@ -32,18 +50,25 @@ import sys
 from collections.abc import Callable, Coroutine, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from xippios.core import PackagedList, UpstreamModel, sync
 from xippios.core.reference import id_name_pairs, render_enums
 
-from xippios.faostat.params import PACKAGED_LISTS
+from xippios.faostat import api
+from xippios.faostat.models import CodeItem
+from xippios.faostat.params import DIMENSIONS, DOMAINS, PACKAGED_LISTS, table_name
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_DIR = ROOT / "src/xippios/faostat"
 REFERENCE = PACKAGE_DIR / "reference"
 ENUMS = PACKAGE_DIR / "enums.py"
+README = REFERENCE / "README.md"
 GENERATOR = "scripts/refresh_reference.py"
+LANG = "en"
+"""The language the tables are fetched in, the tasks' ``lang``."""
+PROVENANCE_HEADER = "| File | Origin | Fetched |"
+"""The header of ``reference/README.md``'s provenance table, whose rows the refresh writes."""
 
 Values = Callable[[], Coroutine[Any, Any, Sequence[str]]]
 """An async fetcher of a list's values through ``api/``."""
@@ -69,17 +94,63 @@ Each enum is keyed by its id field and named after it, ``unitId`` making ``UnitI
 whose docstring reads "Values of ``unitId``" (conventions §3).
 """
 
-TABLES: dict[str, tuple[str, Records]] = {
-    # the list to (the upstream operation, an async fetcher of its records through api/), e.g.
-    # "commodities": ("GetCommodities", api.GetCommodities),
+
+class Table(NamedTuple):
+    """A packaged table: where it comes from and how it is fetched.
+
+    Attributes:
+        endpoint: The upstream operation, the file's ``endpoint``, e.g. ``"getCodeList"``.
+        param: The upstream parameter its codes feed, the file's ``param``, e.g.
+            ``"element"``.
+        path: The URL path it is fetched from, under ``BASE_URL``, e.g.
+            ``"/en/codes/element/QCL"``, for the provenance row.
+        fetch: An async fetcher of its records through ``api/``.
+    """
+
+    endpoint: str
+    param: str
+    path: str
+    fetch: Records
+
+
+async def fetch_codes(dimension: str, domain: str) -> list[CodeItem]:
+    """The codes of ``dimension`` in ``domain`` through ``api.get_code_list``: one request."""
+    answer = await api.get_code_list.get_code_list(LANG, dimension, domain)
+    return answer.response.data
+
+
+def code_table(dimension: str, domain: str) -> Table:
+    """The packaged table of ``dimension`` in ``domain``: ``getCodeList``'s answer."""
+
+    async def fetch() -> list[CodeItem]:
+        return await fetch_codes(dimension, domain)
+
+    return Table(
+        endpoint=api.get_code_list.ENDPOINT,
+        param=dimension,
+        path=api.get_code_list.code_list_path(LANG, dimension, domain),
+        fetch=fetch,
+    )
+
+
+TABLES: dict[str, Table] = {
+    table_name(dimension, domain): code_table(dimension, domain)
+    for domain in DOMAINS
+    for dimension in DIMENSIONS
 }
-"""Record lists packaged as tables, with no enum, e.g. the codes ``params`` checks."""
+"""Record lists packaged as tables, with no enum: the codes ``get_data`` checks and the
+list tasks answer with, ``reference/<dimension>_<domain>.json``, fifteen of them."""
 
 
-def packaged(name: str, endpoint: str, records: Sequence[dict[str, Any]]) -> PackagedList:
-    """The list ``name`` as just fetched from ``endpoint``, for ``reference/<name>.json``."""
+def packaged(
+    name: str, endpoint: str, records: Sequence[dict[str, Any]], *, param: str | None = None
+) -> PackagedList:
+    """The list ``name`` as just fetched from ``endpoint``, for ``reference/<name>.json``.
+
+    ``param`` is the upstream parameter the list feeds, ``name`` itself when ``None``.
+    """
     return PackagedList(
-        param=name, endpoint=endpoint, fetched=datetime.now(UTC), records=list(records)
+        param=param or name, endpoint=endpoint, fetched=datetime.now(UTC), records=list(records)
     )
 
 
@@ -118,6 +189,37 @@ def render() -> None:
     print(f"{ENUMS.name}: {len(lists)} enums")  # noqa: T201
 
 
+def provenance_rows() -> list[str]:
+    """The provenance table's rows, one per table, from the packaged files as written."""
+    rows = []
+    for name, table in TABLES.items():
+        listed = read(name)
+        rows.append(
+            f"| `{name}.json` | `{listed.endpoint}`, `GET {table.path}` | "
+            f"{listed.fetched:%Y-%m-%dT%H:%M:%SZ} |"
+        )
+    return rows
+
+
+def with_provenance(readme: str, rows: Sequence[str]) -> str:
+    """``readme`` with the rows of its provenance table replaced by ``rows``.
+
+    The table is the one under ``PROVENANCE_HEADER``: its separator line is kept, and
+    every line after it that starts with ``|`` is replaced; the text around is kept.
+
+    Raises:
+        SystemExit: ``readme`` holds no provenance table.
+    """
+    lines = readme.splitlines()
+    if PROVENANCE_HEADER not in lines:
+        raise SystemExit(f"{README.name} has no table headed {PROVENANCE_HEADER!r}")
+    start = lines.index(PROVENANCE_HEADER) + 2
+    end = start
+    while end < len(lines) and lines[end].startswith("|"):
+        end += 1
+    return "\n".join([*lines[:start], *rows, *lines[end:]]) + "\n"
+
+
 def refresh() -> None:
     """Fetch every list, then write its file, then regenerate ``enums.py`` from the files."""
     if sorted([*LISTS, *ID_LISTS, *TABLES]) != sorted(PACKAGED_LISTS):
@@ -132,15 +234,24 @@ def refresh() -> None:
             for name, (endpoint, fetch, _, _) in ID_LISTS.items()
         ),
         *(
-            packaged(name, endpoint, [record.dump_upstream() for record in sync(fetch)()])
-            for name, (endpoint, fetch) in TABLES.items()
+            packaged(
+                name,
+                table.endpoint,
+                [record.dump_upstream() for record in sync(table.fetch)()],
+                param=table.param,
+            )
+            for name, table in TABLES.items()
         ),
     ]
     REFERENCE.mkdir(exist_ok=True)
-    for fetched in lists:
-        path = REFERENCE / f"{fetched.param}.json"
+    for name, fetched in zip([*LISTS, *ID_LISTS, *TABLES], lists, strict=True):
+        path = REFERENCE / f"{name}.json"
         fetched.write(path)
         print(f"{path.name}: {len(fetched.records)} records from {fetched.endpoint}")  # noqa: T201
+    README.write_text(
+        with_provenance(README.read_text(encoding="utf-8"), provenance_rows()), encoding="utf-8"
+    )
+    print(f"{README.name}: {len(TABLES)} provenance rows")  # noqa: T201
     render()
 
 
