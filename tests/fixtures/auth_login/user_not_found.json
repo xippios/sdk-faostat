@@ -1,7 +1,7 @@
 {
-  "recorded_at": "2026-10-29T05:39:39.346851Z",
+  "recorded_at": "2026-10-29T05:58:21.872347Z",
   "request": {
-    "body": "username=nobody%40example.invalid&password=made-up-for-a-refusal",
+    "body": "username=nobody%40example.invalid&password=REDACTED",
     "body_base64": false,
     "content_type": "application/x-www-form-urlencoded",
     "method": "POST",
@@ -17,7 +17,7 @@
       ],
       [
         "date",
-        "Thu, 29 Oct 2026 05:39:37 GMT"
+        "Thu, 29 Oct 2026 05:58:21 GMT"
       ],
       [
         "server",
@@ -29,7 +29,7 @@
       ],
       [
         "via",
-        "1.1 b0b28ec8da60bdc40e5fb6dc8ad8eae8.cloudfront.net (CloudFront)"
+        "1.1 b4404a488b0bf1e6ad3743f3e240e538.cloudfront.net (CloudFront)"
       ],
       [
         "x-amz-cf-pop",
@@ -37,7 +37,7 @@
       ],
       [
         "x-amz-cf-id",
-        "O_gd5G2fuEhRYfazqQDskD7OthIQRKyYrvs3FG2X7beosS__u_MdZg=="
+        "iSTest2oegRzDmQIE9El_UHqLhHec03EyBcpc2Yd5vcNuHJW_C4_mA=="
       ]
     ],
     "status": 400
