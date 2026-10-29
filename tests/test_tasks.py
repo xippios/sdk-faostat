@@ -992,21 +992,38 @@ async def test_list_bulk_datasets_tool_end_to_end(
 
 
 @pytest.mark.anyio
-async def test_list_bulk_datasets_tool_cuts_the_whole_catalogue_with_a_note(
+async def test_list_bulk_datasets_tool_serves_the_whole_catalogue_uncut(
     replay_fixture: ReplayFixture,
 ) -> None:
-    """The whole catalogue is past the family's 64 KB: the bytes cut it, the note names search."""
+    """The cap of its own (ADR-0016) serves every dataset of the recorded catalogue, no note."""
     replay_fixture(CATALOGUE, "all")
     cap = tasks.MCP_CAPS["list_bulk_datasets"]
     assert cap.note is not None
     assert cap.note.startswith("pass search")
     payload = await mcp_call(server, "faostat_list_bulk_datasets", {})
+    assert [row["dataset_code"] for row in payload["data"]] == [
+        dataset.dataset_code for dataset in recorded_catalogue()
+    ], "every dataset, in the catalogue's order"
+    assert "note" not in payload, "uncut"
+
+
+@pytest.mark.anyio
+async def test_list_bulk_datasets_tool_cap_note_names_search(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """``MCP_CAPS``'s note, through a server built as ``mcp.py`` builds it, rows cut to 2."""
+    replay_fixture(CATALOGUE, "all")
+    cap = tasks.MCP_CAPS["list_bulk_datasets"]
+    narrow = build_server(
+        SOURCE,
+        [tasks.list_bulk_datasets],
+        caps={"list_bulk_datasets": dataclasses.replace(cap, max_rows=2)},
+    )
+    payload = await mcp_call(narrow, "faostat_list_bulk_datasets", {})
     total = len(recorded_catalogue())
-    shown = len(payload["data"])
-    assert 0 < shown < total
+    assert len(payload["data"]) == 2
     assert payload["note"] == (
-        f"showing {shown} of {total} rows (cap: {cap.max_rows} rows or {cap.max_bytes} "
-        f"bytes); {cap.note}"
+        f"showing 2 of {total} rows (cap: 2 rows or {cap.max_bytes} bytes); {cap.note}"
     )
 
 

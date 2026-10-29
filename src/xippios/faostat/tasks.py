@@ -140,6 +140,8 @@ MCP_CAPS: Mapping[str, ResultCap] = {
         note="pass search, a part of the code or of the label (15, wheat, maize), to see the rest",
     ),
     "list_bulk_datasets": ResultCap(
+        max_rows=100,
+        max_bytes=160 * 1024,
         note=(
             "pass search, a part of a dataset's code or name (QCL, trade, prices), to see the rest"
         ),
@@ -161,9 +163,11 @@ tables packaged on 2026-10-29 fourteen fit, the largest QCL's 338 items at 32,87
 TCL's 674 items, 66,970 bytes, are cut by the bytes at 657 rows, with the note naming
 ``search``.
 
-``list_bulk_datasets`` keeps the family's cap too, its note naming ``search``: a dataset
-is 399 to 4,104 bytes as compact JSON, its description the most of it, so of the 69 of
-2026-10-29, 107,481 bytes, the first 39 fit the 64 KB.
+``list_bulk_datasets`` takes a cap of its own, 100 rows and 160 KiB (163,840 bytes), so
+the whole catalogue, which an agent needs to choose a dataset, comes uncut (ADR-0016): on
+2026-10-29 it measured 69 datasets and 107,481 bytes as compact JSON, a dataset 399 to
+4,104 bytes, its description the most of it, where the family's 64 KB would cut it at 39
+rows. The note names ``search`` for a catalogue grown past the bound.
 """
 
 LANG: Final = "en"

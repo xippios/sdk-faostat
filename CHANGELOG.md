@@ -59,7 +59,7 @@ All notable changes to this project are documented here. The format follows
   downloads' catalogue `datasets_E.json` on `bulks-faostat.fao.org`, fetched without the
   account through the new wrapper `api.datasets_e`: each dataset's code, name, last update,
   ZIP size, rows and URL; `search` over code and name. Tool `faostat_list_bulk_datasets`,
-  its cap's note naming `search`.
+  up to 100 rows and 160 KiB, the whole catalogue uncut, its note naming `search`.
 - `download_dataset(domain, dest)`, a bulk task, Python only: the dataset's ZIP, as the
   catalogue names it, streamed to `dest` without the account, never held in memory;
   `meta.vintage` the catalogue's last update as printed and `meta.published_at` the same
