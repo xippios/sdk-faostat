@@ -35,8 +35,10 @@ under ``docs/upstream/`` is touched. Run from the repository root, the two varia
     uv run scripts/refresh_upstream.py --keyless    # the keyless pages only; no login
 
 ``--check`` exits 1 when the snapshot differs from what upstream serves now, ``Fetched``
-aside, and a sample's ``metadata.processing_time`` aside, which changes on every request.
-``--keyless`` fetches and checks the keyless pages and compares their files with the
+aside, a sample's ``metadata.processing_time`` aside, which changes on every request, and
+a converted page's HTML aside while its Markdown is unchanged (a CMS re-render changes the
+HTML's sha256 and validators, not the text): its row keeps the recorded ones. ``--keyless``
+fetches and checks the keyless pages and compares their files and their rows with the
 snapshot, writing nothing and logging in nowhere: a free trial before a run that spends
 keyed calls (one login and four requests).
 """
@@ -1373,16 +1375,43 @@ def _differing(out: Path, files: dict[str, bytes]) -> list[str]:
     ]
 
 
-def compare(out: Path, rows: Sequence[Row]) -> list[str]:
-    """The snapshot's files that differ from this run's, ``Fetched`` and timings aside."""
+def _cells(line: str) -> list[str] | None:
+    """A ``FETCHED.md`` table row's nine cells, or ``None`` for any other line."""
+    cells = line[2:-2].split(" | ") if line.startswith("| ") and line.endswith(" |") else []
+    return cells if len(cells) == 9 and cells[0] != "---" and cells[2] != "Fetched" else None
+
+
+def compare(out: Path, rows: Sequence[Row], *, keyless: bool = False) -> list[str]:
+    """The snapshot's files and rows that differ from this run's, ``Fetched`` and timings aside.
+
+    A converted page whose file is unchanged keeps its recorded Bytes, sha256, ETag and
+    Last-Modified. With ``keyless``, only these rows' files and table rows are compared.
+    """
     rows = as_recorded(out, rows)
     files = _files(rows)
     differ = _differing(out, files)
-    differ += [f"{name} (no longer produced)" for name in _stale(out, files)]
+    if not keyless:
+        differ += [f"{name} (no longer produced)" for name in _stale(out, files)]
     current = out / "FETCHED.md"
     old = current.read_bytes().decode("utf-8") if current.is_file() else ""
     match = _FETCHED.search(old, max(old.find("| --- |"), 0))
-    if not match or render_fetched(rows, match.group(1)) != old:
+    recorded = {cells[1]: cells for cells in map(_cells, old.splitlines()) if cells}
+    kept = {
+        row.response.url
+        for row in rows
+        if row.content not in (None, row.response.body) and row.page.file not in differ
+    }
+    lines = []
+    for line in render_fetched(rows, match.group(1) if match else "-").splitlines():
+        cells = _cells(line)
+        if cells and cells[1] in kept and cells[1] in recorded:
+            cells[4:8] = recorded[cells[1]][4:8]
+            line = "| " + " | ".join(cells) + " |"
+        lines.append(line)
+    if keyless:
+        new = [cells for cells in map(_cells, lines) if cells]
+        differ += [f"FETCHED.md row of {c[1]}" for c in new if recorded.get(c[1]) != c]
+    elif not match or "\n".join(lines) + "\n" != old:
         differ.append("FETCHED.md")
     return differ
 
@@ -1408,13 +1437,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     _log("Keyless pages: the OpenAPI document, the ReDoc page, the shell, the terms, the bulk")
     rows, spec_text, _ = keyless_rows()
     if args.keyless:
-        differ = _differing(out, _files(rows))
+        differ = compare(out, rows, keyless=True)
         for name in differ:
             _log(f"  differs: {name}")
         _log(
-            f"{len(differ)} of the keyless files differ from the snapshot; nothing was written"
+            f"{len(differ)} of the keyless files and rows differ; nothing was written"
             if differ
-            else "The keyless files are current; nothing was written, no login was made."
+            else "The keyless files and rows are current; nothing was written, no login was made."
         )
         return 1 if differ else 0
     _log(f"Samples, with the account's bearer token: {len(SAMPLES)} pages after one login")
