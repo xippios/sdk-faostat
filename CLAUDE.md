@@ -13,7 +13,7 @@ the family rules every source shares are in `.claude/family.md`, which the next 
 | Upstream | FAOSTAT, https://www.fao.org/faostat/ |
 | API base URL | `https://faostatservices.fao.org/api/v1` |
 | Documentation | FAO's OpenAPI document, https://www.fao.org/faostat/en/docs/faostat_openapi.yaml (`SPEC_URL` of `scripts/refresh_upstream.py`; no page links it), kept verbatim as `docs/upstream/openapi/faostat_openapi.yaml`, and the ReDoc page that renders it, https://www.fao.org/faostat/en/docs/redoc-static.html (`/refresh-upstream`) |
-| Credentials | a FAO account: `FAOSTAT_USERNAME` (the account's e-mail) and `FAOSTAT_PASSWORD` from the environment; the package logs in at `POST /auth/login` (operation `auth_login`) and sends the access token as a bearer, from the first tasks PR on (queue row 252); the nightly `live.yml` passes both as org secrets from the first tasks PR on |
+| Credentials | a FAO account: `FAOSTAT_USERNAME` (the account's e-mail) and `FAOSTAT_PASSWORD` from the environment; the package logs in at `POST /auth/login` (operation `auth_login`) and sends the access token as a bearer (queue row 252); the nightly `live.yml` passes both as org secrets |
 | Rate limit | 30 requests per minute, burst 1; a self-imposed pace: upstream documents no per-second or per-minute limit (ADR-0010); enforced client-side in `_client.py`; FAOSTAT documents no hourly or daily quota, so no `QuotaPolicy` is installed |
 | Write tools | no, this package is read-only |
 | Files | the bulk downloads on `bulks-faostat.fao.org`, without the account: the catalogue `production/datasets_E.json` (`api.datasets_e`) and one ZIP per dataset, holding its normalized table `<Name>_E_All_Data_(Normalized).csv` beside small code lists, the file kind `bulk-csv`, read by `parse/bulk_csv.py` with the standard library's `zipfile` and `csv`; the parser tests read the samples under `tests/fixtures/files/`, their provenance in its `README.md` (ADR-0020) |
@@ -102,8 +102,8 @@ account (the reachability check, the bulk catalogue and MDDW's ZIP, 12 KB);
 
 `.github/workflows/live.yml` runs the live tests nightly at 02:10 UTC, a time derived from
 the slug.
-From the first tasks PR on, the org secrets `FAOSTAT_USERNAME` and `FAOSTAT_PASSWORD`
-reach only its `uv run pytest -m live` step.
+The org secrets `FAOSTAT_USERNAME` and `FAOSTAT_PASSWORD` reach only its
+`uv run pytest -m live` step.
 
 ## FAOSTAT specifics
 

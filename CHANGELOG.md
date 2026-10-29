@@ -6,12 +6,37 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-29
+
+First release, on xippios-core 0.3.0 from PyPI (`~=0.3.0`), sdk-template v0.3.0 and the
+family's conventions 1.22. It wraps FAOSTAT, the statistical database of the Food and
+Agriculture Organization of the United Nations (FAO): its data API, which needs a FAO
+account, and its bulk downloads, which need none. The client logs in with the account
+(`FAOSTAT_USERNAME`, `FAOSTAT_PASSWORD`) once per process, sends the access token as a
+bearer, and logs in again when the token lapses or a request is refused with HTTP 401 or
+403. `get_data` reads a domain's rows, `list_domains` lists the domains with their
+release dates, and `get_series` reads a yearly series in one request. Fifteen code
+tables ship with this version, the area, element and item codes of five domains (QCL,
+TCL, FBS, PP and RL) as fetched on 2026-10-29: `list_areas`, `list_elements` and
+`list_items` read them without a request, and `get_data` refuses before sending a code
+the domain's table lacks, unless the query names another coding system. FAOSTAT has two
+element code systems: a query filters by the codes of the domain's element list (2510,
+Production Quantity, in QCL) and the rows print others (5510, Production); the tables
+hold the codes a query takes, and nothing is translated between the two.
+`list_bulk_datasets` reads the bulk downloads' catalogue; the bulk task
+`download_dataset`, in Python only, with no MCP tool and no route, streams a dataset's
+ZIP to disk, and `parse.parse_bulk_csv` reads its table row by row. The other seven
+tasks are MCP tools and HTTP routes. The client keeps a self-imposed pace of 30 requests
+per minute, since FAOSTAT documents no rate limit, and caches its answers of HTTP 200
+for five minutes. The documentation snapshot of 2026-10-29 under `docs/upstream/`, FAO's
+OpenAPI document among it, is the reference for names and semantics.
+
 ### Added
 
 - Scaffold from [sdk-template](https://github.com/xippios/sdk-template): configured
-  client for FAOSTAT, empty task layer, MCP server and FastAPI router
-  wired to it, test harness with core's family check, CI, the nightly live tests and
-  the release train, in which a release PR's merge tags and publishes.
+  client for FAOSTAT, MCP server and FastAPI router wired to the task layer, test
+  harness with core's family check, CI, the nightly live tests and the release train, in
+  which a release PR's merge tags and publishes.
 - The documentation snapshot in `docs/upstream/`, captured on 2026-10-29 by
   `scripts/refresh_upstream.py`: FAO's OpenAPI document, the FAO Statistical Database
   Terms of Use, the bulk downloads' catalogue and four structural samples of the API's
