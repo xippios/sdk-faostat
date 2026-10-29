@@ -14,19 +14,41 @@ uv add "xippios-faostat[mcp]"     # + MCP server
 uv add "xippios-faostat[http]"    # + FastAPI router
 ```
 
-A FAO account is needed: `FAOSTAT_USERNAME` and `FAOSTAT_PASSWORD` in the environment;
-the client logs in for you (from 0.1.0's first tasks on). The bulk downloads need none.
+A FAO account is needed: `FAOSTAT_USERNAME` (the account's e-mail) and
+`FAOSTAT_PASSWORD` in the environment. The client logs in with them on its first request
+(`POST /auth/login`, FAOSTAT's `auth_login`), once per process, sends the access token
+with every request, and logs in again when the token lapses (after an hour) or a request
+is refused with HTTP 401 or 403. Neither the credentials nor a token is logged or
+returned. The bulk downloads need none.
 
 ## 30-second example
 
 ```python
-from xippios.faostat import tasks
+from xippios.faostat import get_data, list_domains
 
-# result = tasks.<task>(...)
-# result.data, result.meta.retrieved_at, result.meta.request
+wheat = get_data("QCL", area="231", element="2510", item="15", year=range(2015, 2022))
+row = wheat.data[0]  # wheat production in the United States of America, 2015
+row.area, row.item, row.year  # ("United States of America", "Wheat", "2015")
+row.element_code, row.element  # ("5510", "Production"): the answer's code, not the 2510 sent
+row.value, row.unit, row.flag_description  # (Decimal("55839540"), "t", "Official value")
+wheat.meta.vintage  # "2025-12-31": QCL's last update, as list_domains prints it
+wheat.meta.request  # {"lang": "en", "domain_code": "QCL", "area": "231", ...}
+
+list_domains(search="prices").data  # PP, CP, PD, PE (group Prices) and PA, an archive
 ```
 
-Task functions are listed in the status table below as they are added.
+`get_data(domain, *, area, item, element, year, area_cs, item_cs, page_size,
+page_number)` sends one request to FAOSTAT's data endpoint (`get_data`, `GET
+/{lang}/data/{domain_code}`), in English, with the output options the portal sends (codes,
+units, flags and notes shown); each filter is a code or a list of codes. At least one of
+`area`, `item`, `element` and `year` is needed: FAOSTAT refuses a query without a filter,
+and so does `get_data`, before sending. Without `page_size` every matching row comes in
+one answer; with `page_size` and `page_number`, one page. A query filters by the element
+codes of the domain's element list (2510, Production Quantity), and the rows print other
+codes (5510, Production). A code that matches nothing gives an empty list; an unknown
+domain raises `NotFoundError`. `meta.vintage` is the domain's `date_update` from
+`list_domains` (`groupsanddomains`); `meta.published_at` stays `None`, since a date is
+no release time.
 
 ## MCP
 
@@ -55,7 +77,11 @@ exactly tasks.__all__. -->
 
 | Upstream operation | Task function | MCP tool | Status |
 | --- | --- | --- | --- |
-| (none yet) | | | |
+| `get_data` (`GET /{lang}/data/{domain_code}`), the release date from `get_groupsanddomains` | `get_data(domain, area, item, element, year, area_cs, item_cs, page_size, page_number)`, a domain's rows | `faostat_get_data` | alpha |
+| `get_groupsanddomains` (`GET /{lang}/groupsanddomains`) | `list_domains(search)`, the domains and subgroups with their groups and release dates | `faostat_list_domains` | alpha |
+
+Every request logs in first where the process has no current token (`auth_login`,
+`POST /auth/login`); the login is the client's, no task's.
 
 ## Upstream terms and attribution
 

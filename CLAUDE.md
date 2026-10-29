@@ -27,8 +27,8 @@ src/xippios/faostat/
   __init__.py      public surface: __version__ and re-exported task functions
   py.typed         PEP 561 marker; consumers' mypy --strict needs it
   _version.py      __version__ from distribution metadata
-  _client.py       the one configured AsyncClient (base URL, rate limit) and classify,
-                   upstream's documented error shapes
+  _client.py       the one configured AsyncClient (base URL, rate limit, cache), LoginAuth,
+                   the account's login, and classify, upstream's documented error shapes
   errors.py        the package's own error classes, where conventions §5 calls for one
   models.py        pydantic models mirroring upstream payloads (UpstreamModel)
   api/             endpoint wrappers, one module per upstream operation
@@ -71,10 +71,15 @@ package.
 ## Commands
 
 ```bash
-uv run pytest -m live --tb=short   # needs XIPPIOS_LIVE_TESTS=1
+# needs XIPPIOS_LIVE_TESTS=1 and the account's two variables, from direnv exec run with
+# the family workspace's root, whose .envrc holds them:
+XIPPIOS_LIVE_TESTS=1 direnv exec <workspace root> uv run pytest -m live --tb=short
 
 uv run xippios-faostat-mcp   # stdio; add --http for streamable HTTP
 ```
+
+A live run sends seven keyed requests (one login, five data requests, one
+`groupsanddomains`) and one without the account; `tests/test_live.py` counts them.
 
 `.github/workflows/live.yml` runs the live tests nightly at 02:10 UTC, a time derived from
 the slug.
@@ -94,6 +99,34 @@ carries exported values. The portal's anonymous path, a guest token from
 `GET /api/v1/auth/guest` (403 to a plain client, and not in the OpenAPI document), is not
 used.
 
+### The login and its recordings
+
+`_client.LoginAuth` logs in once per process (`auth_login`, `POST /auth/login`, form
+fields `username` and `password`), keeps the access token alone, a `SecretStr`, for its
+`ExpiresIn` less 60 s, and logs in once more on a 401 or 403 (queue row 252). Offline
+tests send core's placeholder as both variables (`xippios_placeholder_key_envs` in
+`pyproject.toml`); the replayed `tests/fixtures/auth_login/login.json` answers it.
+
+A recording that spends the account's calls:
+
+- runs through `direnv exec <workspace root> uv run python <script>` from the
+  repository, with `RetryPolicy(max_attempts=1)`; the script reads the two variables by name
+  inside Python and prints fixture paths and statuses only;
+- scrubs with one `Scrub(secrets=[...])` naming the user name and the password, each as
+  given and percent-encoded (`urllib.parse.quote(value, safe="")` and `quote_plus`, the
+  form body's encoding), and the login answer's three token values (`AccessToken`,
+  `IdToken`, `RefreshToken`), which core's credential rule does not catch by name; the
+  login is recorded with `write_fixture` after its answer is read, since the tokens are
+  known only then, and the data through `record` on the client, whose `LoginAuth` logs in
+  again (a keyed call to count); request headers, `Authorization` among them, are never
+  recorded;
+- passes the key-free check before the commit, counts only: `grep -rc REDACTED
+  tests/fixtures/` (the login's two lines), `grep -rEc 'eyJ[A-Za-z0-9_-]{20,}'
+  tests/fixtures/` (0 everywhere), `grep -rEoh '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+'
+  tests/fixtures/ | sort | uniq -c` (upstream's `@fao.org` addresses only) and `grep -rc
+  Bearer tests/fixtures/` (the login's `TokenType` only). A match outside these: delete
+  the file and stop.
+
 ### Two element code systems
 
 A data query filters by the element codes of `codes/element/{domain}` (`2510`, Production
@@ -101,6 +134,12 @@ Quantity, in QCL); the answer prints a different code under `Element Code` (`551
 Production), and a filter with the answer's code matches nothing. See
 `docs/upstream/samples/codes_element_QCL.json` and
 `docs/upstream/samples/data_QCL_231_2510_15_2015-2021.json`.
+
+### Columns by domain
+
+QCL's rows carry 15 columns, `Note` last; PP's carry `Months Code` and `Months` and no
+`Note` (`tests/fixtures/get_data/PP_231_2020_page_size_2.json`). `models.DataRecord` reads
+both shapes; the live tests check every domain they read against its columns.
 
 ### What the OpenAPI document does not state
 
