@@ -86,12 +86,12 @@ async def get_data(
         element: ``element``, element codes of ``codes/element/{domain_code}`` as a
             comma list, e.g. ``"2510"``.
         year: ``year``, years as a comma list, e.g. ``"2015,2016"``.
-        area_cs: ``area_cs``, the coding system of ``area``, e.g. ``"M49"`` or ``"FAO"``;
+        area_cs: ``area_cs``, the coding system of ``area``, e.g. ``"FAO"`` or ``"M49"``;
             not in the document. The answer then prints the codes under ``Area Code
-            (<system>)`` (``Area Code (M49)`` recorded, ``Area Code (FAO)`` in FETCHED.md).
+            (<system>)`` (``Area Code (FAO)`` and ``Area Code (M49)`` recorded).
         item_cs: ``item_cs``, the coding system of ``item``, e.g. ``"FAO"``; not in the
             document. The answer then prints the codes under ``Item Code (<system>)``
-            (``Item Code (FAO)`` in FETCHED.md).
+            (``Item Code (FAO)`` recorded).
         page_size: ``page_size``, rows per page, e.g. ``2``; not in the document.
         page_number: ``page_number``, the page, from 1, e.g. ``2``; not in the document.
         show_codes: ``show_codes``; not in the document.

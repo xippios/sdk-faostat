@@ -132,14 +132,14 @@ class DataRecord(UpstreamModel):
     column the row prints beyond the named ones is kept in ``columns`` under upstream's
     header, so nothing is dropped (ADR-0003); a named column is never there too. A query
     with ``area_cs`` or ``item_cs`` renames the code column: the recorded answer to
-    ``area_cs=M49`` names it ``Area Code (M49)``
-    (``tests/fixtures/get_data/QCL_840_M49_15_2510_2020.json``, its ``metadata.dsd``), and
-    FETCHED.md observed ``Area Code (FAO)`` and ``Item Code (FAO)`` with ``area_cs=FAO`` and
-    ``item_cs=FAO``; such a row has ``area_code`` or ``item_code`` ``None`` and its coded
-    column in ``columns``. The OpenAPI document's ``DataResponse`` spells the two columns
-    ``Area Code (M49)`` and ``Item Code (CPC)``; a query without ``area_cs`` and
-    ``item_cs`` prints ``Area Code`` and ``Item Code`` (FETCHED.md). Every value is text as
-    printed but ``value``.
+    ``area_cs=FAO`` and ``item_cs=FAO`` prints ``Area Code (FAO)`` and ``Item Code (FAO)``
+    (``tests/fixtures/get_data/QCL_231_FAO_15_FAO_2510_2020.json``), and the one to
+    ``area_cs=M49`` names ``Area Code (M49)`` in its ``metadata.dsd``
+    (``tests/fixtures/get_data/QCL_840_M49_15_2510_2020.json``, no rows); such a row has
+    ``area_code`` or ``item_code`` ``None`` and its coded column in ``columns``. The
+    OpenAPI document's ``DataResponse`` spells the two columns ``Area Code (M49)`` and
+    ``Item Code (CPC)``; a query without ``area_cs`` and ``item_cs`` prints ``Area Code``
+    and ``Item Code`` (FETCHED.md). Every value is text as printed but ``value``.
 
     ``element_code`` is the code the answer prints, which is not the code a query filters
     by: a query with ``element=2510`` (Production Quantity in ``codes/element/QCL``)

@@ -151,9 +151,12 @@ Production), and a filter with the answer's code matches nothing. See
 
 QCL's rows carry 15 columns, `Note` last; PP's carry `Months Code` and `Months` and no
 `Note` (`tests/fixtures/get_data/PP_231_2020_page_size_2.json`). `area_cs` and `item_cs`
-rename the code columns: the answer to `area_cs=M49` names `Area Code (M49)` in its
-`metadata.dsd` (`tests/fixtures/get_data/QCL_840_M49_15_2510_2020.json`, no rows for
-`area=840`), and FETCHED.md observed `Area Code (FAO)` and `Item Code (FAO)`.
+rename the code columns: the answer to `area_cs=FAO` and `item_cs=FAO` prints `Area Code
+(FAO)` and `Item Code (FAO)` (`tests/fixtures/get_data/QCL_231_FAO_15_FAO_2510_2020.json`,
+one row), and the one to `area_cs=M49` names `Area Code (M49)` in its `metadata.dsd`
+(`tests/fixtures/get_data/QCL_840_M49_15_2510_2020.json`, no rows for `area=840`). The
+bulk files print M49 codes with a leading apostrophe (`'004`, in the RL ZIP on
+2026-10-29); whether the API's M49 filter wants that form is not established.
 `models.DataRecord` names both shapes' columns, `area_code` and `item_code` `None` where
 a coding system renamed them, and keeps every column a domain prints beyond the named
 ones in `columns`, under upstream's headers (ADR-0003: nothing dropped), so a named

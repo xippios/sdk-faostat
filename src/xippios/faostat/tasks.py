@@ -147,9 +147,11 @@ async def get_data_async(
         area_cs: The coding system of ``area``, one the domain's dimensions list
             (``"M49"``, ``"FAO"``, ``"ISO2"``, ``"ISO3"`` in QCL); ``None`` sends FAO's
             codes, which the rows print under ``area_code``. Given, the rows print the
-            codes under a header naming the system (``Area Code (M49)``), kept in
-            ``columns``, and ``area_code`` is ``None``; ``area="840"`` with
-            ``area_cs="M49"`` answered no rows on 2026-10-29.
+            codes under a header naming the system (``Area Code (FAO)``), kept in
+            ``columns``, and ``area_code`` is ``None``. ``area="840"`` with
+            ``area_cs="M49"`` answered no rows on 2026-10-29; the bulk files print M49
+            codes with a leading apostrophe (``'004``), and whether the M49 filter wants
+            that form is not established.
         item_cs: The coding system of ``item``, ``"CPC"`` or ``"FAO"`` in QCL; ``None``
             sends FAO's codes, which the rows print under ``item_code``. Given, the rows
             print the codes under a header naming the system (``Item Code (FAO)``), kept

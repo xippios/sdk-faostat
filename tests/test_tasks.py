@@ -14,7 +14,9 @@ without a filter, sent through the wrapper since the task refuses it before send
 ``list_domains`` and ``get_data``'s release date read
 ``tests/fixtures/get_groupsanddomains/all.json`` (78 rows); the tests take the expected
 values from it. ``QCL_840_M49_15_2510_2020``, recorded later on 2026-10-29, is the answer
-to ``area_cs=M49``: no rows, and a ``metadata.dsd`` naming ``Area Code (M49)``. The
+to ``area_cs=M49``: no rows, and a ``metadata.dsd`` naming ``Area Code (M49)``;
+``QCL_231_FAO_15_FAO_2510_2020``, the answer to ``area_cs=FAO`` and ``item_cs=FAO``, one
+row whose code columns are ``Area Code (FAO)`` and ``Item Code (FAO)``. The
 replay tests of ``get_data`` and ``list_domains`` send exactly the recorded query
 (``sent_query`` against ``recorded_query``); the MCP test of ``get_data`` sends two
 years where the fixture recorded seven, and checks the years sent.
@@ -204,6 +206,32 @@ def test_get_data_with_a_coding_system(replay_fixture: ReplayFixture) -> None:
     headers = [column.key for column in recorded_dsd(case)]
     assert "Area Code (M49)" in headers
     assert "Area Code" not in headers
+
+
+def test_get_data_with_fao_coding_systems_keeps_the_coded_columns(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """``area_cs=FAO`` and ``item_cs=FAO``: the recorded rows print both code columns renamed."""
+    case = "QCL_231_FAO_15_FAO_2510_2020"
+    route = replay_fixture(GET_DATA, case)
+    replay_fixture(DOMAINS, "all")
+    result = get_data(
+        "QCL", area="231", area_cs="FAO", item="15", item_cs="FAO", element="2510", year=2020
+    )
+    assert sent_query(route) == recorded_query(recorded(GET_DATA, case))
+    printed = json.loads(recorded(GET_DATA, case).response.body)["data"]
+    assert len(result.data) == len(printed) == 1
+    row, recorded_row = result.data[0], printed[0]
+    assert row.area_code is None
+    assert row.item_code is None
+    assert row.columns == {
+        "Area Code (FAO)": recorded_row["Area Code (FAO)"],
+        "Item Code (FAO)": recorded_row["Item Code (FAO)"],
+    }
+    assert row.area == recorded_row["Area"]
+    assert row.value == Decimal(recorded_row["Value"])
+    assert result.meta.request["area_cs"] == "FAO"
+    assert result.meta.request["item_cs"] == "FAO"
 
 
 def test_a_coded_column_is_kept_in_columns_and_its_field_is_none() -> None:
