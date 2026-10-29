@@ -10,8 +10,9 @@ United States of America (area 231) in 2020, cut to its first five rows with
 ``page_size=5`` and ``page_number=1``. ``list_domains`` has one. A run sends seven keyed
 requests: one login, five data requests and one ``groupsanddomains`` request, the first
 domain's release-date look-up; the other four look-ups and ``list_domains`` answer from
-the client's cache, which lives for the run, and each test's check of the answer's
-columns reads its data request from the cache as well. The reachability check sends one
+the client's cache, which lives for the run, and each test's check that every column
+the answer prints is named or kept in ``columns`` reads its data request from the cache
+as well. The reachability check sends one
 more request, without the account. The tests assert shape and release metadata, never
 values, which FAOSTAT revises.
 """
@@ -92,8 +93,10 @@ async def test_get_data(domain: str) -> None:
         null_values=False,
         output_type="objects",
     )
-    unread = sorted({column.key for column in answer.response.metadata.dsd} - HEADERS)
-    assert unread == [], f"{domain} prints columns DataRecord does not read"
+    printed = {column.key for column in answer.response.metadata.dsd}
+    assert all(printed - HEADERS <= set(row.columns) for row in answer.response.data), (
+        f"{domain}: a column neither named nor kept in columns"
+    )
 
 
 async def test_list_domains() -> None:

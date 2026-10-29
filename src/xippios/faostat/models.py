@@ -20,7 +20,7 @@ from collections.abc import Mapping
 from decimal import Decimal
 from typing import Any
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from xippios.core import UpstreamModel
 
 __all__ = [
@@ -128,10 +128,14 @@ class DataRecord(UpstreamModel):
     ``Note`` (QCL, recorded 2026-10-29). A domain may print other columns: PP prints
     ``Months Code`` and ``Months`` and no ``Note`` (recorded 2026-10-29,
     ``tests/fixtures/get_data/PP_231_2020_page_size_2.json``), so ``months_code`` and
-    ``months`` are ``None`` in a domain without them and ``note`` in one without it. The
-    OpenAPI document's ``DataResponse`` spells two columns ``Area Code (M49)`` and ``Item
-    Code (CPC)``; no recorded answer does (FETCHED.md), and neither spelling is accepted
-    here for ``area_code`` or ``item_code``. Every value is text as printed but ``value``.
+    ``months`` are ``None`` in a domain without them and ``note`` in one without it. Every
+    column the row prints beyond the named ones (the partner columns of the trade matrix
+    TM, say) is kept in ``columns`` under upstream's header, so nothing is dropped
+    (ADR-0003); a named column is never there too. The OpenAPI document's
+    ``DataResponse`` spells two columns ``Area Code (M49)`` and ``Item Code (CPC)``; no
+    recorded answer does (FETCHED.md), and neither spelling is named here, so a row that
+    printed them would keep them in ``columns``. Every value is text as printed but
+    ``value``.
 
     ``element_code`` is the code the answer prints, which is not the code a query filters
     by: a query with ``element=2510`` (Production Quantity in ``codes/element/QCL``)
@@ -162,6 +166,9 @@ class DataRecord(UpstreamModel):
             ``Flag Description``.
         note: The value's note as printed, ``""`` when it has none; ``None`` for ``null``
             and in a domain without the column (PP).
+        columns: The row's other columns, under upstream's headers, as sent, in the
+            row's order; ``{}`` in the recorded QCL and PP rows, whose columns are all
+            named.
     """
 
     domain_code: str = Field(validation_alias="Domain Code")
@@ -181,6 +188,26 @@ class DataRecord(UpstreamModel):
     flag: str = Field(validation_alias="Flag")
     flag_description: str = Field(validation_alias="Flag Description")
     note: str | None = Field(default=None, validation_alias="Note")
+    columns: Mapping[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _other_columns(cls, data: Any) -> Any:
+        """Gather the columns no field names into ``columns``, under upstream's headers.
+
+        A mapping that carries ``columns`` already (a record dumped by field name) is
+        taken as it is.
+        """
+        if not isinstance(data, Mapping) or "columns" in data:
+            return data
+        named = set(cls.model_fields)
+        named |= {
+            field.validation_alias
+            for field in cls.model_fields.values()
+            if isinstance(field.validation_alias, str)
+        }
+        others = {header: value for header, value in data.items() if header not in named}
+        return {**data, "columns": others}
 
 
 class DataResponse(UpstreamModel):

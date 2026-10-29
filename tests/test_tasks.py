@@ -169,6 +169,22 @@ def test_get_data_pp_keeps_its_months_columns(replay_fixture: ReplayFixture) -> 
     assert result.meta.vintage == date_update("PP")
 
 
+@pytest.mark.parametrize("case", [QCL, "PP_231_2020_page_size_2"])
+def test_the_recorded_rows_print_no_column_beyond_the_named_ones(case: str) -> None:
+    assert {row.columns == {} for row in recorded_rows(case)} == {True}
+
+
+def test_a_column_no_field_names_is_kept_in_columns() -> None:
+    """A row as an in-memory mapping (no fixture): QCL's first row and one column more."""
+    printed = json.loads(recorded(GET_DATA, QCL).response.body)["data"][0]
+    row = DataRecord.model_validate({**printed, "Extra Column": "x", "Other": None})
+    assert row.columns == {"Extra Column": "x", "Other": None}
+    assert row.area_code == printed["Area Code"]
+    assert not set(row.columns) & set(printed), "no named column is in columns too"
+    assert DataRecord.model_validate(row.model_dump()) == row, "a dump by name round-trips"
+    assert row.model_dump(mode="json")["columns"] == {"Extra Column": "x", "Other": None}
+
+
 @pytest.mark.parametrize(
     "arguments",
     [{}, {"area": None, "item": None, "element": None, "year": None}, {"page_size": 2}],
@@ -242,6 +258,7 @@ async def test_get_data_tool_end_to_end(replay_fixture: ReplayFixture) -> None:
     assert len(payload["data"]) == 7, "the recorded answer, served whatever the years"
     assert payload["data"][0]["value"] == 55839540, "a Decimal is a JSON number"
     assert payload["data"][0]["element_code"] == "5510"
+    assert payload["data"][0]["columns"] == {}
     assert "note" not in payload, "7 rows, under the cap"
     assert payload["meta"]["endpoint"] == "get_data"
     assert payload["meta"]["vintage"] == date_update("QCL")
