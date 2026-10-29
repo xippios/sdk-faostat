@@ -37,12 +37,15 @@ src/xippios/faostat/
                    the Python-only ones; MCP_CAPS any per-tool result caps
   mcp.py           xippios-faostat-mcp entry point
   http.py          FastAPI router
-  params.py        the packaged reference lists, read from reference/
+  params.py        the packaged reference lists, read from reference/: the fifteen code
+                   tables, DIMENSIONS by DOMAINS
   enums.py         StrEnums (IntEnums for integer ids) generated from the packaged lists;
-                   never edited by hand
-  reference/       packaged code lists (CSV/JSON) plus README with provenance
+                   never edited by hand; empty, since no table makes an enum
+  reference/       fifteen packaged code tables, <dimension>_<domain>.json (area, element
+                   and item of QCL, TCL, FBS, PP and RL), plus README with provenance
 scripts/
-  refresh_reference.py   fetches the packaged lists through api/ and regenerates enums.py
+  refresh_reference.py   fetches the fifteen code tables through api.get_code_list, writes
+                         reference/ and its README's provenance rows, regenerates enums.py
   refresh_upstream.py    captures docs/upstream/ and writes FETCHED.md (/refresh-upstream): the
                          OpenAPI document, the terms of use, the bulk catalogue, and four
                          samples fetched with the account's token after one login
@@ -53,7 +56,9 @@ tests/
   test_family.py   core's family check, one line: namespace levels, py.typed, __version__,
                    the adapters serving exactly the tasks, task shapes and docstrings, the
                    README status table, the template tag, the core bound
-  test_api.py      optional: the endpoint wrappers' own tests
+  test_api.py      the endpoint wrappers' own tests: get_code_list on its recordings
+  test_refresh_reference.py  the refresh script on the recorded code lists, and the
+                   committed tables and provenance rows against each other
   test_tasks.py    per-task replay tests
   test_live.py     @pytest.mark.live smoke tests, one per task
 docs/upstream/     documentation snapshot and FETCHED.md
@@ -75,11 +80,15 @@ package.
 # the family workspace's root, whose .envrc holds them:
 XIPPIOS_LIVE_TESTS=1 direnv exec <workspace root> uv run pytest -m live --tb=short
 
+# refreshes the fifteen code tables under reference/: one login and fifteen requests
+direnv exec <workspace root> uv run python scripts/refresh_reference.py
+
 uv run xippios-faostat-mcp   # stdio; add --http for streamable HTTP
 ```
 
-A live run sends seven keyed requests (one login, five data requests, one
-`groupsanddomains`) and one without the account; `tests/test_live.py` counts them.
+A live run sends eight keyed requests (one login, five data requests, one
+`groupsanddomains`, one `getCodeList`) and one without the account; `tests/test_live.py`
+counts them.
 
 `.github/workflows/live.yml` runs the live tests nightly at 02:10 UTC, a time derived from
 the slug.
@@ -142,7 +151,28 @@ A data query filters by the element codes of `codes/element/{domain}` (`2510`, P
 Quantity, in QCL); the answer prints a different code under `Element Code` (`5510`,
 Production), and a filter with the answer's code matches nothing. See
 `docs/upstream/samples/codes_element_QCL.json` and
-`docs/upstream/samples/data_QCL_231_2510_15_2015-2021.json`.
+`docs/upstream/samples/data_QCL_231_2510_15_2015-2021.json`. The packaged element tables
+hold the filter codes, so `get_data` refuses `element=5510` on QCL naming `2510`; nothing
+is translated between the two systems (ADR-0003; G5 2026-10-29, question 10).
+
+### The packaged code tables
+
+`reference/` holds fifteen tables, `getCodeList`'s answers for `codes/<dimension>/<domain>`
+of the dimensions `area`, `element` and `item` of QCL, TCL, FBS, PP and RL (Johannes, G5
+2026-10-29, questions 3 and 5), each `<dimension>_<domain>.json` with the dimension as
+`param` and `getCodeList` as `endpoint`, upstream's records as sent (`CodeItem.dump_upstream`
+leaves out a named field the record lacked). `scripts/refresh_reference.py` fetches them
+with the account, through `direnv exec <workspace root>` like a recording, and rewrites
+the provenance rows of `reference/README.md`; no enum is generated. They come from the
+dimension ids, which the data endpoint filters by, not from the subdimension ids the
+OpenAPI document's examples name: `codes/countries/QCL` answers QCL's 210 countries,
+`codes/area/QCL` those and the 68 regions and special groups beside them
+(`tests/fixtures/get_code_list/`, `reference/README.md`). `list_areas`, `list_elements`
+and `list_items` answer from them; `get_data` refuses an area, element or item code a
+packaged domain's table lacks with `UnknownCode` before sending, area codes only when
+`area_cs` is `None` or `FAO`, item codes likewise with `item_cs`, and sends any other
+domain's codes unchecked. Only QCL's three answers and `codes/countries/QCL` are recorded
+as fixtures; the other twelve tables are packaged, not recorded.
 
 ### Columns by domain
 
