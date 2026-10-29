@@ -12,8 +12,8 @@ the family rules every source shares are in `.claude/family.md`, which the next 
 | --- | --- |
 | Upstream | FAOSTAT, https://www.fao.org/faostat/ |
 | API base URL | `https://faostatservices.fao.org/api/v1` |
-| Documentation | https://www.fao.org/faostat/en/docs/redoc-static.html, snapshotted in `docs/upstream/`; an OpenAPI or Swagger document a page names is kept beside it, its URL in `SPEC_URL` of `scripts/refresh_upstream.py` (`/refresh-upstream`) |
-| Credentials | none; the API is open |
+| Documentation | FAO's OpenAPI document, https://www.fao.org/faostat/en/docs/faostat_openapi.yaml (`SPEC_URL` of `scripts/refresh_upstream.py`; no page links it), kept verbatim as `docs/upstream/openapi/faostat_openapi.yaml`, and the ReDoc page that renders it, https://www.fao.org/faostat/en/docs/redoc-static.html (`/refresh-upstream`) |
+| Credentials | a FAO account: `FAOSTAT_USERNAME` (the account's e-mail) and `FAOSTAT_PASSWORD` from the environment; the package logs in at `POST /auth/login` (operation `auth_login`) and sends the access token as a bearer, from the first tasks PR on (queue row 252); the nightly `live.yml` passes both as org secrets from the first tasks PR on |
 | Rate limit | 30 requests per minute, burst 1; a self-imposed pace: upstream documents no per-second or per-minute limit (ADR-0010); enforced client-side in `_client.py` <!-- name here an hourly or daily quota upstream documents, if any, and the QuotaPolicy that keeps it (ADR-0015) --> |
 | Write tools | no, this package is read-only |
 | Files | parsed in `parse/`, one module per file kind; the parser tests read the samples under `tests/fixtures/files/`, their provenance in its `README.md` (ADR-0020) <!-- each file kind upstream publishes, its format and the library that reads it --> |
@@ -43,11 +43,12 @@ src/xippios/faostat/
   reference/       packaged code lists (CSV/JSON) plus README with provenance
 scripts/
   refresh_reference.py   fetches the packaged lists through api/ and regenerates enums.py
-  refresh_upstream.py    captures docs/upstream/ and writes FETCHED.md (/refresh-upstream); the
-                         template's skeleton until the source fills it
+  refresh_upstream.py    captures docs/upstream/ and writes FETCHED.md (/refresh-upstream): the
+                         OpenAPI document, the terms of use, the bulk catalogue, and four
+                         samples fetched with the account's token after one login
 tests/
   conftest.py      enables xippios.core.testing.plugin, which keeps the run offline
-  fixtures/        recorded responses, <endpoint>/<case>.json, never hand-written
+  fixtures/        recorded responses, <wrapper>/<case>.json, never hand-written
   fixtures/files/  a sample of each file kind, <file_kind>/<case>.<ext>; README.md, their provenance
   test_family.py   core's family check, one line: namespace levels, py.typed, __version__,
                    the adapters serving exactly the tasks, task shapes and docstrings, the
@@ -77,8 +78,33 @@ uv run xippios-faostat-mcp   # stdio; add --http for streamable HTTP
 
 `.github/workflows/live.yml` runs the live tests nightly at 02:10 UTC, a time derived from
 the slug.
-The API needs no key, so the workflow uses no secret.
+From the first tasks PR on, the org secrets `FAOSTAT_USERNAME` and `FAOSTAT_PASSWORD`
+reach only its `uv run pytest -m live` step.
 
 ## FAOSTAT specifics
 
-<!-- What only this package knows: upstream behaviour established by fixtures, the client's quirks, sections of its own. Fill this section or delete it. -->
+### The account's credentials
+
+`FAOSTAT_USERNAME`, `FAOSTAT_PASSWORD` and a token are never read by value, printed,
+logged or compared, and `.envrc` is never read; code reads the two variables by name. They
+reach a process only through `direnv exec` from the family workspace's root, whose
+`.envrc` holds them, or through the org secrets. No process listing or environment dump
+(`env`, `printenv`, `set`, `export`, `ps`, `/proc/*/environ`): the shell's command line
+carries exported values. The portal's anonymous path, a guest token from
+`GET /api/v1/auth/guest` (403 to a plain client, and not in the OpenAPI document), is not
+used.
+
+### Two element code systems
+
+A data query filters by the element codes of `codes/element/{domain}` (`2510`, Production
+Quantity, in QCL); the answer prints a different code under `Element Code` (`5510`,
+Production), and a filter with the answer's code matches nothing. See
+`docs/upstream/samples/codes_element_QCL.json` and
+`docs/upstream/samples/data_QCL_231_2510_15_2015-2021.json`.
+
+### What the OpenAPI document does not state
+
+Paging (`page_size` with `page_number`, `limit` with `offset`), `no_records`, the `show_*`
+and `null_values` options, the coding-system parameters `area_cs` and `item_cs`, the
+refusals (HTTP 500) and the absence of rate-limit headers were observed on 2026-10-29
+and are listed in `docs/upstream/FETCHED.md`, under "How this is captured".
