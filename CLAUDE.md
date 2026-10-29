@@ -210,21 +210,22 @@ names (`FileLocation`) are open: `api.datasets_e` and `download_dataset` send th
 `auth=None`, so `LoginAuth` never logs in for them and no token goes to that host
 (conventions §6), and their recordings, `tests/fixtures/datasets_e/` and
 `tests/fixtures/download_dataset/`, were made with a client without the account. They go
-through the package's one client all the same, paced by its 30 per minute, the
-catalogue cached with the API's answers. On
-2026-10-29 the catalogue listed 69 datasets, every one a `zip` of `csv`, `DateUpdate` a
-time without a zone (`2026-10-02T00:00:00`), `FileSize` text in kilobytes (`2902KB`);
-the ZIPs run from 12 KB (MDDW) to 410,792 KB (TM), TCL's 267,104 KB. A ZIP holds one
-`<Name>_E_All_Data_(Normalized).csv`, which `parse_bulk_csv` chooses by that ending, and
-small code lists (`_AreaCodes.csv`, `_Elements.csv`, `_Flags.csv`, `_ItemCodes.csv`;
-MDDW's `_Indicators.csv` and `_Surveys.csv`); CRLF, no byte order mark, UTF-8. The
-normalized table is the dataset's own: RL's header is `Area Code, Area Code (M49), Area,
-Item Code, Item, Element Code, Element, Year Code, Year, Unit, Value, Flag, Note`, the M49
-code printed with a leading apostrophe (`'004`), `Value` with six decimals; MDDW's prints
-no area, item or year (`models.BulkRecord` keeps such columns in `columns`). The
-catalogue's `FileRows` counts RL's table (421,850) but not MDDW's (2,035, where the table
-holds 1,223 rows). `Item Code (CPC)`, which the OpenAPI document's `DataResponse` names,
-is expected in QCL's and TCL's tables, whose ZIPs (33 MB, 267 MB) were not fetched.
+through the package's one client all the same, paced by its 30 per minute, the catalogue
+cached with the API's answers. On 2026-10-29 the catalogue listed 69 datasets, each code
+a domain `list_domains` lists (`tests/fixtures/get_groupsanddomains/all.json`), every
+one a `zip` of `csv`, `DateUpdate` a time without a zone (`2026-10-02T00:00:00`),
+`FileSize` text in kilobytes (`2902KB`); the ZIPs run from 12 KB (MDDW) to 410,792 KB
+(TM), TCL's 267,104 KB. A ZIP holds one `<Name>_E_All_Data_(Normalized).csv`, which
+`parse_bulk_csv` chooses by that ending, and small code lists (`_AreaCodes.csv`,
+`_Elements.csv`, `_Flags.csv`, `_ItemCodes.csv`; MDDW's `_Indicators.csv` and
+`_Surveys.csv`); CRLF, no byte order mark, UTF-8. The normalized table is the dataset's
+own: RL's header is `Area Code, Area Code (M49), Area, Item Code, Item, Element Code,
+Element, Year Code, Year, Unit, Value, Flag, Note`, the M49 code printed with a leading
+apostrophe (`'004`), `Value` with six decimals; MDDW's prints no area, item or year
+(`models.BulkRecord` keeps such columns in `columns`). The catalogue's `FileRows` counts
+RL's table (421,850) but not MDDW's (2,035, where the table holds 1,223 rows). `Item
+Code (CPC)`, which the OpenAPI document's `DataResponse` names, is expected in QCL's and
+TCL's tables, whose ZIPs (33 MB, 267 MB) were not fetched.
 
 ### What the OpenAPI document does not state
 
