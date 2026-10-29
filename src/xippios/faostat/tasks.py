@@ -3,8 +3,8 @@
 ``/add-endpoint`` adds them.
 
 ``get_data`` sends one ``get_data`` request (``api.get_data``) for a domain and the codes
-given and returns the answer's rows; every request of the package carries the FAO
-account's bearer token, ``_client.LoginAuth``'s. It sends ``lang=en`` and the output
+given and returns the answer's rows; every request of the package to the API carries the
+FAO account's bearer token, ``_client.LoginAuth``'s. It sends ``lang=en`` and the output
 options the portal sends, fixed (``OUTPUT_OPTIONS``: ``show_codes``, ``show_unit``,
 ``show_flags`` and ``show_notes`` true, ``null_values`` false, ``output_type`` objects;
 not in the OpenAPI document, observed on 2026-10-29, FETCHED.md's "How this is

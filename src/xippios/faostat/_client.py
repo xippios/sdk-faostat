@@ -3,23 +3,26 @@
 FAOSTAT's API answers an account's requests only: the OpenAPI document requires
 ``bearerAuth``, an HTTP bearer, on every operation, and ``auth_login`` (``POST
 /auth/login``, form fields ``username`` and ``password``) issues the token
-(``docs/upstream/openapi/faostat_openapi.yaml``). ``LoginAuth`` is the client's ``auth``:
-on the first request of the process it reads ``FAOSTAT_USERNAME`` (the account's e-mail)
-and ``FAOSTAT_PASSWORD`` from the environment, logs in, keeps the answer's
-``AuthenticationResult.AccessToken`` and sends it as ``Authorization: Bearer <token>``
-on that request and every later one. The token lives ``ExpiresIn`` seconds (3600 in the
-recorded login); it is used for that time less a margin of ``EXPIRY_MARGIN`` (60 s), and
-the first request after it logs in again. A request answered with HTTP 401 or 403 logs
-in once more and is sent again, once: a second 401 or 403 goes back to core, whose
-status mapping raises ``AuthError``. So a request logs in at most twice (queue row
-252). The login runs inside the request's ``httpx`` auth flow, below core's limiter,
-hooks, cache and ``classify``: a login is not paced and not cached. A login refused
-with HTTP 401 or 403, or with HTTP 400 and Cognito's ``UserNotFoundException`` (recorded
-for an unknown user) or ``NotAuthorizedException``, raises ``AuthError`` naming the
-status and upstream's ``__type``; any other answer but HTTP 200 raises what core's
-``error_from_response`` makes of it (``RateLimitError`` for a 429, ``UpstreamError`` for
-a 5xx). The flow reads the login's answer and no other: the answer of the request it
-signs, a streamed download's among them, goes back to the client unread.
+(``docs/upstream/openapi/faostat_openapi.yaml``). ``LoginAuth`` is the client's
+``auth``: on the first request of the process it reads ``FAOSTAT_USERNAME`` (the
+account's e-mail) and ``FAOSTAT_PASSWORD`` from the environment, logs in, keeps the
+answer's ``AuthenticationResult.AccessToken`` and sends it as ``Authorization: Bearer
+<token>`` on that request and every later one. A request sent with ``auth=None`` passes
+it by: the bulk downloads' catalogue and files on ``bulks-faostat.fao.org``
+(``api.datasets_e``, ``tasks.download_dataset``) go without a login and without the
+token. The token lives ``ExpiresIn`` seconds (3600 in the recorded login); it is used
+for that time less a margin of ``EXPIRY_MARGIN`` (60 s), and the first request after it
+logs in again. A request answered with HTTP 401 or 403 logs in once more and is sent
+again, once: a second 401 or 403 goes back to core, whose status mapping raises
+``AuthError``. So a request logs in at most twice (queue row 252). The login runs inside
+the request's ``httpx`` auth flow, below core's limiter, hooks, cache and ``classify``:
+a login is not paced and not cached. A login refused with HTTP 401 or 403, or with HTTP
+400 and Cognito's ``UserNotFoundException`` (recorded for an unknown user) or
+``NotAuthorizedException``, raises ``AuthError`` naming the status and upstream's
+``__type``; any other answer but HTTP 200 raises what core's ``error_from_response``
+makes of it (``RateLimitError`` for a 429, ``UpstreamError`` for a 5xx). The flow reads
+the login's answer and no other: the answer of the request it signs, a streamed
+download's among them, goes back to the client unread.
 
 Nothing of the account is logged, printed or kept but the access token: neither the
 user name nor the password, read where the login request is built and kept in no
@@ -45,8 +48,9 @@ mapping: the 401 ``Missing Authorization Header`` and the 403 ``Authentication F
 Answers of HTTP 200 are cached in core's ``MemoryCache`` with its default lifetime of
 five minutes, up to core's ``cache_max_bytes`` of 8 MiB a body (ADR-0019 decision 3):
 ``tasks.get_data``'s look-up of a domain's release date in ``get_groupsanddomains``
-costs one request per process per five minutes, and a larger data answer is returned
-and fetched again the next time.
+costs one request per process per five minutes, as does the bulk catalogue
+(``datasets_E.json``, 107 KB), and a larger data answer is returned and fetched again the
+next time. A bulk file goes through ``download`` and is never cached.
 """
 
 import os
@@ -396,7 +400,8 @@ config = ClientConfig(
 # config (conventions §6, ADR-0015); core's README shows how. FAOSTAT documents none.
 
 auth = LoginAuth(source=SOURCE)
-"""The process's one login: every request of ``client`` sends its token."""
+"""The process's one login: every request of ``client`` sends its token but those sent with
+``auth=None``, the bulk downloads'."""
 
 client = AsyncClient(config, auth=auth)
 
