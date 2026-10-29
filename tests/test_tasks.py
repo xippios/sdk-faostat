@@ -7,7 +7,8 @@ account's token (``tests/test_client.py`` covers the login). ``get_data``'s are 
 ``tests/fixtures/get_data/``: ``QCL_231_2510_15_2015_2021``, wheat production in the
 United States of America over seven years (7 rows); ``QCL_page_2``, the same query with
 ``page_size=2&page_number=2`` (rows 3 and 4); ``QCL_element_5510_empty``, the same query
-with the answer's element code as the filter (no rows); ``PP_231_2020_page_size_2``, the
+with the answer's element code as the filter (no rows), which ``get_data`` now refuses
+before sending, the route mounted to show it is never called; ``PP_231_2020_page_size_2``, the
 first two producer prices of 2020, whose rows carry ``Months Code`` and ``Months`` and no
 ``Note``; ``XXX_unknown_domain_500``, an unknown domain; ``no_filter_500``, a query
 without a filter, sent through the wrapper since the task refuses it before sending.
@@ -15,6 +16,12 @@ without a filter, sent through the wrapper since the task refuses it before send
 ``tests/fixtures/get_groupsanddomains/all.json`` (78 rows); the tests take the expected
 values from it. Each test sends exactly the recorded query (``sent_query`` against
 ``recorded_query``).
+
+``list_areas``, ``list_elements`` and ``list_items`` answer from the fifteen packaged
+tables under ``src/xippios/faostat/reference/``, without a request; their tests, and
+``get_data``'s refusals of a code a table lacks, read the codes, labels, counts and fetch
+times from the packaged files (``params``), never pinning them, so a refresh of the
+tables breaks no test.
 """
 
 import dataclasses
@@ -29,7 +36,7 @@ import pytest
 import respx
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from xippios.core import InvalidRequestError, NotFoundError, matches
+from xippios.core import InvalidRequestError, NotFoundError, UnknownCode, matches
 from xippios.core.mcp import build_server
 from xippios.core.testing import (
     Fixture,
@@ -37,15 +44,31 @@ from xippios.core.testing import (
     assert_time_between,
     load_fixture,
     mcp_call,
+    mcp_call_text,
     recorded_query,
     sent_query,
 )
 
-from xippios.faostat import api, get_data, list_domains, tasks
+from xippios.faostat import (
+    api,
+    get_data,
+    list_areas,
+    list_domains,
+    list_elements,
+    list_items,
+    params,
+    tasks,
+)
 from xippios.faostat._client import FILTER_REFUSAL, SOURCE, auth
 from xippios.faostat.http import router
 from xippios.faostat.mcp import server
-from xippios.faostat.models import DataRecord, DataResponse, Domain, GroupsAndDomainsResponse
+from xippios.faostat.models import (
+    CodeItem,
+    DataRecord,
+    DataResponse,
+    Domain,
+    GroupsAndDomainsResponse,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 GET_DATA = "get_data"
@@ -145,14 +168,134 @@ def test_get_data_page(replay_fixture: ReplayFixture) -> None:
     assert result.meta.total is None
 
 
-def test_get_data_an_unmatched_code_is_an_empty_list(replay_fixture: ReplayFixture) -> None:
+def test_get_data_refuses_the_rows_element_code_before_sending(
+    replay_fixture: ReplayFixture, respx_mock: respx.MockRouter
+) -> None:
+    """Upstream answers the rows' element code with no rows: refused, naming the filter code."""
     case = "QCL_element_5510_empty"
+    assert recorded_rows(case) == [], "upstream's recorded answer to element=5510"
     route = replay_fixture(GET_DATA, case)
     replay_fixture(DOMAINS, "all")
-    result = get_data("QCL", **{**QCL_ARGUMENTS, "element": 5510})
-    assert sent_query(route) == recorded_query(recorded(GET_DATA, case))
-    assert result.data == []
-    assert result.meta.vintage == date_update("QCL")
+    with pytest.raises(UnknownCode) as raised:
+        get_data("QCL", **{**QCL_ARGUMENTS, "element": 5510})
+    assert route.call_count == 0
+    assert not respx_mock.calls, "nothing sent, not even the login"
+    refusal = raised.value
+    table = params.packaged("element_QCL")
+    labels = params.labels("element_QCL")
+    assert isinstance(refusal, InvalidRequestError)
+    assert (refusal.param, refusal.value, refusal.list_name) == ("element", "5510", "element_QCL")
+    assert refusal.fetched == table.fetched
+    assert ("2510", labels["2510"]) in refusal.closest, "the filter code of the rows' 5510"
+    message = str(refusal)
+    assert f"in the packaged element_QCL list (fetched {table.fetched:%Y-%m-%d})" in message
+    assert f"2510 ({labels['2510']})" in message
+    assert 'list_elements("QCL") lists the codes a filter takes' in message
+    assert "not the element_code the rows print" in message
+
+
+@pytest.mark.parametrize(
+    ("arguments", "dimension", "code"),
+    [
+        ({"area": "99999", "year": 2020}, "area", "99999"),
+        ({"area": ["231", "99999"], "year": 2020}, "area", "99999"),
+        ({"area": "231", "item": "999999"}, "item", "999999"),
+        ({"area": "231", "element": "1"}, "element", "1"),
+    ],
+)
+def test_get_data_refuses_a_code_the_domain_table_lacks(
+    respx_mock: respx.MockRouter, arguments: dict[str, Any], dimension: str, code: str
+) -> None:
+    name = f"{dimension}_QCL"
+    assert code not in params.labels(name)
+    with pytest.raises(UnknownCode) as raised:
+        get_data("QCL", **arguments)
+    assert not respx_mock.calls
+    assert (raised.value.param, raised.value.value) == (dimension, code)
+    assert raised.value.list_name == name
+    assert raised.value.fetched == params.packaged(name).fetched
+    assert f'{tasks.LIST_TASKS[dimension]}("QCL") lists the codes' in str(raised.value)
+
+
+@pytest.mark.parametrize(
+    ("arguments", "dimension", "label"),
+    [({"area": "germany"}, "area", "germany"), ({"area": "231", "item": "wheat"}, "item", "wheat")],
+)
+def test_get_data_names_the_closest_codes_by_label(
+    respx_mock: respx.MockRouter, arguments: dict[str, Any], dimension: str, label: str
+) -> None:
+    """A name given for a code: the refusal names the code whose label it is."""
+    labels = params.labels(f"{dimension}_QCL")
+    codes = [code for code, text in labels.items() if text.lower() == label]
+    assert codes, f"the packaged {dimension}_QCL labels {label!r}"
+    with pytest.raises(UnknownCode) as raised:
+        get_data("QCL", **arguments)
+    assert (codes[0], labels[codes[0]]) in raised.value.closest
+    assert not respx_mock.calls
+
+
+def test_get_data_sends_a_domain_without_a_table_unchecked(replay_fixture: ReplayFixture) -> None:
+    """QV has no packaged table: an area code no table holds is sent, as before."""
+    domain = "QV"
+    assert domain not in params.DOMAINS
+    assert all("99999" not in params.labels(f"area_{packaged}") for packaged in params.DOMAINS)
+    fixture = recorded(GET_DATA, QCL)
+    route = replay_fixture(
+        GET_DATA, QCL, url=fixture.request.url.replace("/data/QCL?", f"/data/{domain}?")
+    )
+    replay_fixture(DOMAINS, "all")
+    result = get_data(domain, area="99999", element="5510", item="999999")
+    assert route.call_count == 1
+    assert sent_query(route)["area"] == "99999"
+    assert sent_query(route)["element"] == "5510"
+    assert result.data == recorded_rows(QCL), "the recorded rows, served at QV's path"
+
+
+@pytest.mark.parametrize(
+    ("arguments", "sent"),
+    [
+        ({"area": "840", "area_cs": "M49", "item": "15"}, {"area": "840", "area_cs": "M49"}),
+        ({"area": "231", "item": "01111", "item_cs": "CPC"}, {"item": "01111", "item_cs": "CPC"}),
+    ],
+)
+def test_get_data_sends_another_coding_systems_codes_unchecked(
+    replay_fixture: ReplayFixture, arguments: dict[str, Any], sent: dict[str, str]
+) -> None:
+    """The tables list FAO's codes: an area or item code of another system is not checked."""
+    for name, value in sent.items():
+        if not name.endswith("_cs"):
+            assert value not in params.labels(f"{name}_QCL")
+    route = replay_fixture(GET_DATA, QCL)
+    replay_fixture(DOMAINS, "all")
+    get_data("QCL", **arguments)
+    assert route.call_count == 1
+    assert {name: sent_query(route)[name] for name in sent} == sent
+
+
+def test_get_data_checks_an_fao_coding_systems_codes(respx_mock: respx.MockRouter) -> None:
+    with pytest.raises(UnknownCode):
+        get_data("QCL", area="99999", area_cs="FAO")
+    assert not respx_mock.calls
+
+
+@pytest.mark.anyio
+async def test_get_data_tool_answers_a_refusal_as_text(respx_mock: respx.MockRouter) -> None:
+    text = await mcp_call_text(
+        server, "faostat_get_data", {"domain": "QCL", "area": "231", "element": "5510"}
+    )
+    assert text.startswith("error: UnknownCode: '5510' is not an element"), text
+    assert "element_QCL" in text
+    assert not respx_mock.calls
+
+
+def test_get_data_route_answers_a_refusal_with_422(respx_mock: respx.MockRouter) -> None:
+    app = FastAPI()
+    app.include_router(router)
+    with TestClient(app) as http:
+        answered = http.post("/faostat/get_data", json={"domain": "QCL", "element": "5510"})
+    assert answered.status_code == 422
+    assert "element_QCL" in answered.json()["detail"]
+    assert not respx_mock.calls
 
 
 def test_get_data_pp_keeps_its_months_columns(replay_fixture: ReplayFixture) -> None:
@@ -351,3 +494,142 @@ async def test_list_domains_tool_end_to_end(replay_fixture: ReplayFixture) -> No
     assert payload["data"][0]["focal_point"] is not None
     assert payload["meta"]["endpoint"] == "get_groupsanddomains"
     assert payload["meta"]["request"] == {"lang": "en", "search": "QCL"}
+
+
+LIST_TASKS = [(list_areas, "area"), (list_elements, "element"), (list_items, "item")]
+
+
+def packaged_codes(dimension: str, domain: str) -> list[CodeItem]:
+    """The packaged table's codes as the list task must return them."""
+    return params.packaged(f"{dimension}_{domain}").parse(CodeItem, source=SOURCE)
+
+
+@pytest.mark.parametrize("domain", params.DOMAINS)
+@pytest.mark.parametrize(("task", "dimension"), LIST_TASKS, ids=[d for _, d in LIST_TASKS])
+def test_list_task_answers_the_packaged_table(
+    respx_mock: respx.MockRouter, task: Any, dimension: str, domain: str
+) -> None:
+    result = task(domain)
+    table = params.packaged(f"{dimension}_{domain}")
+    assert result.data == packaged_codes(dimension, domain)
+    assert len(result.data) == len(table.records)
+    assert all(isinstance(code, CodeItem) for code in result.data)
+    meta = result.meta
+    assert meta.source == SOURCE
+    assert meta.endpoint == "getCodeList"
+    assert meta.retrieved_at == table.fetched, "the packaged file's fetch time"
+    assert meta.published_at is None
+    assert meta.vintage is None, "a fetch date is no vintage"
+    assert meta.total is None
+    assert meta.request == {"lang": "en", "dimension_id": dimension, "domain_code": domain}
+    assert not respx_mock.calls, "answered from the package"
+
+
+@pytest.mark.parametrize(
+    ("task", "dimension", "domain", "search"),
+    [
+        (list_areas, "area", "QCL", "united"),
+        (list_areas, "area", "TCL", "231"),
+        (list_areas, "area", "RL", "AFRICA"),
+        (list_elements, "element", "QCL", "production"),
+        (list_elements, "element", "TCL", "export"),
+        (list_items, "item", "QCL", "wheat"),
+        (list_items, "item", "FBS", "Wheat"),
+        (list_items, "item", "PP", "15"),
+    ],
+)
+def test_list_task_search(task: Any, dimension: str, domain: str, search: str) -> None:
+    result = task(domain, search=search)
+    expected = [
+        code for code in packaged_codes(dimension, domain) if matches(search, code.code, code.label)
+    ]
+    assert result.data == expected
+    assert result.data, f"the packaged {dimension}_{domain} has a code for {search!r}"
+    assert len(result.data) < len(packaged_codes(dimension, domain))
+    assert result.meta.request["search"] == search
+
+
+@pytest.mark.parametrize(("task", "dimension"), LIST_TASKS, ids=[d for _, d in LIST_TASKS])
+def test_list_task_search_without_a_hit(task: Any, dimension: str) -> None:
+    result = task("QCL", search="no such code anywhere")
+    assert result.data == []
+    assert result.meta.endpoint == "getCodeList"
+
+
+@pytest.mark.parametrize(("task", "dimension"), LIST_TASKS, ids=[d for _, d in LIST_TASKS])
+def test_list_task_refuses_a_domain_without_a_table(
+    respx_mock: respx.MockRouter, task: Any, dimension: str
+) -> None:
+    with pytest.raises(InvalidRequestError) as raised:
+        task("QV")
+    message = str(raised.value)
+    assert not isinstance(raised.value, UnknownCode)
+    assert "QCL, TCL, FBS, PP, RL, not 'QV'" in message
+    assert "get_data sends another domain's codes unchecked" in message
+    assert not respx_mock.calls
+    with pytest.raises(InvalidRequestError, match=r"Did you mean QCL\?"):
+        task("qcl")
+
+
+@pytest.mark.anyio
+async def test_list_elements_tool_end_to_end() -> None:
+    payload = await mcp_call(server, "faostat_list_elements", {"domain": "QCL"})
+    assert [row["code"] for row in payload["data"]] == [
+        code.code for code in packaged_codes("element", "QCL")
+    ]
+    assert payload["data"][0]["columns"] == {}
+    assert "note" not in payload, "a whole table, under the cap"
+    assert payload["meta"]["endpoint"] == "getCodeList"
+    assert payload["meta"]["request"] == {
+        "lang": "en",
+        "dimension_id": "element",
+        "domain_code": "QCL",
+    }
+
+
+@pytest.mark.anyio
+async def test_list_items_tool_search(respx_mock: respx.MockRouter) -> None:
+    payload = await mcp_call(server, "faostat_list_items", {"domain": "QCL", "search": "wheat"})
+    assert [row["code"] for row in payload["data"]] == [
+        code.code
+        for code in packaged_codes("item", "QCL")
+        if matches("wheat", code.code, code.label)
+    ]
+    assert payload["meta"]["request"]["search"] == "wheat"
+    assert not respx_mock.calls
+
+
+@pytest.mark.parametrize("name", ["list_areas", "list_elements", "list_items"])
+@pytest.mark.anyio
+async def test_list_task_tool_cap_note_names_search(name: str) -> None:
+    """``MCP_CAPS``'s note, through a server built as ``mcp.py`` builds it, rows cut to 2."""
+    cap = tasks.MCP_CAPS[name]
+    assert cap.max_rows == 1000
+    assert cap.note is not None
+    assert cap.note.startswith("pass search")
+    narrow = build_server(
+        SOURCE, [getattr(tasks, name)], caps={name: dataclasses.replace(cap, max_rows=2)}
+    )
+    payload = await mcp_call(narrow, f"faostat_{name}", {"domain": "QCL"})
+    dimension = name.removeprefix("list_").removesuffix("s")
+    total = len(params.packaged(f"{dimension}_QCL").records)
+    assert len(payload["data"]) == 2
+    assert (
+        payload["note"]
+        == f"showing 2 of {total} rows (cap: 2 rows or {cap.max_bytes} bytes); {cap.note}"
+    )
+
+
+def test_list_areas_route_is_a_get() -> None:
+    """Every parameter is a scalar, so the route is a GET with a query (ADR-0007)."""
+    app = FastAPI()
+    app.include_router(router)
+    with TestClient(app) as http:
+        answered = http.get("/faostat/list_areas", params={"domain": "QCL", "search": "united"})
+    assert answered.status_code == 200
+    expected = [
+        code.code
+        for code in packaged_codes("area", "QCL")
+        if matches("united", code.code, code.label)
+    ]
+    assert [row["code"] for row in answered.json()["data"]] == expected
