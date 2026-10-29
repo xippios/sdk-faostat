@@ -33,7 +33,6 @@ from xippios.core import (
     ConfigError,
     InvalidRequestError,
     NotFoundError,
-    UpstreamError,
     ValidationError,
     error_from_response,
 )
@@ -221,7 +220,7 @@ def test_a_refused_login_is_auth_error_naming_upstream_type(
         tasks.get_data("QCL", **QCL_ARGUMENTS)
     assert raised.value.status == 400
     assert str(raised.value) == (
-        "FAOSTAT refused the login: POST /auth/login answered HTTP 400 "
+        "FAOSTAT refused the login: POST /api/v1/auth/login answered HTTP 400 "
         f"(UserNotFoundException); check {USERNAME_ENV} and {PASSWORD_ENV}"
     )
     assert PLACEHOLDER_KEY not in str(raised.value)
@@ -257,12 +256,40 @@ async def test_auth_login_returns_the_tokens_masked(replay_fixture: ReplayFixtur
 
 
 @pytest.mark.anyio
-async def test_auth_login_refused_is_core_mapping(replay_fixture: ReplayFixture) -> None:
+async def test_auth_login_refused_is_auth_error_through_classify(
+    replay_fixture: ReplayFixture,
+) -> None:
     replay_fixture("auth_login", "user_not_found")
-    with pytest.raises(UpstreamError) as raised:
+    with pytest.raises(AuthError) as raised:
         await api.auth_login.auth_login("nobody@example.invalid", "made-up")
     assert raised.value.status == 400
-    assert "UserNotFoundException" in str(raised.value)
+    assert str(raised.value) == (
+        "FAOSTAT refused the login: POST /api/v1/auth/login answered HTTP 400 "
+        "(UserNotFoundException)"
+    )
+    assert "made-up" not in str(raised.value), "no credential in the message"
+
+
+def test_classify_maps_the_login_refusal_of_the_credentials() -> None:
+    error = classify(response_from_fixture(recorded("auth_login", "user_not_found")))
+    assert isinstance(error, AuthError)
+    assert error.status == 400
+    assert "(UserNotFoundException)" in str(error)
+    assert "nobody" not in str(error), "the body is not quoted"
+
+
+def test_classify_leaves_another_status_at_the_login_path_to_core() -> None:
+    """A 400 at another path, or another status at the login path, is not classify's."""
+    refused = response_from_fixture(recorded("auth_login", "user_not_found"))
+    elsewhere = httpx.Response(
+        400,
+        headers=refused.headers,
+        content=refused.content,
+        request=httpx.Request("POST", f"{BASE_URL}/en/datasize/"),
+    )
+    assert classify(elsewhere) is None
+    login_200 = response_from_fixture(recorded("auth_login", "login"))
+    assert classify(login_200) is None
 
 
 def test_classify_maps_a_query_without_a_filter() -> None:
@@ -301,7 +328,6 @@ def test_the_recorded_401_and_403_are_core_auth_error(case: str, status: int) ->
         ("get_data", "QCL_element_5510_empty"),
         ("get_groupsanddomains", "all"),
         ("auth_login", "login"),
-        ("auth_login", "user_not_found"),
     ],
 )
 def test_classify_lets_every_other_answer_through(endpoint: str, case: str) -> None:

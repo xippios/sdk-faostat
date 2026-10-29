@@ -11,8 +11,10 @@ JSON body whose ``__type`` is ``UserNotFoundException``.
 The package's client logs in by itself (``_client.LoginAuth``), on this path with these
 fields; this wrapper is the operation as upstream documents it, for a caller that wants
 the tokens, and the exchange the fixture recorder records. It sends no bearer
-(``auth=None``) and is never cached (a POST). Refusals are core's mapping: HTTP 401 is
-``AuthError``, HTTP 400 ``UpstreamError`` whose message quotes upstream's body.
+(``auth=None``) and is never cached (a POST). A refusal of the credentials, HTTP 400 with
+Cognito's ``UserNotFoundException`` or ``NotAuthorizedException``, is ``AuthError``
+(``_client.classify``), naming the status and the ``__type``; HTTP 401 is ``AuthError``
+by core's mapping.
 """
 
 from xippios.core import parse
@@ -38,8 +40,8 @@ async def auth_login(username: str, password: str) -> Auth:
         The tokens, each a ``SecretStr``, and ``ExpiresIn``.
 
     Raises:
-        AuthError: HTTP 401.
-        UpstreamError: HTTP 400, e.g. ``UserNotFoundException`` for an unknown user.
+        AuthError: The credentials were refused: HTTP 400 with ``UserNotFoundException``
+            (an unknown user) or ``NotAuthorizedException``, or HTTP 401.
         ValidationError: The answer is not the documented ``Auth``.
     """
     response = await client.request(

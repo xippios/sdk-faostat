@@ -28,10 +28,12 @@ The developer portal (https://www.fao.org/faostat/en/#developer-portal) draws in
 browser with a guest token of its own; this package does not use it, it logs in with
 the account (Johannes, G5 2026-10-29, question 8).
 
-``classify`` maps the data endpoint's two recorded refusals, both HTTP 500 with a plain
-text body (``Content-Type: text/plain``; FETCHED.md, "How this is captured";
-``tests/fixtures/get_data/``): ``Please add at least one filter.`` to
-``InvalidRequestError`` and ``Index: 0, Size: 0``, an unknown domain, to
+``classify`` maps the login's refusal of the credentials, HTTP 400 with Cognito's
+``UserNotFoundException`` or ``NotAuthorizedException`` (recorded under
+``tests/fixtures/auth_login/``), to ``AuthError``, and the data endpoint's two recorded
+refusals, both HTTP 500 with a plain text body (``Content-Type: text/plain``;
+FETCHED.md, "How this is captured"; ``tests/fixtures/get_data/``): ``Please add at least
+one filter.`` to ``InvalidRequestError`` and ``Index: 0, Size: 0``, an unknown domain, to
 ``NotFoundError`` naming the domain. Everything else falls through to core's status
 mapping: the 401 ``Missing Authorization Header`` and the 403 ``Authentication Failed``
 (recorded under ``tests/fixtures/get_data/``) are ``AuthError`` there.
@@ -96,6 +98,13 @@ _DATA_PATH = re.compile(
     re.escape(httpx.URL(BASE_URL).path) + r"/(?P<lang>[^/]+)/data/(?P<domain_code>[^/]+)/?"
 )
 """``get_data``'s path, ``/{lang}/data/{domain_code}`` under ``BASE_URL``."""
+_LOGIN_URL_PATH = httpx.URL(BASE_URL).path + LOGIN_PATH
+"""``auth_login``'s path as sent, ``/api/v1/auth/login``."""
+CREDENTIAL_REFUSALS = frozenset({"UserNotFoundException", "NotAuthorizedException"})
+"""The Cognito ``__type`` of a login's HTTP 400 that refuses the credentials:
+``UserNotFoundException``, recorded for an unknown user
+(``tests/fixtures/auth_login/user_not_found.json``), and ``NotAuthorizedException``,
+Cognito's answer to a wrong password."""
 
 
 def _credential(name: str, source: str | None) -> str:
@@ -122,6 +131,25 @@ def _upstream_type(response: httpx.Response) -> str | None:
         return None
     kind = payload.get("__type") if isinstance(payload, dict) else None
     return kind if isinstance(kind, str) and kind.isidentifier() else None
+
+
+def _login_refused(
+    response: httpx.Response, *, source: str | None = SOURCE, hint: str = ""
+) -> AuthError:
+    """``AuthError`` for a refused login, naming the status and upstream's ``__type``.
+
+    Never a credential: the message names the method, the path, the status and the
+    ``__type``, and the body is not quoted.
+    """
+    request = response.request
+    status = response.status_code
+    kind = _upstream_type(response)
+    return AuthError(
+        f"FAOSTAT refused the login: {request.method} {request.url.path} answered HTTP "
+        f"{status}{f' ({kind})' if kind else ''}{hint}",
+        status=status,
+        source=source,
+    )
 
 
 class LoginAuth(httpx.Auth):
@@ -203,14 +231,9 @@ class LoginAuth(httpx.Auth):
             AuthError: The login was answered with another status than HTTP 200.
             ValidationError: The HTTP 200 is not the documented ``Auth`` answer.
         """
-        status = response.status_code
-        if status != 200:
-            kind = _upstream_type(response)
-            raise AuthError(
-                f"FAOSTAT refused the login: POST {LOGIN_PATH} answered HTTP {status}"
-                f"{f' ({kind})' if kind else ''}; check {USERNAME_ENV} and {PASSWORD_ENV}",
-                status=status,
-                source=self.source,
+        if response.status_code != 200:
+            raise _login_refused(
+                response, source=self.source, hint=f"; check {USERNAME_ENV} and {PASSWORD_ENV}"
             )
         try:
             result = Auth.model_validate_json(response.content).authentication_result
@@ -248,11 +271,17 @@ class LoginAuth(httpx.Auth):
 
 
 def classify(response: httpx.Response) -> XippiosError | None:
-    """The data endpoint's two recorded refusals as taxonomy errors, else ``None`` (conventions §6).
+    """Upstream's recorded refusals as taxonomy errors, else ``None`` (conventions §6).
 
     The ``ClientConfig.classify`` hook: it sees every response before core's status
-    mapping. ``GET /{lang}/data/{domain_code}`` answers both with HTTP 500 and a plain
-    text body (``Content-Type: text/plain``), recorded on 2026-10-29:
+    mapping. ``POST /auth/login`` refuses the credentials with HTTP 400 and a JSON body
+    whose ``__type`` is Cognito's (``CREDENTIAL_REFUSALS``: ``UserNotFoundException``,
+    recorded for an unknown user, and ``NotAuthorizedException``): that is ``AuthError``,
+    upstream's refusal of the credentials (conventions §5), naming the status and the
+    ``__type``, never a credential; ``api.auth_login`` raises it, and ``LoginAuth``, whose
+    login runs below this hook, raises the same for any login answered with another
+    status than HTTP 200. ``GET /{lang}/data/{domain_code}`` answers two refusals with HTTP
+    500 and a plain text body (``Content-Type: text/plain``), recorded on 2026-10-29:
 
     - ``Please add at least one filter.``, a query without ``area``, ``item``,
       ``element`` or ``year``, is ``InvalidRequestError``, upstream's refusal of the
@@ -264,9 +293,16 @@ def classify(response: httpx.Response) -> XippiosError | None:
     request without a valid token are ``AuthError``, another 500 ``UpstreamError``.
     Messages name the method and the path, never the host or the query (conventions §5).
     """
+    request = response.request
+    if (
+        response.status_code == 400
+        and request.method == "POST"
+        and request.url.path == _LOGIN_URL_PATH
+        and _upstream_type(response) in CREDENTIAL_REFUSALS
+    ):
+        return _login_refused(response)
     if response.status_code != 500:
         return None
-    request = response.request
     match = _DATA_PATH.fullmatch(request.url.path)
     if match is None:
         return None
@@ -307,6 +343,7 @@ client = AsyncClient(config, auth=auth)
 __all__ = [
     "API_KEY_ENV",
     "BASE_URL",
+    "CREDENTIAL_REFUSALS",
     "EXPIRY_MARGIN",
     "FILTER_REFUSAL",
     "LOGIN_PATH",
