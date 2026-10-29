@@ -16,7 +16,7 @@ the family rules every source shares are in `.claude/family.md`, which the next 
 | Credentials | a FAO account: `FAOSTAT_USERNAME` (the account's e-mail) and `FAOSTAT_PASSWORD` from the environment; the package logs in at `POST /auth/login` (operation `auth_login`) and sends the access token as a bearer, from the first tasks PR on (queue row 252); the nightly `live.yml` passes both as org secrets from the first tasks PR on |
 | Rate limit | 30 requests per minute, burst 1; a self-imposed pace: upstream documents no per-second or per-minute limit (ADR-0010); enforced client-side in `_client.py`; FAOSTAT documents no hourly or daily quota, so no `QuotaPolicy` is installed |
 | Write tools | no, this package is read-only |
-| Files | parsed in `parse/`, one module per file kind; the parser tests read the samples under `tests/fixtures/files/`, their provenance in its `README.md` (ADR-0020) <!-- each file kind upstream publishes, its format and the library that reads it --> |
+| Files | the bulk downloads on `bulks-faostat.fao.org`, without the account: the catalogue `production/datasets_E.json` (`api.datasets_e`) and one ZIP per dataset, holding its normalized table `<Name>_E_All_Data_(Normalized).csv` beside small code lists, the file kind `bulk-csv`, read by `parse/bulk_csv.py` with the standard library's `zipfile` and `csv`; the parser tests read the samples under `tests/fixtures/files/`, their provenance in its `README.md` (ADR-0020) |
 
 The snapshot listed in `docs/upstream/FETCHED.md` is the reference for names, parameters and semantics.
 
@@ -31,11 +31,14 @@ src/xippios/faostat/
                    the account's login, and classify, upstream's documented error shapes
   errors.py        the package's own error classes, where conventions §5 calls for one
   models.py        pydantic models mirroring upstream payloads (UpstreamModel)
-  api/             endpoint wrappers, one module per upstream operation
-  parse/           file parsers, one module per file kind: parse_<file_kind>(path) -> list[Model]
+  api/             endpoint wrappers, one module per upstream operation; datasets_e.py,
+                   the bulk catalogue on bulks-faostat.fao.org, named from its path
+  parse/           file parsers, one module per file kind: parse_<file_kind>(path) -> list[Model];
+                   bulk_csv.py, parse_bulk_csv, a bulk ZIP's normalized table, a generator
   tasks.py         task functions; __all__ is what the adapters register, but BULK_TASKS,
-                   the Python-only ones; MCP_CAPS any per-tool result caps; get_series
-                   composes get_data, one request with a year list (queue row 90)
+                   the Python-only ones (download_dataset); MCP_CAPS any per-tool result
+                   caps; get_series composes get_data, one request with a year list (queue
+                   row 90); list_bulk_datasets and download_dataset read the bulk catalogue
   mcp.py           xippios-faostat-mcp entry point
   http.py          FastAPI router
   params.py        the packaged reference lists, read from reference/: the fifteen code
@@ -53,16 +56,20 @@ scripts/
 tests/
   conftest.py      enables xippios.core.testing.plugin, which keeps the run offline
   fixtures/        recorded responses, <wrapper>/<case>.json, never hand-written
-  fixtures/files/  a sample of each file kind, <file_kind>/<case>.<ext>; README.md, their provenance
+  fixtures/files/  a sample of each file kind, <file_kind>/<case>.<ext>; README.md, their
+                   provenance: bulk-csv/, MDDW's whole ZIP and RL's table cut to 20 rows
   test_family.py   core's family check, one line: namespace levels, py.typed, __version__,
                    the adapters serving exactly the tasks, task shapes and docstrings, the
                    README status table, the template tag, the core bound
-  test_api.py      the endpoint wrappers' own tests: get_code_list on its recordings
+  test_api.py      the endpoint wrappers' own tests: get_code_list and datasets_e on their
+                   recordings
+  test_parse.py    parse_bulk_csv on the samples under tests/fixtures/files/bulk-csv/
   test_refresh_reference.py  the refresh script on the recorded code lists, and the
                    committed tables and provenance rows against each other
   test_tasks.py    per-task replay tests
   test_live.py     @pytest.mark.live smoke tests, one per task and one per domain for
-                   get_data; a run sends nine keyed requests, as its docstring counts
+                   get_data; a run sends nine keyed requests and three without the
+                   account, as its docstring counts
 docs/upstream/     documentation snapshot and FETCHED.md
 .github/workflows/ ci.yml (the required ci check, with the CHANGELOG and fixture-size steps),
                    publish.yml (the release train: tag, build, PyPI), live.yml (nightly live
@@ -89,8 +96,9 @@ uv run xippios-faostat-mcp   # stdio; add --http for streamable HTTP
 ```
 
 A live run sends nine keyed requests (one login, six data requests, five for `get_data`
-and one for `get_series`, one `groupsanddomains`, one `getCodeList`) and one without the
-account; `tests/test_live.py` counts them.
+and one for `get_series`, one `groupsanddomains`, one `getCodeList`) and three without the
+account (the reachability check, the bulk catalogue and MDDW's ZIP, 12 KB);
+`tests/test_live.py` counts them.
 
 `.github/workflows/live.yml` runs the live tests nightly at 02:10 UTC, a time derived from
 the slug.
@@ -194,6 +202,29 @@ a coding system renamed them, and keeps every column a domain prints beyond the 
 ones in `columns`, under upstream's headers (ADR-0003: nothing dropped), so a named
 column is never there too; the live tests check that every column of each domain they
 read is named or kept there.
+
+### The bulk downloads
+
+The catalogue `https://bulks-faostat.fao.org/production/datasets_E.json` and the ZIPs it
+names (`FileLocation`) are open: `api.datasets_e` and `download_dataset` send them with
+`auth=None`, so `LoginAuth` never logs in for them and no token goes to that host
+(conventions §6), and their recordings, `tests/fixtures/datasets_e/` and
+`tests/fixtures/download_dataset/`, were made with a client without the account. They go
+through the package's one client all the same, paced by its 30 per minute, the
+catalogue cached with the API's answers. On
+2026-10-29 the catalogue listed 69 datasets, every one a `zip` of `csv`, `DateUpdate` a
+time without a zone (`2026-10-02T00:00:00`), `FileSize` text in kilobytes (`2902KB`);
+the ZIPs run from 12 KB (MDDW) to 410,792 KB (TM), TCL's 267,104 KB. A ZIP holds one
+`<Name>_E_All_Data_(Normalized).csv`, which `parse_bulk_csv` chooses by that ending, and
+small code lists (`_AreaCodes.csv`, `_Elements.csv`, `_Flags.csv`, `_ItemCodes.csv`;
+MDDW's `_Indicators.csv` and `_Surveys.csv`); CRLF, no byte order mark, UTF-8. The
+normalized table is the dataset's own: RL's header is `Area Code, Area Code (M49), Area,
+Item Code, Item, Element Code, Element, Year Code, Year, Unit, Value, Flag, Note`, the M49
+code printed with a leading apostrophe (`'004`), `Value` with six decimals; MDDW's prints
+no area, item or year (`models.BulkRecord` keeps such columns in `columns`). The
+catalogue's `FileRows` counts RL's table (421,850) but not MDDW's (2,035, where the table
+holds 1,223 rows). `Item Code (CPC)`, which the OpenAPI document's `DataResponse` names,
+is expected in QCL's and TCL's tables, whose ZIPs (33 MB, 267 MB) were not fetched.
 
 ### What the OpenAPI document does not state
 

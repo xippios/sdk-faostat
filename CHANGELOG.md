@@ -55,3 +55,17 @@ All notable changes to this project are documented here. The format follows
   `since` after `until`, is refused before sending. Rows in upstream's order, `get_data`'s
   code checks and `meta`, `since` and `until` added to `meta.request`. Tool
   `faostat_get_series`, 200 rows with a note naming `since` and `until`.
+- `list_bulk_datasets(*, search)`, the datasets FAOSTAT publishes as files, from the bulk
+  downloads' catalogue `datasets_E.json` on `bulks-faostat.fao.org`, fetched without the
+  account through the new wrapper `api.datasets_e`: each dataset's code, name, last update,
+  ZIP size, rows and URL; `search` over code and name. Tool `faostat_list_bulk_datasets`,
+  its cap's note naming `search`.
+- `download_dataset(domain, dest)`, a bulk task, Python only: the dataset's ZIP, as the
+  catalogue names it, streamed to `dest` without the account, never held in memory;
+  `meta.vintage` the catalogue's last update as printed and `meta.published_at` the same
+  time, which the catalogue prints without a zone.
+- `parse_bulk_csv(path)` in `xippios.faostat.parse`, the ZIP's normalized table
+  (`<Name>_E_All_Data_(Normalized).csv`) read row by row straight from the archive, each
+  row a `BulkRecord`: the columns of the production files named, every other column a
+  dataset prints kept under its header in `columns`, `value` a number where its text is
+  one.
