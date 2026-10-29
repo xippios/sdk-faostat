@@ -1,0 +1,49 @@
+{
+  "recorded_at": "2026-10-29T05:39:26.370178Z",
+  "request": {
+    "body": null,
+    "body_base64": false,
+    "content_type": null,
+    "method": "GET",
+    "url": "https://faostatservices.fao.org/api/v1/en/data/QCL?area=231&element=2510&item=15&year=2015%2C2016%2C2017%2C2018%2C2019%2C2020%2C2021&show_codes=true&show_unit=true&show_flags=true&show_notes=true&null_values=false&output_type=objects"
+  },
+  "response": {
+    "body": "{\"metadata\": {\"processing_time\": 90,\"datasource\": \"PRODUCTION\",\"dsd\": [{\"label\": \"Domain Code\",\"type\": \"code\",\"key\": \"Domain Code\",\"data_type\": \"string\"},{\"label\": \"Domain\",\"type\": \"label\",\"key\": \"Domain\",\"data_type\": \"string\"},{\"label\": \"Area Code\",\"type\": \"code\",\"key\": \"Area Code\",\"dimension_id\": \"area\",\"data_type\": \"string\"},{\"label\": \"Area\",\"type\": \"label\",\"key\": \"Area\",\"dimension_id\": \"area\",\"data_type\": \"string\"},{\"label\": \"Element Code\",\"type\": \"code\",\"key\": \"Element Code\",\"dimension_id\": \"element\",\"data_type\": \"string\"},{\"label\": \"Element\",\"type\": \"label\",\"key\": \"Element\",\"dimension_id\": \"element\",\"data_type\": \"string\"},{\"label\": \"Item Code\",\"type\": \"code\",\"key\": \"Item Code\",\"dimension_id\": \"item\",\"data_type\": \"string\"},{\"label\": \"Item\",\"type\": \"label\",\"key\": \"Item\",\"dimension_id\": \"item\",\"data_type\": \"string\"},{\"label\": \"Year Code\",\"type\": \"code\",\"key\": \"Year Code\",\"dimension_id\": \"year\",\"data_type\": \"string\"},{\"label\": \"Year\",\"type\": \"label\",\"key\": \"Year\",\"dimension_id\": \"year\",\"data_type\": \"string\"},{\"label\": \"Unit\",\"key\": \"Unit\",\"type\": \"unit\",\"dimension_id\": \"unit\",\"data_type\": \"string\"},{\"label\": \"Value\",\"key\": \"Value\",\"type\": \"value\",\"dimension_id\": \"value\",\"data_type\": \"string\"},{\"label\": \"Flag\",\"key\": \"Flag\",\"type\": \"flag\",\"dimension_id\": \"flag\",\"data_type\": \"string\"},{\"label\": \"Flag Description\",\"key\": \"Flag Description\",\"type\": \"flag_label\",\"dimension_id\": \"flag\",\"data_type\": \"string\"},{\"label\": \"Note\",\"type\": \"label\",\"key\": \"Note\",\"data_type\": \"string\"}],\"output_type\": \"OBJECTS\"},\"data\": [{\"Domain Code\":\"QCL\",\"Domain\":\"Crops and livestock products\",\"Area Code\":\"231\",\"Area\":\"United States of America\",\"Element Code\":\"5510\",\"Element\":\"Production\",\"Item Code\":\"15\",\"Item\":\"Wheat\",\"Year Code\":\"2015\",\"Year\":\"2015\",\"Unit\":\"t\",\"Value\":\"55839540\",\"Flag\":\"A\",\"Flag Description\":\"Official value\",\"Note\":\"\"},{\"Domain Code\":\"QCL\",\"Domain\":\"Crops and livestock products\",\"Area Code\":\"231\",\"Area\":\"United States of America\",\"Element Code\":\"5510\",\"Element\":\"Production\",\"Item Code\":\"15\",\"Item\":\"Wheat\",\"Year Code\":\"2016\",\"Year\":\"2016\",\"Unit\":\"t\",\"Value\":\"62831507\",\"Flag\":\"A\",\"Flag Description\":\"Official value\",\"Note\":\"\"},{\"Domain Code\":\"QCL\",\"Domain\":\"Crops and livestock products\",\"Area Code\":\"231\",\"Area\":\"United States of America\",\"Element Code\":\"5510\",\"Element\":\"Production\",\"Item Code\":\"15\",\"Item\":\"Wheat\",\"Year Code\":\"2017\",\"Year\":\"2017\",\"Unit\":\"t\",\"Value\":\"47379810\",\"Flag\":\"A\",\"Flag Description\":\"Official value\",\"Note\":\"\"},{\"Domain Code\":\"QCL\",\"Domain\":\"Crops and livestock products\",\"Area Code\":\"231\",\"Area\":\"United States of America\",\"Element Code\":\"5510\",\"Element\":\"Production\",\"Item Code\":\"15\",\"Item\":\"Wheat\",\"Year Code\":\"2018\",\"Year\":\"2018\",\"Unit\":\"t\",\"Value\":\"51305540\",\"Flag\":\"A\",\"Flag Description\":\"Official value\",\"Note\":\"\"},{\"Domain Code\":\"QCL\",\"Domain\":\"Crops and livestock products\",\"Area Code\":\"231\",\"Area\":\"United States of America\",\"Element Code\":\"5510\",\"Element\":\"Production\",\"Item Code\":\"15\",\"Item\":\"Wheat\",\"Year Code\":\"2019\",\"Year\":\"2019\",\"Unit\":\"t\",\"Value\":\"52580890\",\"Flag\":\"A\",\"Flag Description\":\"Official value\",\"Note\":\"\"},{\"Domain Code\":\"QCL\",\"Domain\":\"Crops and livestock products\",\"Area Code\":\"231\",\"Area\":\"United States of America\",\"Element Code\":\"5510\",\"Element\":\"Production\",\"Item Code\":\"15\",\"Item\":\"Wheat\",\"Year Code\":\"2020\",\"Year\":\"2020\",\"Unit\":\"t\",\"Value\":\"49751180\",\"Flag\":\"A\",\"Flag Description\":\"Official value\",\"Note\":\"\"},{\"Domain Code\":\"QCL\",\"Domain\":\"Crops and livestock products\",\"Area Code\":\"231\",\"Area\":\"United States of America\",\"Element Code\":\"5510\",\"Element\":\"Production\",\"Item Code\":\"15\",\"Item\":\"Wheat\",\"Year Code\":\"2021\",\"Year\":\"2021\",\"Unit\":\"t\",\"Value\":\"44803690\",\"Flag\":\"A\",\"Flag Description\":\"Official value\",\"Note\":\"\"}]}",
+    "body_base64": false,
+    "headers": [
+      [
+        "content-type",
+        "application/json;charset=utf-8"
+      ],
+      [
+        "date",
+        "Thu, 29 Oct 2026 05:39:25 GMT"
+      ],
+      [
+        "server",
+        "nginx/1.28.0"
+      ],
+      [
+        "access-control-allow-origin",
+        "*"
+      ],
+      [
+        "x-cache",
+        "Miss from cloudfront"
+      ],
+      [
+        "via",
+        "1.1 b0b28ec8da60bdc40e5fb6dc8ad8eae8.cloudfront.net (CloudFront)"
+      ],
+      [
+        "x-amz-cf-pop",
+        "ZRH52-P1"
+      ],
+      [
+        "x-amz-cf-id",
+        "WuW0W-p4xDVVxylvKrSHDbXH4qHOapqduMOywXNXoNhq6XVOnk1ntw=="
+      ]
+    ],
+    "status": 200
+  }
+}

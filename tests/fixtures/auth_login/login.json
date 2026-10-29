@@ -1,0 +1,49 @@
+{
+  "recorded_at": "2026-10-29T05:39:23.688016Z",
+  "request": {
+    "body": "username=REDACTED&password=REDACTED",
+    "body_base64": false,
+    "content_type": "application/x-www-form-urlencoded",
+    "method": "POST",
+    "url": "https://faostatservices.fao.org/api/v1/auth/login"
+  },
+  "response": {
+    "body": "{\"AuthenticationResult\":{\"AccessToken\":\"REDACTED\",\"ExpiresIn\":3600,\"IdToken\":\"REDACTED\",\"RefreshToken\":\"REDACTED\",\"TokenType\":\"Bearer\"},\"ChallengeParameters\":{}}",
+    "body_base64": false,
+    "headers": [
+      [
+        "content-type",
+        "application/json;charset=utf-8"
+      ],
+      [
+        "date",
+        "Thu, 29 Oct 2026 05:39:23 GMT"
+      ],
+      [
+        "server",
+        "nginx/1.28.0"
+      ],
+      [
+        "access-control-allow-origin",
+        "*"
+      ],
+      [
+        "x-cache",
+        "Miss from cloudfront"
+      ],
+      [
+        "via",
+        "1.1 b0b28ec8da60bdc40e5fb6dc8ad8eae8.cloudfront.net (CloudFront)"
+      ],
+      [
+        "x-amz-cf-pop",
+        "ZRH52-P1"
+      ],
+      [
+        "x-amz-cf-id",
+        "8o6yLZ172YWFvJJQi0Ww2JScViIyVszZeVukKg-yzVb0LFn2UHQz_Q=="
+      ]
+    ],
+    "status": 200
+  }
+}

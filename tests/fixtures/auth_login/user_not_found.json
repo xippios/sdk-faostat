@@ -1,0 +1,45 @@
+{
+  "recorded_at": "2026-10-29T05:39:39.346851Z",
+  "request": {
+    "body": "username=nobody%40example.invalid&password=made-up-for-a-refusal",
+    "body_base64": false,
+    "content_type": "application/x-www-form-urlencoded",
+    "method": "POST",
+    "url": "https://faostatservices.fao.org/api/v1/auth/login"
+  },
+  "response": {
+    "body": "{\"__type\":\"UserNotFoundException\",\"message\":\"User does not exist.\"}",
+    "body_base64": false,
+    "headers": [
+      [
+        "content-type",
+        "application/json;charset=utf-8"
+      ],
+      [
+        "date",
+        "Thu, 29 Oct 2026 05:39:37 GMT"
+      ],
+      [
+        "server",
+        "nginx/1.28.0"
+      ],
+      [
+        "x-cache",
+        "Error from cloudfront"
+      ],
+      [
+        "via",
+        "1.1 b0b28ec8da60bdc40e5fb6dc8ad8eae8.cloudfront.net (CloudFront)"
+      ],
+      [
+        "x-amz-cf-pop",
+        "ZRH52-P1"
+      ],
+      [
+        "x-amz-cf-id",
+        "O_gd5G2fuEhRYfazqQDskD7OthIQRKyYrvs3FG2X7beosS__u_MdZg=="
+      ]
+    ],
+    "status": 400
+  }
+}
