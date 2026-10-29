@@ -16,6 +16,18 @@ per process per five minutes), ``None`` for a domain the list lacks; ``meta.publ
 stays ``None``, since a date is no release time (conventions §4; queue row 263).
 ``meta.total`` is ``None``: the answer counts no rows (ADR-0012).
 
+``get_series`` is one ``get_data`` request for an area, item and element over a year
+range: ``since`` and ``until`` become ``get_data``'s ``year`` filter, the years
+``since..until`` as upstream's comma list, or no ``year`` filter when both are ``None``,
+which answers every year the domain holds; one without the other is refused before any
+request (Johannes, G5 2026-10-29, second round, question 15; ADR-0003: upstream's own
+filter, nothing cut on the client). It composes the task, not the wrapper, as
+sdk-eurostat's slices compose theirs (queue row 90), so the filter refusal, the code
+checks, ``classify`` and the meta rules are ``get_data``'s; its ``meta`` is
+``get_data``'s, ``meta.request`` the year list sent plus ``since`` and ``until`` as
+given. One request, so no ceiling in conventions §4's sense; the rows keep upstream's
+order, area, item, year ascending in every recorded answer.
+
 ``list_domains`` answers from ``get_groupsanddomains``, every domain and subgroup with its
 group and release dates, filtered by ``search`` in Python (``xippios.core.matches``).
 
@@ -50,7 +62,14 @@ from xippios.faostat import api, params
 from xippios.faostat._client import FILTER_REFUSAL, SOURCE
 from xippios.faostat.models import CodeItem, DataRecord, Domain
 
-__all__ = ["get_data", "list_areas", "list_domains", "list_elements", "list_items"]
+__all__ = [
+    "get_data",
+    "get_series",
+    "list_areas",
+    "list_domains",
+    "list_elements",
+    "list_items",
+]
 
 # A task named here is Python-only: no tool, no route; the adapters skip it (ADR-0019 decision 4).
 BULK_TASKS: frozenset[str] = frozenset()
@@ -61,6 +80,13 @@ MCP_CAPS: Mapping[str, ResultCap] = {
         note=(
             "rows run area, item, year ascending; pass page_size and page_number, or "
             "narrower filters, to see the rest"
+        ),
+    ),
+    "get_series": ResultCap(
+        max_rows=200,
+        note=(
+            "rows run area, item, year ascending; narrow since and until, or one code per "
+            "dimension, to see the rest"
         ),
     ),
     "list_domains": ResultCap(
@@ -88,8 +114,10 @@ MCP_CAPS: Mapping[str, ResultCap] = {
 
 ``get_data`` keeps the family's 200 rows and 64 KB and adds a note naming its paging and
 its filters; a row of the recorded answers is 356 (QCL) to 383 (PP) bytes as compact
-JSON, so the bytes cut a page at about 170 rows. ``list_domains`` keeps the family's cap
-too: its 78 rows of 2026-10-29 fit; the note names ``search``.
+JSON, so the bytes cut a page at about 170 rows. ``get_series`` keeps the same cap, its
+note naming ``since`` and ``until`` and one code per dimension, since it does not page.
+``list_domains`` keeps the family's cap too: its 78 rows of 2026-10-29 fit; the note
+names ``search``.
 
 The three code lists take up to 1,000 rows within the family's 64 KB (ADR-0016 decision
 4), as sdk-eurostat's ``list_codes`` does, so a table an agent needs whole comes whole up
@@ -301,6 +329,94 @@ async def get_data_async(
 
 
 get_data = sync(get_data_async)
+
+
+def _series_years(since: int | None, until: int | None) -> list[int] | None:
+    """The years ``since`` to ``until``, both included, ``None`` when both are ``None``.
+
+    Raises:
+        InvalidRequestError: One of the pair is given without the other, or ``since``
+            is after ``until``.
+    """
+    if since is None and until is None:
+        return None
+    if since is None or until is None:
+        alone = "until" if since is None else "since"
+        raise InvalidRequestError(
+            "since and until go together: give both, the first and the last year of the "
+            "series (since=2015, until=2021), or neither, for every year the domain holds; "
+            f"{alone} came alone",
+            source=SOURCE,
+        )
+    if since > until:
+        raise InvalidRequestError(
+            f"since {since} is after until {until}: since is the first year of the series "
+            "and until the last",
+            source=SOURCE,
+        )
+    return list(range(since, until + 1))
+
+
+async def get_series_async(
+    domain: str,
+    area: Codes,
+    item: Codes,
+    element: Codes,
+    *,
+    since: int | None = None,
+    until: int | None = None,
+) -> Result[list[DataRecord]]:
+    """Get a FAOSTAT domain's yearly series for an area, an item and an element over a year range.
+
+    One request to FAOSTAT's data endpoint, as ``get_data`` sends it, with the years
+    ``since`` to ``until`` as its year filter (``since=2015, until=2021`` asks for the
+    seven years 2015 to 2021); without ``since`` and ``until`` there is no year filter,
+    and the answer holds every year the domain has. Give both or neither: one without the
+    other, or ``since`` after ``until``, is refused with ``InvalidRequestError`` before
+    any request. Rows come in upstream's order, area, item, year ascending in the
+    recorded answers, so one area, item and element give one series, oldest year first;
+    lists of codes give several series in one list, in upstream's order. A year the
+    domain does not hold, not yet released or without a value, has no row: nothing is
+    filled in. ``list_domains`` prints each domain's latest year as ``year_current``
+    (``"2024"`` for QCL on 2026-10-29). The element codes a query filters by are not
+    those the rows print: ``element="2510"`` (Production Quantity) answers rows with
+    ``element_code`` ``"5510"`` (Production), and ``list_elements`` lists the filter
+    codes. For QCL, TCL, FBS, PP and RL every area, element and item code is checked
+    against the package's code tables before the request, as ``get_data`` checks them:
+    one the domain's table lacks raises ``UnknownCode`` naming the closest codes, so
+    ``element="5510"`` on QCL is refused naming ``2510``. Another domain's codes are sent
+    unchecked, and a code that matches nothing there gives an empty list; an unknown
+    domain raises ``NotFoundError``. ``meta`` is ``get_data``'s: ``meta.vintage`` the
+    domain's last update as ``list_domains`` prints it (``"2025-12-31"``),
+    ``meta.published_at`` ``None``, ``meta.request`` the year list sent, plus ``since``
+    and ``until`` as given. ``value`` is a number where upstream's text is one.
+
+    Args:
+        domain: The domain's code, as ``list_domains`` lists it, e.g. ``"QCL"`` (Crops
+            and livestock products), ``"TCL"`` (trade in crops and livestock products),
+            ``"FBS"`` (Food Balances, 2010-), ``"PP"`` (Producer Prices) or ``"RL"``
+            (Land Use).
+        area: The area's code, FAO's, as ``list_areas`` lists it, e.g. ``"231"`` (United
+            States of America), or several, ``["231", "79"]``.
+        item: The item's code, as ``list_items`` lists it, e.g. ``"15"`` (Wheat), or
+            several, ``["15", "56"]``.
+        element: The element's filter code, as ``list_elements`` lists it, e.g.
+            ``"2510"`` (Production Quantity in QCL), not the ``5510`` the rows print,
+            which is refused; or several, ``["2510", "2312"]``.
+        since: The first year, included, e.g. ``2015``; with ``until``. ``None`` with
+            ``until`` ``None`` asks for every year the domain holds.
+        until: The last year, included, e.g. ``2021``; with ``since``.
+    """
+    years = _series_years(since, until)
+    answer = await get_data_async(domain, area=area, item=item, element=element, year=years)
+    meta = ResultMeta(
+        **answer.meta.model_dump(exclude={"request"}),
+        request={**answer.meta.request, "since": since, "until": until},
+    )
+    return Result(data=answer.data, meta=meta)
+
+
+get_series = sync(get_series_async)
 
 
 async def list_domains_async(*, search: str | None = None) -> Result[list[Domain]]:

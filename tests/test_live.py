@@ -7,16 +7,19 @@ environment (``live.yml`` passes the org secrets to its ``pytest -m live`` step 
 ``get_data`` has one per domain of the design round's question 5 (G5, 2026-10-29): QCL,
 TCL, FBS, PP and RL, each on the smallest slice with codes every one of them has, the
 United States of America (area 231) in 2020, cut to its first five rows with
-``page_size=5`` and ``page_number=1``. ``list_domains`` has one. The three code-list
+``page_size=5`` and ``page_number=1``. ``get_series`` has one, on the replay tests'
+slice: wheat production in the United States of America, 2015 to 2021, QCL's
+``area`` 231, ``item`` 15 and ``element`` 2510. ``list_domains`` has one. The three code-list
 tasks answer from the packaged tables: ``list_elements``'s test fetches
 ``codes/element/QCL`` through ``api.get_code_list``, as the refresh script does, and
 checks that upstream's answer still has the packaged table's shape, its fields, every
 code and label non-empty, and every packaged code present; ``list_areas``'s and
 ``list_items``'s read the packaged tables of the five domains, without a request. A run
-sends eight keyed requests: one login, five data requests, one ``groupsanddomains``
-request, the first domain's release-date look-up, and one ``getCodeList`` request; the
-other four look-ups and ``list_domains`` answer from the client's cache, which lives for
-the run, and each test's check that every column the answer prints is named or kept in
+sends nine keyed requests: one login, five data requests, one ``groupsanddomains``
+request, the first domain's release-date look-up, one data request for ``get_series``,
+and one ``getCodeList`` request; the other look-ups, ``get_series``'s among them, and
+``list_domains`` answer from the client's cache, which lives for the run, and each
+``get_data`` test's check that every column the answer prints is named or kept in
 ``columns`` reads its data request from the cache as well. The reachability check sends
 one more request, without the account. The tests assert shape and release metadata,
 never values, which FAOSTAT revises.
@@ -102,6 +105,32 @@ async def test_get_data(domain: str) -> None:
     assert all(printed - HEADERS <= set(row.columns) for row in answer.response.data), (
         f"{domain}: a column neither named nor kept in columns"
     )
+
+
+async def test_get_series() -> None:
+    """One data request, the years 2015 to 2021 as the year filter; years oldest first."""
+    before = datetime.now(UTC)
+    result = await tasks.get_series_async("QCL", "231", "15", "2510", since=2015, until=2021)
+    after = datetime.now(UTC)
+    rows = result.data
+    years = [row.year for row in rows]
+    assert 0 < len(rows) <= 7, "at most one row a year"
+    assert all(isinstance(row, DataRecord) for row in rows)
+    assert {(row.domain_code, row.area_code, row.item_code) for row in rows} == {
+        ("QCL", "231", "15")
+    }
+    assert set(years) <= {str(year) for year in range(2015, 2022)}
+    assert years == sorted(years), "upstream's order, year ascending"
+    assert all(isinstance(row.value, Decimal | str | None) for row in rows)
+    meta = result.meta
+    assert meta.endpoint == "get_data"
+    assert meta.request["year"] == ",".join(str(year) for year in range(2015, 2022))
+    assert (meta.request["since"], meta.request["until"]) == (2015, 2021)
+    assert meta.vintage is not None
+    assert DATE.fullmatch(meta.vintage)
+    assert meta.published_at is None
+    assert meta.total is None
+    assert_time_between(meta.retrieved_at, before, after)
 
 
 async def test_list_domains() -> None:

@@ -34,7 +34,8 @@ src/xippios/faostat/
   api/             endpoint wrappers, one module per upstream operation
   parse/           file parsers, one module per file kind: parse_<file_kind>(path) -> list[Model]
   tasks.py         task functions; __all__ is what the adapters register, but BULK_TASKS,
-                   the Python-only ones; MCP_CAPS any per-tool result caps
+                   the Python-only ones; MCP_CAPS any per-tool result caps; get_series
+                   composes get_data, one request with a year list (queue row 90)
   mcp.py           xippios-faostat-mcp entry point
   http.py          FastAPI router
   params.py        the packaged reference lists, read from reference/: the fifteen code
@@ -60,7 +61,8 @@ tests/
   test_refresh_reference.py  the refresh script on the recorded code lists, and the
                    committed tables and provenance rows against each other
   test_tasks.py    per-task replay tests
-  test_live.py     @pytest.mark.live smoke tests, one per task
+  test_live.py     @pytest.mark.live smoke tests, one per task and one per domain for
+                   get_data; a run sends nine keyed requests, as its docstring counts
 docs/upstream/     documentation snapshot and FETCHED.md
 .github/workflows/ ci.yml (the required ci check, with the CHANGELOG and fixture-size steps),
                    publish.yml (the release train: tag, build, PyPI), live.yml (nightly live
@@ -86,9 +88,9 @@ direnv exec <workspace root> uv run python scripts/refresh_reference.py
 uv run xippios-faostat-mcp   # stdio; add --http for streamable HTTP
 ```
 
-A live run sends eight keyed requests (one login, five data requests, one
-`groupsanddomains`, one `getCodeList`) and one without the account; `tests/test_live.py`
-counts them.
+A live run sends nine keyed requests (one login, six data requests, five for `get_data`
+and one for `get_series`, one `groupsanddomains`, one `getCodeList`) and one without the
+account; `tests/test_live.py` counts them.
 
 `.github/workflows/live.yml` runs the live tests nightly at 02:10 UTC, a time derived from
 the slug.
