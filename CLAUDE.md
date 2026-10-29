@@ -12,8 +12,8 @@ the family rules every source shares are in `.claude/family.md`, which the next 
 | --- | --- |
 | Upstream | FAOSTAT, https://www.fao.org/faostat/ |
 | API base URL | `https://faostatservices.fao.org/api/v1` |
-| Documentation | https://www.fao.org/faostat/en/docs/redoc-static.html, snapshotted in `docs/upstream/`; an OpenAPI or Swagger document a page names is kept beside it, its URL in `SPEC_URL` of `scripts/refresh_upstream.py` (`/refresh-upstream`) |
-| Credentials | a FAO account: `FAOSTAT_USERNAME` (the account's e-mail) and `FAOSTAT_PASSWORD` from the environment; the package logs in at `POST /auth/login` (operation `auth_login`) and sends the access token as a bearer, from PR 4 on (queue row 252); the nightly `live.yml` passes both as org secrets from PR 4 on |
+| Documentation | FAO's OpenAPI document, https://www.fao.org/faostat/en/docs/faostat_openapi.yaml (`SPEC_URL` of `scripts/refresh_upstream.py`; no page links it), kept verbatim as `docs/upstream/openapi/faostat_openapi.yaml`, and the ReDoc page that renders it, https://www.fao.org/faostat/en/docs/redoc-static.html (`/refresh-upstream`) |
+| Credentials | a FAO account: `FAOSTAT_USERNAME` (the account's e-mail) and `FAOSTAT_PASSWORD` from the environment; the package logs in at `POST /auth/login` (operation `auth_login`) and sends the access token as a bearer, from the first tasks PR on (queue row 252); the nightly `live.yml` passes both as org secrets from the first tasks PR on |
 | Rate limit | 30 requests per minute, burst 1; a self-imposed pace: upstream documents no per-second or per-minute limit (ADR-0010); enforced client-side in `_client.py` <!-- name here an hourly or daily quota upstream documents, if any, and the QuotaPolicy that keeps it (ADR-0015) --> |
 | Write tools | no, this package is read-only |
 | Files | parsed in `parse/`, one module per file kind; the parser tests read the samples under `tests/fixtures/files/`, their provenance in its `README.md` (ADR-0020) <!-- each file kind upstream publishes, its format and the library that reads it --> |
@@ -43,8 +43,9 @@ src/xippios/faostat/
   reference/       packaged code lists (CSV/JSON) plus README with provenance
 scripts/
   refresh_reference.py   fetches the packaged lists through api/ and regenerates enums.py
-  refresh_upstream.py    captures docs/upstream/ and writes FETCHED.md (/refresh-upstream); the
-                         template's skeleton until the source fills it
+  refresh_upstream.py    captures docs/upstream/ and writes FETCHED.md (/refresh-upstream): the
+                         OpenAPI document, the terms of use, the bulk catalogue, and four
+                         samples fetched with the account's token after one login
 tests/
   conftest.py      enables xippios.core.testing.plugin, which keeps the run offline
   fixtures/        recorded responses, <wrapper>/<case>.json, never hand-written
@@ -77,17 +78,21 @@ uv run xippios-faostat-mcp   # stdio; add --http for streamable HTTP
 
 `.github/workflows/live.yml` runs the live tests nightly at 02:10 UTC, a time derived from
 the slug.
-From PR 4 on, the org secrets `FAOSTAT_USERNAME` and `FAOSTAT_PASSWORD` reach only its
-`uv run pytest -m live` step.
+From the first tasks PR on, the org secrets `FAOSTAT_USERNAME` and `FAOSTAT_PASSWORD`
+reach only its `uv run pytest -m live` step.
 
 ## FAOSTAT specifics
 
 ### The account's credentials
 
-Never read, print, log or compare `FAOSTAT_USERNAME`, `FAOSTAT_PASSWORD`, a token or
-`.envrc`. They reach a process only through `direnv exec /home/johan/github/sdk <command>`
-or the org secrets. No process listing or environment dump (`env`, `printenv`, `set`,
-`export`, `ps`, `/proc/*/environ`): the shell's command line carries exported values.
+`FAOSTAT_USERNAME`, `FAOSTAT_PASSWORD` and a token are never read by value, printed,
+logged or compared, and `.envrc` is never read; code reads the two variables by name. They
+reach a process only through `direnv exec` from the family workspace's root, whose
+`.envrc` holds them, or through the org secrets. No process listing or environment dump
+(`env`, `printenv`, `set`, `export`, `ps`, `/proc/*/environ`): the shell's command line
+carries exported values. The portal's anonymous path, a guest token from
+`GET /api/v1/auth/guest` (403 to a plain client, and not in the OpenAPI document), is not
+used.
 
 ### Two element code systems
 
