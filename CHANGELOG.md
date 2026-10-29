@@ -20,15 +20,18 @@ All notable changes to this project are documented here. The format follows
 - The FAO account's login: the client logs in once per process with `FAOSTAT_USERNAME`
   and `FAOSTAT_PASSWORD` (`auth_login`, `POST /auth/login`), sends the access token as a
   bearer, and logs in again when the token lapses or a request is refused with HTTP 401
-  or 403, once per request; a missing variable is `ConfigError`, a refused login
-  `AuthError`.
-  Neither the credentials nor a token is logged; the access token alone is kept, masked.
+  or 403, once per request; a missing variable is `ConfigError`, a login that refuses the
+  credentials `AuthError`, any other failed login core's mapping (`RateLimitError`,
+  `UpstreamError`). Only the login's answer is read by the login; every other answer goes
+  back to the client unread. Neither the credentials nor a token is logged; the access
+  token alone is kept, masked.
 - `get_data(domain, *, area, item, element, year, area_cs, item_cs, page_size,
   page_number)`, a domain's rows from FAOSTAT's data endpoint, each filter a code or a
   list of codes, every row's value a number where upstream's text is one, every column a
-  domain prints beyond the named ones kept in `columns` under upstream's header; a query
-  without a filter is refused before sending, an unknown domain is `NotFoundError`;
-  `meta.vintage` is the domain's last update as `groupsanddomains` prints it,
+  domain prints beyond the named ones kept in `columns` under upstream's header (a code
+  column that `area_cs` or `item_cs` renames among them, `area_code` or `item_code` then
+  `None`); a query without a filter is refused before sending, an unknown domain is
+  `NotFoundError`; `meta.vintage` is the domain's last update as `groupsanddomains` prints it,
   `meta.published_at` stays empty. Tool `faostat_get_data`.
 - `list_domains(*, search)`, FAOSTAT's domains and subgroups with their groups and release
   dates (`groupsanddomains`). Tool `faostat_list_domains`.

@@ -14,8 +14,13 @@ first two producer prices of 2020, whose rows carry ``Months Code`` and ``Months
 without a filter, sent through the wrapper since the task refuses it before sending.
 ``list_domains`` and ``get_data``'s release date read
 ``tests/fixtures/get_groupsanddomains/all.json`` (78 rows); the tests take the expected
-values from it. Each test sends exactly the recorded query (``sent_query`` against
-``recorded_query``).
+values from it. ``QCL_840_M49_15_2510_2020``, recorded later on 2026-10-29, is the answer
+to ``area_cs=M49``: no rows, and a ``metadata.dsd`` naming ``Area Code (M49)``;
+``QCL_231_FAO_15_FAO_2510_2020``, the answer to ``area_cs=FAO`` and ``item_cs=FAO``, one
+row whose code columns are ``Area Code (FAO)`` and ``Item Code (FAO)``. The
+replay tests of ``get_data`` and ``list_domains`` send exactly the recorded query
+(``sent_query`` against ``recorded_query``); the MCP test of ``get_data`` sends two
+years where the fixture recorded seven, and checks the years sent.
 
 ``list_areas``, ``list_elements`` and ``list_items`` answer from the fifteen packaged
 tables under ``src/xippios/faostat/reference/``, without a request; their tests, and
@@ -67,6 +72,7 @@ from xippios.faostat.models import (
     DataRecord,
     DataResponse,
     Domain,
+    DsdColumn,
     GroupsAndDomainsResponse,
 )
 
@@ -96,6 +102,10 @@ def recorded(endpoint: str, case: str) -> Fixture:
 
 def recorded_rows(case: str) -> list[DataRecord]:
     return DataResponse.model_validate_json(recorded(GET_DATA, case).response.body).data
+
+
+def recorded_dsd(case: str) -> list[DsdColumn]:
+    return DataResponse.model_validate_json(recorded(GET_DATA, case).response.body).metadata.dsd
 
 
 def recorded_domains() -> list[Domain]:
@@ -315,6 +325,70 @@ def test_get_data_pp_keeps_its_months_columns(replay_fixture: ReplayFixture) -> 
 @pytest.mark.parametrize("case", [QCL, "PP_231_2020_page_size_2"])
 def test_the_recorded_rows_print_no_column_beyond_the_named_ones(case: str) -> None:
     assert {row.columns == {} for row in recorded_rows(case)} == {True}
+
+
+def test_get_data_with_a_coding_system(replay_fixture: ReplayFixture) -> None:
+    """``area_cs=M49``: the recorded answer names the code column ``Area Code (M49)``.
+
+    United States of America's M49 code, 840, matched no rows on 2026-10-29; the answer's
+    ``metadata.dsd`` still names its columns, which the next test applies to a row.
+    """
+    case = "QCL_840_M49_15_2510_2020"
+    route = replay_fixture(GET_DATA, case)
+    replay_fixture(DOMAINS, "all")
+    result = get_data("QCL", area="840", area_cs="M49", item="15", element="2510", year=2020)
+    assert sent_query(route) == recorded_query(recorded(GET_DATA, case))
+    assert sent_query(route)["area_cs"] == "M49"
+    assert result.data == recorded_rows(case) == []
+    assert result.meta.request["area_cs"] == "M49"
+    headers = [column.key for column in recorded_dsd(case)]
+    assert "Area Code (M49)" in headers
+    assert "Area Code" not in headers
+
+
+def test_get_data_with_fao_coding_systems_keeps_the_coded_columns(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """``area_cs=FAO`` and ``item_cs=FAO``: the recorded rows print both code columns renamed."""
+    case = "QCL_231_FAO_15_FAO_2510_2020"
+    route = replay_fixture(GET_DATA, case)
+    replay_fixture(DOMAINS, "all")
+    result = get_data(
+        "QCL", area="231", area_cs="FAO", item="15", item_cs="FAO", element="2510", year=2020
+    )
+    assert sent_query(route) == recorded_query(recorded(GET_DATA, case))
+    printed = json.loads(recorded(GET_DATA, case).response.body)["data"]
+    assert len(result.data) == len(printed) == 1
+    row, recorded_row = result.data[0], printed[0]
+    assert row.area_code is None
+    assert row.item_code is None
+    assert row.columns == {
+        "Area Code (FAO)": recorded_row["Area Code (FAO)"],
+        "Item Code (FAO)": recorded_row["Item Code (FAO)"],
+    }
+    assert row.area == recorded_row["Area"]
+    assert row.value == Decimal(recorded_row["Value"])
+    assert result.meta.request["area_cs"] == "FAO"
+    assert result.meta.request["item_cs"] == "FAO"
+
+
+def test_a_coded_column_is_kept_in_columns_and_its_field_is_none() -> None:
+    """QCL's first recorded row with its area code under the header the M49 answer prints.
+
+    An in-memory mapping, no fixture: the value is the row's own, the test is about where
+    the column lands.
+    """
+    printed = json.loads(recorded(GET_DATA, QCL).response.body)["data"][0]
+    coded = next(
+        column.key
+        for column in recorded_dsd("QCL_840_M49_15_2510_2020")
+        if column.key.startswith("Area Code")
+    )
+    renamed = {coded if header == "Area Code" else header: v for header, v in printed.items()}
+    row = DataRecord.model_validate(renamed)
+    assert row.area_code is None
+    assert row.columns == {coded: printed["Area Code"]}
+    assert row.item_code == printed["Item Code"], "the other columns as before"
 
 
 def test_a_column_no_field_names_is_kept_in_columns() -> None:

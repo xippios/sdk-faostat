@@ -244,10 +244,18 @@ async def get_data_async(
             e.g. ``"2510"`` (Production Quantity in QCL), not the ``5510`` the rows
             print, which is refused.
         year: One year or several, e.g. ``2020`` or ``[2015, 2016, 2017]``.
-        area_cs: The coding system of ``area``, e.g. ``"FAO"`` or ``"M49"``; ``None``
-            sends FAO's codes, as the rows print them under ``area_code``.
-        item_cs: The coding system of ``item``, e.g. ``"FAO"`` or ``"CPC"``; ``None``
-            sends FAO's codes.
+        area_cs: The coding system of ``area``, one the domain's dimensions list
+            (``"M49"``, ``"FAO"``, ``"ISO2"``, ``"ISO3"`` in QCL); ``None`` sends FAO's
+            codes, which the rows print under ``area_code``. Given, the rows print the
+            codes under a header naming the system (``Area Code (FAO)``), kept in
+            ``columns``, and ``area_code`` is ``None``. ``area="840"`` with
+            ``area_cs="M49"`` answered no rows on 2026-10-29; the bulk files print M49
+            codes with a leading apostrophe (``'004``), and whether the M49 filter wants
+            that form is not established.
+        item_cs: The coding system of ``item``, ``"CPC"`` or ``"FAO"`` in QCL; ``None``
+            sends FAO's codes, which the rows print under ``item_code``. Given, the rows
+            print the codes under a header naming the system (``Item Code (FAO)``), kept
+            in ``columns``, and ``item_code`` is ``None``.
         page_size: Rows per page, e.g. ``100``; with ``page_number``, one page of the
             answer. ``None`` returns every row.
         page_number: The page to return, from 1, e.g. ``2`` (rows 101 to 200 with

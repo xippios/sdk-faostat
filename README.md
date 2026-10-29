@@ -18,8 +18,8 @@ A FAO account is needed: `FAOSTAT_USERNAME` (the account's e-mail) and
 `FAOSTAT_PASSWORD` in the environment. The client logs in with them on its first request
 (`POST /auth/login`, FAOSTAT's `auth_login`), once per process, sends the access token
 with every request, and logs in again when the token lapses (after an hour) or a request
-is refused with HTTP 401 or 403. Neither the credentials nor a token is logged or
-returned. The bulk downloads need none.
+is refused with HTTP 401 or 403. Neither the credentials nor a token is logged, and the
+tasks return neither. The bulk downloads need none.
 
 ## 30-second example
 

@@ -153,13 +153,17 @@ class DataRecord(UpstreamModel):
     ``Months Code`` and ``Months`` and no ``Note`` (recorded 2026-10-29,
     ``tests/fixtures/get_data/PP_231_2020_page_size_2.json``), so ``months_code`` and
     ``months`` are ``None`` in a domain without them and ``note`` in one without it. Every
-    column the row prints beyond the named ones (the partner columns of the trade matrix
-    TM, say) is kept in ``columns`` under upstream's header, so nothing is dropped
-    (ADR-0003); a named column is never there too. The OpenAPI document's
-    ``DataResponse`` spells two columns ``Area Code (M49)`` and ``Item Code (CPC)``; no
-    recorded answer does (FETCHED.md), and neither spelling is named here, so a row that
-    printed them would keep them in ``columns``. Every value is text as printed but
-    ``value``.
+    column the row prints beyond the named ones is kept in ``columns`` under upstream's
+    header, so nothing is dropped (ADR-0003); a named column is never there too. A query
+    with ``area_cs`` or ``item_cs`` renames the code column: the recorded answer to
+    ``area_cs=FAO`` and ``item_cs=FAO`` prints ``Area Code (FAO)`` and ``Item Code (FAO)``
+    (``tests/fixtures/get_data/QCL_231_FAO_15_FAO_2510_2020.json``), and the one to
+    ``area_cs=M49`` names ``Area Code (M49)`` in its ``metadata.dsd``
+    (``tests/fixtures/get_data/QCL_840_M49_15_2510_2020.json``, no rows); such a row has
+    ``area_code`` or ``item_code`` ``None`` and its coded column in ``columns``. The
+    OpenAPI document's ``DataResponse`` spells the two columns ``Area Code (M49)`` and
+    ``Item Code (CPC)``; a query without ``area_cs`` and ``item_cs`` prints ``Area Code``
+    and ``Item Code`` (FETCHED.md). Every value is text as printed but ``value``.
 
     ``element_code`` is the code the answer prints, which is not the code a query filters
     by: a query with ``element=2510`` (Production Quantity in ``codes/element/QCL``)
@@ -169,12 +173,16 @@ class DataRecord(UpstreamModel):
     Attributes:
         domain_code: The domain, e.g. ``"QCL"``; upstream's ``Domain Code``.
         domain: The domain's name, e.g. ``"Crops and livestock products"``.
-        area_code: The area's FAO code, e.g. ``"231"``; upstream's ``Area Code``.
+        area_code: The area's FAO code, e.g. ``"231"``; upstream's ``Area Code``. ``None``
+            where a query with ``area_cs`` prints the codes under another header
+            (``Area Code (M49)``), which ``columns`` keeps.
         area: The area's name, e.g. ``"United States of America"``.
         element_code: The element's code as the answer prints it, e.g. ``"5510"``;
             upstream's ``Element Code``.
         element: The element's name, e.g. ``"Production"``.
-        item_code: The item's FAO code, e.g. ``"15"``; upstream's ``Item Code``.
+        item_code: The item's FAO code, e.g. ``"15"``; upstream's ``Item Code``. ``None``
+            where a query with ``item_cs`` prints the codes under another header
+            (``Item Code (FAO)``), which ``columns`` keeps.
         item: The item's name, e.g. ``"Wheat"``.
         year_code: The year's code, e.g. ``"2020"``; upstream's ``Year Code``.
         year: The year, e.g. ``"2020"``.
@@ -191,17 +199,18 @@ class DataRecord(UpstreamModel):
         note: The value's note as printed, ``""`` when it has none; ``None`` for ``null``
             and in a domain without the column (PP).
         columns: The row's other columns, under upstream's headers, as sent, in the
-            row's order; ``{}`` in the recorded QCL and PP rows, whose columns are all
+            row's order, e.g. ``{"Area Code (M49)": ...}`` for a query with
+            ``area_cs=M49``; ``{}`` in the recorded QCL and PP rows, whose columns are all
             named.
     """
 
     domain_code: str = Field(validation_alias="Domain Code")
     domain: str = Field(validation_alias="Domain")
-    area_code: str = Field(validation_alias="Area Code")
+    area_code: str | None = Field(default=None, validation_alias="Area Code")
     area: str = Field(validation_alias="Area")
     element_code: str = Field(validation_alias="Element Code")
     element: str = Field(validation_alias="Element")
-    item_code: str = Field(validation_alias="Item Code")
+    item_code: str | None = Field(default=None, validation_alias="Item Code")
     item: str = Field(validation_alias="Item")
     year_code: str = Field(validation_alias="Year Code")
     year: str = Field(validation_alias="Year")

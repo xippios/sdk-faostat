@@ -13,16 +13,20 @@ the first request after it logs in again. A request answered with HTTP 401 or 40
 in once more and is sent again, once: a second 401 or 403 goes back to core, whose
 status mapping raises ``AuthError``. So a request logs in at most twice (queue row
 252). The login runs inside the request's ``httpx`` auth flow, below core's limiter,
-hooks, cache and ``classify``: a login is not paced and not cached, and a login answered
-with anything but HTTP 200 raises ``AuthError`` naming the status and upstream's
-``__type`` (``UserNotFoundException``, as recorded for an unknown user).
+hooks, cache and ``classify``: a login is not paced and not cached. A login refused
+with HTTP 401 or 403, or with HTTP 400 and Cognito's ``UserNotFoundException`` (recorded
+for an unknown user) or ``NotAuthorizedException``, raises ``AuthError`` naming the
+status and upstream's ``__type``; any other answer but HTTP 200 raises what core's
+``error_from_response`` makes of it (``RateLimitError`` for a 429, ``UpstreamError`` for
+a 5xx). The flow reads the login's answer and no other: the answer of the request it
+signs, a streamed download's among them, goes back to the client unread.
 
 Nothing of the account is logged, printed or kept but the access token: neither the
-user name nor the password, read where the login request is built and bound to no
-attribute or named variable, nor the answer's id token, which carries the account's
-e-mail, nor its refresh token. The access
-token is kept as a ``SecretStr``, whose ``repr`` is masked. An error names a variable,
-a status and upstream's ``__type``, never a value.
+user name nor the password, read where the login request is built and kept in no
+attribute and in no local that outlives the call, nor the answer's id token, which
+carries the account's e-mail, nor its refresh token. The access token is kept as a
+``SecretStr``, whose ``repr`` is masked. An error names a variable, a status and
+upstream's ``__type``, never a value.
 
 The developer portal (https://www.fao.org/faostat/en/#developer-portal) draws in the
 browser with a guest token of its own; this package does not use it, it logs in with
@@ -49,7 +53,7 @@ import os
 import re
 import threading
 import time
-from collections.abc import Callable, Generator
+from collections.abc import AsyncGenerator, Callable, Generator
 from urllib.parse import unquote
 
 import httpx
@@ -63,8 +67,10 @@ from xippios.core import (
     InvalidRequestError,
     NotFoundError,
     RateLimit,
+    UpstreamError,
     ValidationError,
     XippiosError,
+    error_from_response,
 )
 from xippios.core.client import MemoryCache
 
@@ -133,6 +139,14 @@ def _upstream_type(response: httpx.Response) -> str | None:
     return kind if isinstance(kind, str) and kind.isidentifier() else None
 
 
+def _credentials_refused(response: httpx.Response) -> bool:
+    """Whether a login's answer refuses the credentials: HTTP 401 or 403, or a Cognito 400."""
+    status = response.status_code
+    if status in REFUSED:
+        return True
+    return status == 400 and _upstream_type(response) in CREDENTIAL_REFUSALS
+
+
 def _login_refused(
     response: httpx.Response, *, source: str | None = SOURCE, hint: str = ""
 ) -> AuthError:
@@ -158,13 +172,15 @@ class LoginAuth(httpx.Auth):
     The ``httpx.Auth`` of the package's client (queue row 252: this source's helper; core
     has none for a login). On the first request it builds ``auth_login``'s request on
     ``base_url`` (``POST /auth/login``, form-encoded ``username`` and ``password`` from
-    ``FAOSTAT_USERNAME`` and ``FAOSTAT_PASSWORD``, read there and kept nowhere) and sends
-    it ahead of the request; from the answer it keeps the access token, a ``SecretStr``,
+    ``FAOSTAT_USERNAME`` and ``FAOSTAT_PASSWORD``, read there and kept in no attribute and
+    in no local that outlives the call) and sends it ahead of the request; from the answer,
+    which it reads in full (and no other answer), it keeps the access token, a ``SecretStr``,
     and when it lapses, ``ExpiresIn`` less ``EXPIRY_MARGIN`` seconds from the answer, under
     a lock, and nothing else. Every request goes out with ``Authorization: Bearer
     <token>``. A request answered with HTTP 401 or 403 logs in once more and goes out
-    again, once; the answer to that one is returned as it is. Two requests that start
-    together before the first login has answered may each log in.
+    again, once; the answer to that one is returned as it is, unread. Two requests that
+    start together before the first login has answered may each log in. It runs on core's
+    async client only (``async_auth_flow``).
 
     Args:
         source: Source slug for the errors, e.g. ``"faostat"``.
@@ -174,13 +190,18 @@ class LoginAuth(httpx.Auth):
     Raises:
         ConfigError: From a request, when ``FAOSTAT_USERNAME`` or ``FAOSTAT_PASSWORD`` is
             unset or empty; nothing is sent.
-        AuthError: From a request, when the login is answered with another status than
-            HTTP 200; the message names the status and upstream's ``__type``.
+        AuthError: From a request, when the login refuses the credentials (HTTP 401 or
+            403, or HTTP 400 with Cognito's ``UserNotFoundException`` or
+            ``NotAuthorizedException``); the message names the status and the ``__type``.
+        XippiosError: From a request, for any other answer of the login but HTTP 200:
+            core's mapping, e.g. ``RateLimitError`` for a 429, ``UpstreamError`` for a 5xx.
         ValidationError: From a request, when the login's HTTP 200 is not the documented
             ``Auth`` answer; nothing of the answer is quoted.
     """
 
-    requires_response_body = True
+    # The flow reads the login's answer itself; a response of the request it signs, a
+    # streamed download's among them, is never buffered by it (ADR-0019 decision 1).
+    requires_response_body = False
 
     def __init__(
         self,
@@ -225,16 +246,33 @@ class LoginAuth(httpx.Auth):
         )
 
     def _keep(self, response: httpx.Response) -> None:
-        """Keep the access token and when it lapses from the login's answer.
+        """Keep the access token and when it lapses from the login's answer, read in full.
 
         Raises:
-            AuthError: The login was answered with another status than HTTP 200.
+            AuthError: The credentials were refused: HTTP 401 or 403, or HTTP 400 with
+                Cognito's ``UserNotFoundException`` or ``NotAuthorizedException``; the
+                message names the two variables to check.
+            XippiosError: Another 4xx or 5xx, by core's mapping (``error_from_response``):
+                ``RateLimitError`` for a 429, ``UpstreamError`` for a 5xx.
+            UpstreamError: Another status below 400 than HTTP 200.
             ValidationError: The HTTP 200 is not the documented ``Auth`` answer.
         """
-        if response.status_code != 200:
-            raise _login_refused(
-                response, source=self.source, hint=f"; check {USERNAME_ENV} and {PASSWORD_ENV}"
-            )
+        status = response.status_code
+        if status != 200:
+            if _credentials_refused(response):
+                raise _login_refused(
+                    response, source=self.source, hint=f"; check {USERNAME_ENV} and {PASSWORD_ENV}"
+                )
+            error = error_from_response(response, source=self.source)
+            if error is None:
+                error = UpstreamError(
+                    f"POST {self.login_url.path} answered HTTP {status}, not the documented "
+                    "200; the answer is not shown",
+                    status=status,
+                    body="",
+                    source=self.source,
+                )
+            raise error
         try:
             result = Auth.model_validate_json(response.content).authentication_result
         except pydantic.ValidationError:
@@ -258,16 +296,37 @@ class LoginAuth(httpx.Auth):
             raise AuthError("no FAOSTAT token to send", status=401, source=self.source)
         request.headers["Authorization"] = f"Bearer {token.get_secret_value()}"
 
-    def auth_flow(self, request: httpx.Request) -> Generator[httpx.Request, httpx.Response, None]:
-        """The httpx hook: log in without a current token, sign, log in once more on 401/403."""
+    async def async_auth_flow(
+        self, request: httpx.Request
+    ) -> AsyncGenerator[httpx.Request, httpx.Response]:
+        """The httpx hook: log in without a current token, sign, log in once more on 401/403.
+
+        Only a login's answer is read here; the signed request's answer is handed back
+        to the client unread, its status alone looked at.
+        """
         if self._current() is None:
-            self._keep((yield self._login(request)))
+            login = yield self._login(request)
+            await login.aread()
+            self._keep(login)
         self._sign(request)
         response = yield request
         if response.status_code in REFUSED:
-            self._keep((yield self._login(request)))
+            login = yield self._login(request)
+            await login.aread()
+            self._keep(login)
             self._sign(request)
             yield request
+
+    def sync_auth_flow(self, request: httpx.Request) -> Generator[httpx.Request, httpx.Response]:
+        """Not served: core's client is async, and runs ``async_auth_flow``.
+
+        Raises:
+            NotImplementedError: Always; send through ``_client.client``.
+        """
+        raise NotImplementedError(
+            "LoginAuth runs on core's async client only (async_auth_flow); send through "
+            "xippios.faostat._client.client"
+        )
 
 
 def classify(response: httpx.Response) -> XippiosError | None:
@@ -279,9 +338,10 @@ def classify(response: httpx.Response) -> XippiosError | None:
     recorded for an unknown user, and ``NotAuthorizedException``): that is ``AuthError``,
     upstream's refusal of the credentials (conventions §5), naming the status and the
     ``__type``, never a credential; ``api.auth_login`` raises it, and ``LoginAuth``, whose
-    login runs below this hook, raises the same for any login answered with another
-    status than HTTP 200. ``GET /{lang}/data/{domain_code}`` answers two refusals with HTTP
-    500 and a plain text body (``Content-Type: text/plain``), recorded on 2026-10-29:
+    login runs below this hook, raises the same for it and for a login's 401 or 403, and
+    core's mapping for any other status. ``GET /{lang}/data/{domain_code}`` answers two
+    refusals with HTTP 500 and a plain text body (``Content-Type: text/plain``), recorded
+    on 2026-10-29:
 
     - ``Please add at least one filter.``, a query without ``area``, ``item``,
       ``element`` or ``year``, is ``InvalidRequestError``, upstream's refusal of the

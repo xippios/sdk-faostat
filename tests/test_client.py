@@ -18,7 +18,7 @@ scrubbed token, read through helpers that keep no request in a test's frame.
 
 import dataclasses
 import json
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs
@@ -33,6 +33,8 @@ from xippios.core import (
     ConfigError,
     InvalidRequestError,
     NotFoundError,
+    RateLimitError,
+    UpstreamError,
     ValidationError,
     error_from_response,
 )
@@ -226,6 +228,77 @@ def test_a_refused_login_is_auth_error_naming_upstream_type(
     assert PLACEHOLDER_KEY not in str(raised.value)
     assert login.call_count == 1
     assert data.call_count == 0
+
+
+@pytest.mark.parametrize("status", [401, 403])
+def test_a_login_refused_with_401_or_403_is_auth_error(
+    respx_mock: respx.MockRouter, status: int
+) -> None:
+    """A test double: the recorded refusals' statuses at the login, without a body."""
+    respx_mock.post(LOGIN_URL).mock(return_value=httpx.Response(status))
+    with pytest.raises(AuthError) as raised:
+        tasks.get_data("QCL", **QCL_ARGUMENTS)
+    assert raised.value.status == status
+    assert str(raised.value).endswith(f"; check {USERNAME_ENV} and {PASSWORD_ENV}")
+
+
+def test_a_login_answered_503_is_core_upstream_error(respx_mock: respx.MockRouter) -> None:
+    """Another answer of the login goes through core's mapping, without the variables' hint."""
+    login = respx_mock.post(LOGIN_URL).mock(
+        return_value=httpx.Response(503, text="Service Unavailable")
+    )
+    data = data_route(respx_mock)
+    with pytest.raises(UpstreamError) as raised:
+        tasks.get_data("QCL", **QCL_ARGUMENTS)
+    assert raised.value.status == 503
+    assert str(raised.value) == "503 from POST /api/v1/auth/login: Service Unavailable"
+    assert USERNAME_ENV not in str(raised.value), "the hint is the credentials' refusal's"
+    assert login.call_count == 1, "a login inside the auth flow is never retried"
+    assert data.call_count == 0
+
+
+def test_a_login_answered_429_is_core_rate_limit_error(respx_mock: respx.MockRouter) -> None:
+    respx_mock.post(LOGIN_URL).mock(return_value=httpx.Response(429, headers={"Retry-After": "7"}))
+    with pytest.raises(RateLimitError) as raised:
+        tasks.get_data("QCL", **QCL_ARGUMENTS)
+    assert raised.value.retry_after == 7
+
+
+class _Unread(httpx.AsyncByteStream):
+    """A body that is read only when someone iterates it; ``read`` says whether one did."""
+
+    def __init__(self, body: bytes) -> None:
+        self.body = body
+        self.read = False
+
+    async def __aiter__(self) -> AsyncIterator[bytes]:
+        self.read = True
+        yield self.body
+
+
+@pytest.mark.anyio
+async def test_the_flow_reads_the_login_answer_and_not_the_signed_requests() -> None:
+    """``async_auth_flow`` driven by hand, with the recorded answers as unread streams."""
+    flow = LoginAuth(source=SOURCE).async_auth_flow(
+        httpx.Request("GET", f"{BASE_URL}/en/data/QCL", headers={"User-Agent": "test"})
+    )
+    login_request = await anext(flow)
+    assert login_request.url == LOGIN_URL
+    login_body = _Unread(recorded("auth_login", "login").response.content)
+    signed = await flow.asend(httpx.Response(200, stream=login_body, request=login_request))
+    assert login_body.read, "the login's answer is read"
+    assert signed.headers["authorization"] == "Bearer REDACTED"
+    data_body = _Unread(recorded("get_data", QCL).response.content)
+    data_response = httpx.Response(200, stream=data_body, request=signed)
+    with pytest.raises(StopAsyncIteration):
+        await flow.asend(data_response)
+    assert not data_body.read, "the signed request's answer goes back unread"
+    assert not data_response.is_stream_consumed
+
+
+def test_the_sync_flow_is_not_served() -> None:
+    with pytest.raises(NotImplementedError, match="async client only"):
+        next(LoginAuth(source=SOURCE).sync_auth_flow(httpx.Request("GET", BASE_URL)))
 
 
 def test_a_login_answer_not_auth_is_validation_error_quoting_nothing(

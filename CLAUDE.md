@@ -14,7 +14,7 @@ the family rules every source shares are in `.claude/family.md`, which the next 
 | API base URL | `https://faostatservices.fao.org/api/v1` |
 | Documentation | FAO's OpenAPI document, https://www.fao.org/faostat/en/docs/faostat_openapi.yaml (`SPEC_URL` of `scripts/refresh_upstream.py`; no page links it), kept verbatim as `docs/upstream/openapi/faostat_openapi.yaml`, and the ReDoc page that renders it, https://www.fao.org/faostat/en/docs/redoc-static.html (`/refresh-upstream`) |
 | Credentials | a FAO account: `FAOSTAT_USERNAME` (the account's e-mail) and `FAOSTAT_PASSWORD` from the environment; the package logs in at `POST /auth/login` (operation `auth_login`) and sends the access token as a bearer, from the first tasks PR on (queue row 252); the nightly `live.yml` passes both as org secrets from the first tasks PR on |
-| Rate limit | 30 requests per minute, burst 1; a self-imposed pace: upstream documents no per-second or per-minute limit (ADR-0010); enforced client-side in `_client.py` <!-- name here an hourly or daily quota upstream documents, if any, and the QuotaPolicy that keeps it (ADR-0015) --> |
+| Rate limit | 30 requests per minute, burst 1; a self-imposed pace: upstream documents no per-second or per-minute limit (ADR-0010); enforced client-side in `_client.py`; FAOSTAT documents no hourly or daily quota, so no `QuotaPolicy` is installed |
 | Write tools | no, this package is read-only |
 | Files | parsed in `parse/`, one module per file kind; the parser tests read the samples under `tests/fixtures/files/`, their provenance in its `README.md` (ADR-0020) <!-- each file kind upstream publishes, its format and the library that reads it --> |
 
@@ -116,9 +116,12 @@ fields `username` and `password`), keeps the access token alone, a `SecretStr`, 
 runs inside `httpx`'s auth flow, below core's limiter, so the 30-per-minute pace does not
 pace it, and two requests that start together before the first login answers may each
 log in. A login refused with HTTP 400 and Cognito's `UserNotFoundException` or
-`NotAuthorizedException` is `AuthError` (`classify`, and `LoginAuth` for any status but
-200), naming the status and the `__type`. Offline tests send core's placeholder as both
-variables (`xippios_placeholder_key_envs` in `pyproject.toml`); the replayed
+`NotAuthorizedException` is `AuthError`, naming the status and the `__type` (`classify`
+for `api.auth_login`, `LoginAuth` for its own login, which also maps a 401 or 403 so);
+any other answer of `LoginAuth`'s login but HTTP 200 is core's `error_from_response`
+(`RateLimitError` for a 429, `UpstreamError` for a 5xx). The flow reads the login's
+answer and hands every other answer back unread. Offline tests send core's placeholder
+as both variables (`xippios_placeholder_key_envs` in `pyproject.toml`); the replayed
 `tests/fixtures/auth_login/login.json` answers it.
 
 A recording that spends the account's calls:
@@ -177,11 +180,18 @@ as fixtures; the other twelve tables are packaged, not recorded.
 ### Columns by domain
 
 QCL's rows carry 15 columns, `Note` last; PP's carry `Months Code` and `Months` and no
-`Note` (`tests/fixtures/get_data/PP_231_2020_page_size_2.json`). `models.DataRecord` names
-both shapes' columns, and keeps every column a domain prints beyond the named ones in
-`columns`, under upstream's headers (ADR-0003: nothing dropped), so a named column is
-never there too; the live tests check that every column of each domain they read is
-named or kept there.
+`Note` (`tests/fixtures/get_data/PP_231_2020_page_size_2.json`). `area_cs` and `item_cs`
+rename the code columns: the answer to `area_cs=FAO` and `item_cs=FAO` prints `Area Code
+(FAO)` and `Item Code (FAO)` (`tests/fixtures/get_data/QCL_231_FAO_15_FAO_2510_2020.json`,
+one row), and the one to `area_cs=M49` names `Area Code (M49)` in its `metadata.dsd`
+(`tests/fixtures/get_data/QCL_840_M49_15_2510_2020.json`, no rows for `area=840`). The
+bulk files print M49 codes with a leading apostrophe (`'004`, in the RL ZIP on
+2026-10-29); whether the API's M49 filter wants that form is not established.
+`models.DataRecord` names both shapes' columns, `area_code` and `item_code` `None` where
+a coding system renamed them, and keeps every column a domain prints beyond the named
+ones in `columns`, under upstream's headers (ADR-0003: nothing dropped), so a named
+column is never there too; the live tests check that every column of each domain they
+read is named or kept there.
 
 ### What the OpenAPI document does not state
 
