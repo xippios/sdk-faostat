@@ -34,6 +34,14 @@ tables under ``src/xippios/faostat/reference/``, without a request; their tests,
 ``get_data``'s refusals of a code a table lacks, read the codes, labels, counts and fetch
 times from the packaged files (``params``), never pinning them, so a refresh of the
 tables breaks no test.
+
+``list_bulk_datasets`` and ``download_dataset`` read the bulk catalogue recorded as
+``tests/fixtures/datasets_e/all.json`` (69 datasets) and ``download_dataset`` replays
+``tests/fixtures/download_dataset/MDDW.json``, the GET of MDDW's ZIP, the smallest
+dataset's, recorded whole (12,146 bytes) and flagged binary; both were recorded on
+2026-10-29 without the account. Their tests take the expected values from the
+recordings, and check that no request carried an ``Authorization`` header and none went
+to the API's host, so no login was sent either.
 """
 
 import dataclasses
@@ -48,7 +56,8 @@ import pytest
 import respx
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from xippios.core import InvalidRequestError, NotFoundError, UnknownCode, matches
+from xippios.core import Downloaded, InvalidRequestError, NotFoundError, UnknownCode, matches
+from xippios.core._loop import run
 from xippios.core.mcp import build_server
 from xippios.core.testing import (
     Fixture,
@@ -59,13 +68,16 @@ from xippios.core.testing import (
     mcp_call_text,
     recorded_query,
     sent_query,
+    sent_urls,
 )
 
 from xippios.faostat import (
     api,
+    download_dataset,
     get_data,
     get_series,
     list_areas,
+    list_bulk_datasets,
     list_domains,
     list_elements,
     list_items,
@@ -76,13 +88,16 @@ from xippios.faostat._client import FILTER_REFUSAL, SOURCE, auth
 from xippios.faostat.http import router
 from xippios.faostat.mcp import server
 from xippios.faostat.models import (
+    BulkDataset,
     CodeItem,
     DataRecord,
     DataResponse,
+    DatasetsCatalogue,
     Domain,
     DsdColumn,
     GroupsAndDomainsResponse,
 )
+from xippios.faostat.parse import parse_bulk_csv
 
 FIXTURES = Path(__file__).parent / "fixtures"
 GET_DATA = "get_data"
@@ -874,3 +889,209 @@ def test_list_areas_route_is_a_get() -> None:
         if matches("united", code.code, code.label)
     ]
     assert [row["code"] for row in answered.json()["data"]] == expected
+
+
+CATALOGUE = "datasets_e"
+DOWNLOAD = "download_dataset"
+BULK_HOST = "bulks-faostat.fao.org"
+
+
+def recorded_catalogue() -> list[BulkDataset]:
+    body = recorded(CATALOGUE, "all").response.body
+    return DatasetsCatalogue.model_validate_json(body).datasets.dataset
+
+
+def recorded_dataset(code: str) -> BulkDataset:
+    return next(dataset for dataset in recorded_catalogue() if dataset.dataset_code == code)
+
+
+def sent_without_the_account(respx_mock: respx.MockRouter) -> bool:
+    """Whether every request went to the bulk host without an ``Authorization`` header.
+
+    Hosts and header presence only: no request is kept in the test's frame.
+    """
+    return all(
+        call.request.url.host == BULK_HOST and "authorization" not in call.request.headers
+        for call in respx_mock.calls
+    )
+
+
+def test_list_bulk_datasets(replay_fixture: ReplayFixture, respx_mock: respx.MockRouter) -> None:
+    route = replay_fixture(CATALOGUE, "all")
+    before = datetime.now(UTC)
+    result = list_bulk_datasets()
+    after = datetime.now(UTC)
+    assert sent_urls(route) == [api.datasets_e.URL]
+    assert sent_without_the_account(respx_mock)
+    assert result.data == recorded_catalogue()
+    assert all(isinstance(dataset, BulkDataset) for dataset in result.data)
+    meta = result.meta
+    assert meta.source == SOURCE
+    assert meta.endpoint == "production/datasets_E.json"
+    assert_time_between(meta.retrieved_at, before, after)
+    assert meta.published_at is None
+    assert meta.vintage is None, "the catalogue carries no version"
+    assert meta.total is None
+    assert meta.request == {}, "search left None is omitted"
+    list_bulk_datasets(search="QCL")
+    assert route.call_count == 1, "the second call is a cache hit"
+
+
+@pytest.mark.parametrize("search", ["QCL", "qcl", "trade", "land use", "Diversity"])
+def test_list_bulk_datasets_search(replay_fixture: ReplayFixture, search: str) -> None:
+    replay_fixture(CATALOGUE, "all")
+    result = list_bulk_datasets(search=search)
+    expected = [
+        dataset
+        for dataset in recorded_catalogue()
+        if matches(search, dataset.dataset_code, dataset.dataset_name)
+    ]
+    assert result.data == expected
+    assert result.data, f"the recorded catalogue has a dataset for {search!r}"
+    assert result.meta.request == {"search": search}
+
+
+def test_list_bulk_datasets_search_matches_code_and_name_only(
+    replay_fixture: ReplayFixture,
+) -> None:
+    replay_fixture(CATALOGUE, "all")
+    assert [dataset.dataset_code for dataset in list_bulk_datasets(search="rl").data] == [
+        dataset.dataset_code
+        for dataset in recorded_catalogue()
+        if "rl" in dataset.dataset_code.lower() or "rl" in dataset.dataset_name.lower()
+    ]
+    catalogue = recorded_catalogue()
+    topic = recorded_dataset("MDDW").topic or ""
+    only_in_topic = next(
+        word
+        for word in topic.split()
+        if word.isalpha()
+        and not any(matches(word, row.dataset_code, row.dataset_name) for row in catalogue)
+    )
+    assert list_bulk_datasets(search=only_in_topic).data == [], "the topic is not searched"
+    assert list_bulk_datasets(search="no such dataset anywhere").data == []
+
+
+@pytest.mark.anyio
+async def test_list_bulk_datasets_tool_end_to_end(
+    replay_fixture: ReplayFixture, respx_mock: respx.MockRouter
+) -> None:
+    replay_fixture(CATALOGUE, "all")
+    payload = await mcp_call(server, "faostat_list_bulk_datasets", {"search": "land use"})
+    expected = [
+        dataset.dataset_code
+        for dataset in recorded_catalogue()
+        if matches("land use", dataset.dataset_code, dataset.dataset_name)
+    ]
+    assert [row["dataset_code"] for row in payload["data"]] == expected
+    assert isinstance(payload["data"][0]["file_rows"], int)
+    assert payload["meta"]["endpoint"] == "production/datasets_E.json"
+    assert payload["meta"]["request"] == {"search": "land use"}
+    assert "note" not in payload
+    assert sent_without_the_account(respx_mock)
+
+
+@pytest.mark.anyio
+async def test_list_bulk_datasets_tool_cuts_the_whole_catalogue_with_a_note(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """The whole catalogue is past the family's 64 KB: the bytes cut it, the note names search."""
+    replay_fixture(CATALOGUE, "all")
+    cap = tasks.MCP_CAPS["list_bulk_datasets"]
+    assert cap.note is not None
+    assert cap.note.startswith("pass search")
+    payload = await mcp_call(server, "faostat_list_bulk_datasets", {})
+    total = len(recorded_catalogue())
+    shown = len(payload["data"])
+    assert 0 < shown < total
+    assert payload["note"] == (
+        f"showing {shown} of {total} rows (cap: {cap.max_rows} rows or {cap.max_bytes} "
+        f"bytes); {cap.note}"
+    )
+
+
+def test_list_bulk_datasets_route_is_a_get(replay_fixture: ReplayFixture) -> None:
+    replay_fixture(CATALOGUE, "all")
+    app = FastAPI()
+    app.include_router(router)
+    with TestClient(app) as http:
+        answered = http.get("/faostat/list_bulk_datasets", params={"search": "QCL"})
+    assert answered.status_code == 200
+    assert [row["dataset_code"] for row in answered.json()["data"]] == ["QCL"]
+
+
+def test_download_dataset_mddw(
+    replay_fixture: ReplayFixture, respx_mock: respx.MockRouter, tmp_path: Path
+) -> None:
+    catalogue = replay_fixture(CATALOGUE, "all")
+    fixture = recorded(DOWNLOAD, "MDDW")
+    route = replay_fixture(DOWNLOAD, "MDDW")
+    mddw = recorded_dataset("MDDW")
+    dest = tmp_path / "MDDW.zip"
+    before = datetime.now(UTC)
+    result = download_dataset("MDDW", dest)
+    after = datetime.now(UTC)
+    assert sent_urls(catalogue) == [api.datasets_e.URL]
+    assert sent_urls(route) == [mddw.file_location] == [fixture.request.url]
+    assert sent_without_the_account(respx_mock), "the token never goes to the bulk host"
+    downloaded = result.data
+    assert isinstance(downloaded, Downloaded)
+    assert downloaded.path == dest
+    assert dest.read_bytes() == fixture.response.content, "the recorded ZIP, byte for byte"
+    assert downloaded.bytes == len(fixture.response.content)
+    headers = dict(fixture.response.headers)
+    assert downloaded.content_type == headers["content-type"]
+    assert downloaded.etag == headers["etag"]
+    assert downloaded.last_modified == headers["last-modified"]
+    assert_time_between(downloaded.retrieved_at, before, after)
+    assert list(tmp_path.iterdir()) == [dest], "no partial file left behind"
+    meta = result.meta
+    assert meta.source == SOURCE
+    assert meta.endpoint == "All_Data_(Normalized).csv"
+    assert meta.vintage == mddw.date_update
+    assert meta.published_at == datetime.fromisoformat(mddw.date_update)
+    assert meta.published_at.tzinfo is None, "a time printed without a zone"
+    assert meta.published_at_naive is True
+    assert meta.request == {"domain": "MDDW", "url": mddw.file_location}
+    assert meta.total is None
+    assert_time_between(meta.retrieved_at, before, after)
+    rows = list(parse_bulk_csv(dest))
+    assert rows, "the downloaded ZIP reads"
+    assert rows == list(parse_bulk_csv(Path(__file__).parent / "fixtures/files/bulk-csv/MDDW.zip"))
+
+
+def test_download_dataset_refuses_a_domain_the_catalogue_lacks(
+    replay_fixture: ReplayFixture, tmp_path: Path
+) -> None:
+    replay_fixture(CATALOGUE, "all")
+    route = replay_fixture(DOWNLOAD, "MDDW")
+    with pytest.raises(NotFoundError) as raised:
+        download_dataset("mddw", tmp_path / "MDDW.zip")
+    assert route.call_count == 0, "no file requested"
+    assert str(raised.value) == (
+        "FAOSTAT's bulk catalogue lists no dataset 'mddw'. Did you mean MDDW? "
+        "list_bulk_datasets lists them"
+    )
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("where", ["directory", "missing"])
+def test_download_dataset_refuses_a_dest_it_cannot_write(
+    respx_mock: respx.MockRouter, tmp_path: Path, where: str
+) -> None:
+    dest = tmp_path if where == "directory" else tmp_path / "missing" / "MDDW.zip"
+    with pytest.raises(InvalidRequestError, match=r"^dest"):
+        download_dataset("MDDW", dest)
+    assert not respx_mock.calls, "refused before any request"
+
+
+def test_download_dataset_is_served_by_no_adapter() -> None:
+    """A bulk task: no MCP tool, no route (ADR-0019 decision 4); the catalogue task is both."""
+    assert {"download_dataset"} == tasks.BULK_TASKS
+    assert "download_dataset" in tasks.__all__
+    tools = {tool.name for tool in run(server.list_tools())}
+    assert "faostat_download_dataset" not in tools
+    assert "faostat_list_bulk_datasets" in tools
+    paths = {getattr(route, "path", None) for route in router.routes}
+    assert "/faostat/download_dataset" not in paths
+    assert "/faostat/list_bulk_datasets" in paths

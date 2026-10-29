@@ -75,6 +75,46 @@ domains, from the package's copies of FAOSTAT's code lists (`getCodeList`,
 the filter codes, not the codes the rows print. `meta.retrieved_at` is when the package
 fetched the list.
 
+### Bulk downloads
+
+```python
+from pathlib import Path
+
+from xippios.faostat import download_dataset, list_bulk_datasets
+from xippios.faostat.parse import parse_bulk_csv
+
+list_bulk_datasets(search="land use").data[0]  # dataset_code "RL", file_size "2902KB", ...
+land = download_dataset("RL", Path("RL.zip"))  # 3 MB; TCL's ZIP is 267 MB
+land.data.path  # PosixPath("RL.zip"): the ZIP as FAOSTAT serves it
+land.meta.vintage  # "2026-10-02T00:00:00": the catalogue's DateUpdate as printed
+land.meta.published_at  # 2026-10-02 00:00 without a zone, meta.published_at_naive set
+rows = parse_bulk_csv(land.data.path)  # one BulkRecord per row of its table, read lazily
+first = next(rows)
+first.area, first.area_code_m49, first.item, first.year  # ("Afghanistan", "'004", ...)
+first.value, first.unit  # (Decimal("65286.000000"), "1000 ha")
+```
+
+`list_bulk_datasets(*, search)` lists the datasets FAOSTAT publishes as files, 69 on
+2026-10-29, from the bulk downloads' catalogue (`production/datasets_E.json` on
+`bulks-faostat.fao.org`), fetched without the account: each with its code, the domain
+code `get_data` takes, its name, last update, the ZIP's size and URL and the rows of its
+table; `search` keeps the datasets whose code or name contains the text.
+
+`download_dataset(domain, dest)` looks the dataset up in the catalogue and streams its
+ZIP to `dest`, without the account, never holding it in memory or caching it; it returns
+core's `Downloaded` (path, size, content type, `ETag`, `Last-Modified`, retrieval time).
+It is a bulk task: Python only, so the MCP server and the router skip it and no agent is
+handed a file path. The files run from 12 KB (MDDW) to 410 MB (TM); TCL's is 267 MB.
+`meta.vintage` is the catalogue's `DateUpdate` as printed and `meta.published_at` the
+same time, which the catalogue prints without a zone. `parse_bulk_csv(path)` reads the
+ZIP's normalized table, the member `<Name>_E_All_Data_(Normalized).csv`, row by row,
+straight from the archive: each `BulkRecord` has the columns of the production files
+(`area_code`, `area_code_m49` as printed with its apostrophe, `area`, `item_code`,
+`item_code_cpc`, `item`, `element_code`, `element`, `year_code`, `year`, `unit`,
+`value` as a `Decimal`, `flag`, `note`), `None` where a dataset does not print one, and
+every other column of a dataset under its header in `columns`, as MDDW's surveys and
+food groups.
+
 ## MCP
 
 ```json
@@ -108,9 +148,12 @@ exactly tasks.__all__. -->
 | `getCodeList` (`GET /{lang}/codes/{dimension_id}/{domain_code}`), `area`, packaged for QCL, TCL, FBS, PP and RL | `list_areas(domain, search)`, a domain's area codes | `faostat_list_areas` | alpha |
 | `getCodeList`, `element`, packaged for the same five domains | `list_elements(domain, search)`, a domain's element codes, the filter codes | `faostat_list_elements` | alpha |
 | `getCodeList`, `item`, packaged for the same five domains | `list_items(domain, search)`, a domain's item codes | `faostat_list_items` | alpha |
+| `production/datasets_E.json` on `bulks-faostat.fao.org`, the bulk downloads' catalogue | `list_bulk_datasets(search)`, the datasets FAOSTAT publishes as files, with sizes and last updates | `faostat_list_bulk_datasets` | alpha |
+| The catalogue's `FileLocation`, a dataset's ZIP on `bulks-faostat.fao.org` | `download_dataset(domain, dest)`, a dataset's ZIP on disk, its normalized CSV read by `parse_bulk_csv` | none: a bulk task, Python only, which the adapters skip | alpha |
 
-Every request logs in first where the process has no current token (`auth_login`,
-`POST /auth/login`); the login is the client's, no task's.
+Every request to the API logs in first where the process has no current token
+(`auth_login`, `POST /auth/login`); the login is the client's, no task's. The bulk
+downloads' catalogue and files are fetched without it.
 
 ## Upstream terms and attribution
 
