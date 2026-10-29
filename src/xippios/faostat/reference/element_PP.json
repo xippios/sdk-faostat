@@ -1,0 +1,27 @@
+{
+  "param": "element",
+  "endpoint": "getCodeList",
+  "fetched": "2026-10-29T07:06:57Z",
+  "records": [
+    {
+      "code": "5530",
+      "label": "Producer Price (LCU/tonne)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "5531",
+      "label": "Producer Price (SLC/tonne)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "5532",
+      "label": "Producer Price (USD/tonne)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "5539",
+      "label": "Producer Price Index (2014-2016 = 100)",
+      "aggregate_type": "0"
+    }
+  ]
+}

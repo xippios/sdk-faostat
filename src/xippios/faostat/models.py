@@ -11,7 +11,9 @@ document's ``Auth`` schema; ``DataResponse`` with ``DataMetadata``, ``DsdColumn`
 answers spell it (``docs/upstream/samples/data_QCL_231_2510_15_2015-2021.json``);
 ``GroupsAndDomainsResponse`` with ``Metadata`` and ``Domain`` is
 ``get_groupsanddomains``'s, the document's ``GroupsAndDomainsResponse`` and
-``DomainMetadata`` schemas (``docs/upstream/samples/groupsanddomains.json``). Each field
+``DomainMetadata`` schemas (``docs/upstream/samples/groupsanddomains.json``);
+``CodeResponse`` with ``CodeItem`` is ``getCodeList``'s, the document's ``CodeResponse``
+and ``CodeItem`` schemas (``docs/upstream/samples/codes_element_QCL.json``). Each field
 is upstream's name snake_cased, the upstream spelling accepted with ``validation_alias``,
 so every output surface stays snake_case.
 """
@@ -26,6 +28,8 @@ from xippios.core import UpstreamModel
 __all__ = [
     "Auth",
     "AuthenticationResult",
+    "CodeItem",
+    "CodeResponse",
     "DataMetadata",
     "DataRecord",
     "DataResponse",
@@ -34,6 +38,26 @@ __all__ = [
     "GroupsAndDomainsResponse",
     "Metadata",
 ]
+
+
+def _gather_columns(model: type[UpstreamModel], data: Any) -> Any:
+    """``data`` with the keys no field of ``model`` names gathered into ``columns``.
+
+    A row's columns under upstream's headers, as sent and in the row's order, for a
+    model that keeps every column it does not name (ADR-0003: nothing dropped). A
+    mapping that carries ``columns`` already (a record dumped by field name) is taken as
+    it is.
+    """
+    if not isinstance(data, Mapping) or "columns" in data:
+        return data
+    named = set(model.model_fields)
+    named |= {
+        field.validation_alias
+        for field in model.model_fields.values()
+        if isinstance(field.validation_alias, str)
+    }
+    others = {header: value for header, value in data.items() if header not in named}
+    return {**data, "columns": others}
 
 
 class AuthenticationResult(UpstreamModel):
@@ -144,7 +168,7 @@ class DataRecord(UpstreamModel):
     ``element_code`` is the code the answer prints, which is not the code a query filters
     by: a query with ``element=2510`` (Production Quantity in ``codes/element/QCL``)
     answers rows with ``element_code`` ``"5510"`` (Production), and nothing is translated
-    (ADR-0003); ``list_elements`` will list the filter codes.
+    (ADR-0003); ``list_elements`` lists the filter codes.
 
     Attributes:
         domain_code: The domain, e.g. ``"QCL"``; upstream's ``Domain Code``.
@@ -202,21 +226,8 @@ class DataRecord(UpstreamModel):
     @model_validator(mode="before")
     @classmethod
     def _other_columns(cls, data: Any) -> Any:
-        """Gather the columns no field names into ``columns``, under upstream's headers.
-
-        A mapping that carries ``columns`` already (a record dumped by field name) is
-        taken as it is.
-        """
-        if not isinstance(data, Mapping) or "columns" in data:
-            return data
-        named = set(cls.model_fields)
-        named |= {
-            field.validation_alias
-            for field in cls.model_fields.values()
-            if isinstance(field.validation_alias, str)
-        }
-        others = {header: value for header, value in data.items() if header not in named}
-        return {**data, "columns": others}
+        """Gather the columns no field names into ``columns``, under upstream's headers."""
+        return _gather_columns(cls, data)
 
 
 class DataResponse(UpstreamModel):
@@ -301,3 +312,80 @@ class GroupsAndDomainsResponse(UpstreamModel):
 
     metadata: Metadata
     data: list[Domain]
+
+
+class CodeItem(UpstreamModel):
+    """One code of a domain's dimension, as ``getCodeList`` lists it: the document's ``CodeItem``.
+
+    The codes a data query filters by: ``codes/area/QCL`` lists the areas QCL's
+    ``area`` takes (``"231"`` United States of America), ``codes/element/QCL`` its
+    elements (``"2510"`` Production Quantity), ``codes/item/QCL`` its items (``"15"``
+    Wheat). An element code here is a filter code, which the data rows do not print: a
+    query with ``element=2510`` answers rows whose ``element_code`` is ``"5510"``
+    (Production), and nothing is translated between the two (ADR-0003). The document's
+    schema names ``code``, ``label`` and ``aggregate_type``; QCL's and TCL's item lists,
+    RL's on 51 of its 57 records, and TCL's and RL's element lists carry ``parent`` as
+    well (2026-10-29), which this model names, and every other field a list carries is
+    kept in ``columns`` under upstream's name, so nothing is dropped. A list may name a
+    code twice (QCL's item list its five top groups, ``QC>`` among them), as upstream
+    sends it.
+
+    Attributes:
+        code: The code, as a data query sends it, e.g. ``"231"``, ``"2510"``, ``"15"``,
+            or ``"5000>"`` (World > (List)).
+        label: The code's name as printed, e.g. ``"United States of America"``,
+            ``"Production Quantity"``, ``"Wheat"`` or ``"World + (Total)"``.
+        parent: The code above it in the list's tree as printed, e.g. ``"QC>"`` (Crops,
+            primary > (List)) or ``"#"`` at the top; ``None`` for a record without the
+            field (every area list, the element lists of QCL, FBS and PP, the item lists
+            of FBS and PP, and six records of RL's, on 2026-10-29).
+        aggregate_type: As printed: ``"0"`` in the recorded lists for a single code,
+            ``"+"`` for a code whose label ends ``+ (Total)`` and ``">"`` for one whose
+            code and label end ``>`` and ``> (List)``; ``None`` where the field is absent.
+        columns: The code's other fields, under upstream's names, as sent; ``{}`` in the
+            recorded lists, whose fields are all named.
+    """
+
+    code: str
+    label: str
+    parent: str | None = None
+    aggregate_type: str | None = None
+    columns: Mapping[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _other_columns(cls, data: Any) -> Any:
+        """Gather the fields no field names into ``columns``, under upstream's names."""
+        return _gather_columns(cls, data)
+
+    def dump_upstream(self) -> dict[str, Any]:
+        """This code as upstream sent it, for a packaged table (conventions §3).
+
+        The named fields the list carried, under upstream's names, which are the
+        fields' own, then ``columns`` as sent: a named field the list lacked
+        (``parent`` in an area list) is left out, so a packaged record is upstream's.
+
+        Returns:
+            E.g. ``{"code": "231", "label": "United States of America",
+            "aggregate_type": "0"}``.
+        """
+        dumped = super().dump_upstream()
+        sent = {
+            name: dumped[name]
+            for name in type(self).model_fields
+            if name != "columns" and name in self.model_fields_set
+        }
+        return {**sent, **self.columns}
+
+
+class CodeResponse(UpstreamModel):
+    """``getCodeList``'s answer: the document's ``CodeResponse``, its metadata and its codes.
+
+    Attributes:
+        metadata: Processing time, datasource and output type.
+        data: The codes in upstream's order, e.g. 5 for ``codes/element/QCL`` on
+            2026-10-29.
+    """
+
+    metadata: Metadata
+    data: list[CodeItem]

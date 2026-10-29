@@ -7,14 +7,19 @@ environment (``live.yml`` passes the org secrets to its ``pytest -m live`` step 
 ``get_data`` has one per domain of the design round's question 5 (G5, 2026-10-29): QCL,
 TCL, FBS, PP and RL, each on the smallest slice with codes every one of them has, the
 United States of America (area 231) in 2020, cut to its first five rows with
-``page_size=5`` and ``page_number=1``. ``list_domains`` has one. A run sends seven keyed
-requests: one login, five data requests and one ``groupsanddomains`` request, the first
-domain's release-date look-up; the other four look-ups and ``list_domains`` answer from
-the client's cache, which lives for the run, and each test's check that every column
-the answer prints is named or kept in ``columns`` reads its data request from the cache
-as well. The reachability check sends one
-more request, without the account. The tests assert shape and release metadata, never
-values, which FAOSTAT revises.
+``page_size=5`` and ``page_number=1``. ``list_domains`` has one. The three code-list
+tasks answer from the packaged tables: ``list_elements``'s test fetches
+``codes/element/QCL`` through ``api.get_code_list``, as the refresh script does, and
+checks that upstream's answer still has the packaged table's shape, its fields, every
+code and label non-empty, and every packaged code present; ``list_areas``'s and
+``list_items``'s read the packaged tables of the five domains, without a request. A run
+sends eight keyed requests: one login, five data requests, one ``groupsanddomains``
+request, the first domain's release-date look-up, and one ``getCodeList`` request; the
+other four look-ups and ``list_domains`` answer from the client's cache, which lives for
+the run, and each test's check that every column the answer prints is named or kept in
+``columns`` reads its data request from the cache as well. The reachability check sends
+one more request, without the account. The tests assert shape and release metadata,
+never values, which FAOSTAT revises.
 """
 
 import re
@@ -26,9 +31,9 @@ import httpx
 import pytest
 from xippios.core.testing import assert_time_between
 
-from xippios.faostat import api, tasks
+from xippios.faostat import api, params, tasks
 from xippios.faostat._client import BASE_URL, config
-from xippios.faostat.models import DataRecord, Domain
+from xippios.faostat.models import CodeItem, DataRecord, Domain
 
 pytestmark = [pytest.mark.live, pytest.mark.anyio]
 
@@ -109,3 +114,45 @@ async def test_list_domains() -> None:
     assert result.meta.endpoint == "get_groupsanddomains"
     assert result.meta.vintage is None
     assert result.meta.total is None
+
+
+async def test_list_elements() -> None:
+    """``codes/element/QCL`` as upstream serves it still has the packaged table's shape.
+
+    One ``getCodeList`` request through the wrapper the refresh script fetches with.
+    """
+    answer = await api.get_code_list.get_code_list("en", "element", "QCL")
+    live = answer.response.data
+    table = params.packaged("element_QCL")
+    assert live
+    assert all(isinstance(code, CodeItem) and code.code and code.label for code in live)
+    assert {tuple(code.dump_upstream()) for code in live} == {
+        tuple(record) for record in table.records
+    }, "the packaged table's fields"
+    missing = {record["code"] for record in table.records} - {code.code for code in live}
+    assert len(missing) == 0, "packaged codes upstream no longer lists: refresh the tables"
+    result = await tasks.list_elements_async("QCL")
+    assert result.data == table.parse(CodeItem, source="faostat")
+    assert result.meta.endpoint == "getCodeList"
+    assert result.meta.retrieved_at == table.fetched
+
+
+@pytest.mark.parametrize("domain", DOMAINS)
+async def test_list_areas(domain: str) -> None:
+    """Answered from the packaged table, without a request; 231 is the data tests' area."""
+    result = await tasks.list_areas_async(domain)
+    assert result.data
+    assert "231" in {code.code for code in result.data}, "the area the data tests read"
+    assert result.meta.endpoint == "getCodeList"
+    assert result.meta.retrieved_at == params.packaged(f"area_{domain}").fetched
+    assert result.meta.vintage is None
+
+
+@pytest.mark.parametrize("domain", DOMAINS)
+async def test_list_items(domain: str) -> None:
+    """Answered from the packaged table, without a request."""
+    result = await tasks.list_items_async(domain)
+    assert result.data
+    assert all(code.code and code.label for code in result.data)
+    assert result.meta.endpoint == "getCodeList"
+    assert result.meta.retrieved_at == params.packaged(f"item_{domain}").fetched

@@ -1,0 +1,1302 @@
+{
+  "param": "item",
+  "endpoint": "getCodeList",
+  "fetched": "2026-10-29T07:06:59Z",
+  "records": [
+    {
+      "code": "809",
+      "label": "Abaca, manila hemp, raw",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "800",
+      "label": "Agave fibres, raw, n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "221",
+      "label": "Almonds, in shell",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "711",
+      "label": "Anise, badian, coriander, cumin, caraway, fennel and juniper berries, raw",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "515",
+      "label": "Apples",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "526",
+      "label": "Apricots",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "226",
+      "label": "Areca nuts",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "366",
+      "label": "Artichokes",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "367",
+      "label": "Asparagus",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "572",
+      "label": "Avocados",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "839",
+      "label": "Balata, gutta-percha, guayule, chicle and similar natural gums in primary forms or in plates, sheets or strip",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "203",
+      "label": "Bambara beans, dry",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "486",
+      "label": "Bananas",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "484",
+      "label": "Bananas cavendish",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "44",
+      "label": "Barley",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "176",
+      "label": "Beans, dry",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1183",
+      "label": "Beeswax",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "552",
+      "label": "Blueberries",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "216",
+      "label": "Brazil nuts, in shell",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "181",
+      "label": "Broad beans and horse beans, dry",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "420",
+      "label": "Broad beans and horse beans, green",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "89",
+      "label": "Buckwheat",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "358",
+      "label": "Cabbages",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "101",
+      "label": "Canary seed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "568",
+      "label": "Cantaloupes and other melons",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "426",
+      "label": "Carrots and turnips",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "217",
+      "label": "Cashew nuts, in shell",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "591",
+      "label": "Cashewapple",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "125",
+      "label": "Cassava, fresh",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "265",
+      "label": "Castor oil seeds",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "393",
+      "label": "Cauliflowers and broccoli",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "108",
+      "label": "Cereals n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "531",
+      "label": "Cherries",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "220",
+      "label": "Chestnuts, in shell",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "191",
+      "label": "Chick peas, dry",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "459",
+      "label": "Chicory roots",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "689",
+      "label": "Chillies and peppers, dry (Capsicum spp., Pimenta spp.), raw",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "401",
+      "label": "Chillies and peppers, green (Capsicum spp. and Pimenta spp.)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "693",
+      "label": "Cinnamon and cinnamon-tree flowers, raw",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "698",
+      "label": "Cloves (whole stems), raw",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "661",
+      "label": "Cocoa beans",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "249",
+      "label": "Coconuts, in shell",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "656",
+      "label": "Coffee, green",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "488",
+      "label": "Cooking bananas",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "767",
+      "label": "Cotton lint, ginned",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "329",
+      "label": "Cotton seed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "195",
+      "label": "Cow peas, dry",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "554",
+      "label": "Cranberries",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "397",
+      "label": "Cucumbers and gherkins",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "550",
+      "label": "Currants",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "577",
+      "label": "Dates",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "149",
+      "label": "Edible roots and tubers with high starch or inulin content, n.e.c., fresh",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "399",
+      "label": "Eggplants (aubergines)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1091",
+      "label": "Eggs from other birds in shell, fresh, n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "569",
+      "label": "Figs",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "773",
+      "label": "Flax, processed but not spun",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "94",
+      "label": "Fonio",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1163",
+      "label": "Game meat, fresh, chilled or frozen",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "720",
+      "label": "Ginger, raw",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "549",
+      "label": "Gooseberries",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "560",
+      "label": "Grapes",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "446",
+      "label": "Green corn (maize)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "406",
+      "label": "Green garlic",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "242",
+      "label": "Groundnuts, excluding shelled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "225",
+      "label": "Hazelnuts, in shell",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "336",
+      "label": "Hempseed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1062",
+      "label": "Hen eggs in shell, fresh",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "677",
+      "label": "Hop cones",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1097",
+      "label": "Horse meat, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1121",
+      "label": "Horse meat, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "277",
+      "label": "Jojoba seeds",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "780",
+      "label": "Jute, raw or retted",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "310",
+      "label": "Kapok fruit",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "263",
+      "label": "Karite nuts (sheanuts)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "782",
+      "label": "Kenaf, and other textile bast fibres, raw or retted",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "592",
+      "label": "Kiwi fruit",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "224",
+      "label": "Kola nuts",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "407",
+      "label": "Leeks and other alliaceous vegetables",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "497",
+      "label": "Lemons and limes",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "201",
+      "label": "Lentils, dry",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "372",
+      "label": "Lettuce and chicory",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "333",
+      "label": "Linseed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "461",
+      "label": "Locust beans (carobs)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "210",
+      "label": "Lupins",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "56",
+      "label": "Maize (corn)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "571",
+      "label": "Mangoes, guavas and mangosteens",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "671",
+      "label": "Maté leaves",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1108",
+      "label": "Meat of asses, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1123",
+      "label": "Meat of asses, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "947",
+      "label": "Meat of buffalo, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "973",
+      "label": "Meat of buffalo, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1127",
+      "label": "Meat of camels, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1138",
+      "label": "Meat of camels, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "867",
+      "label": "Meat of cattle with the bone, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "945",
+      "label": "Meat of cattle with the bone, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1058",
+      "label": "Meat of chickens, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1095",
+      "label": "Meat of chickens, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1069",
+      "label": "Meat of ducks, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1071",
+      "label": "Meat of ducks, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1073",
+      "label": "Meat of geese, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1078",
+      "label": "Meat of geese, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1017",
+      "label": "Meat of goat, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1033",
+      "label": "Meat of goat, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1111",
+      "label": "Meat of mules, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1125",
+      "label": "Meat of mules, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1158",
+      "label": "Meat of other domestic camelids, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1162",
+      "label": "Meat of other domestic camelids, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1151",
+      "label": "Meat of other domestic rodents, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1155",
+      "label": "Meat of other domestic rodents, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1035",
+      "label": "Meat of pig with the bone, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1056",
+      "label": "Meat of pig with the bone, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1089",
+      "label": "Meat of pigeons and other birds n.e.c., fresh, chilled or frozen",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1085",
+      "label": "Meat of pigeons and other birds n.e.c., fresh, chilled or frozen (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1141",
+      "label": "Meat of rabbits and hares, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1145",
+      "label": "Meat of rabbits and hares, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "977",
+      "label": "Meat of sheep, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1013",
+      "label": "Meat of sheep, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1080",
+      "label": "Meat of turkeys, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1088",
+      "label": "Meat of turkeys, fresh or chilled (biological)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "299",
+      "label": "Melonseed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "79",
+      "label": "Millet",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "103",
+      "label": "Mixed grain",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "449",
+      "label": "Mushrooms and truffles",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "292",
+      "label": "Mustard seed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1182",
+      "label": "Natural honey",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "836",
+      "label": "Natural rubber in primary forms",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "702",
+      "label": "Nutmeg, mace, cardamoms, raw",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "75",
+      "label": "Oats",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "254",
+      "label": "Oil palm fruit",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "430",
+      "label": "Okra",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "260",
+      "label": "Olives",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "403",
+      "label": "Onions and shallots, dry (excluding dehydrated)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "402",
+      "label": "Onions and shallots, green",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "490",
+      "label": "Oranges",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "485",
+      "label": "Other bananas (excluding cavendish and cooking bananas)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "414",
+      "label": "Other beans, green",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "558",
+      "label": "Other berries and fruits of the genus vaccinium n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "512",
+      "label": "Other citrus fruit, n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "821",
+      "label": "Other fibre crops, raw, n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "619",
+      "label": "Other fruits, n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1166",
+      "label": "Other meat of mammals, fresh or chilled",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "234",
+      "label": "Other nuts (excluding wild edible nuts and groundnuts), in shell, n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "339",
+      "label": "Other oil seeds, n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "542",
+      "label": "Other pome fruits",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "211",
+      "label": "Other pulses n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "723",
+      "label": "Other stimulant, spice and aromatic crops, n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "541",
+      "label": "Other stone fruits",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "161",
+      "label": "Other sugar crops n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "603",
+      "label": "Other tropical fruits, n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "463",
+      "label": "Other vegetables, fresh n.e.c.",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "256",
+      "label": "Palm kernels",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "257",
+      "label": "Palm oil",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "600",
+      "label": "Papayas",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "534",
+      "label": "Peaches and nectarines",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "521",
+      "label": "Pears",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "187",
+      "label": "Peas, dry",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "417",
+      "label": "Peas, green",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "687",
+      "label": "Pepper (Piper spp.), raw",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "748",
+      "label": "Peppermint, spearmint",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "587",
+      "label": "Persimmons",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "197",
+      "label": "Pigeon peas, dry",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "574",
+      "label": "Pineapples",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "223",
+      "label": "Pistachios, in shell",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "487",
+      "label": "Plantains",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "489",
+      "label": "Plantains and cooking bananas",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "536",
+      "label": "Plums and sloes",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "507",
+      "label": "Pomelos and grapefruits",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "296",
+      "label": "Poppy seed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "116",
+      "label": "Potatoes",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "394",
+      "label": "Pumpkins, squash and gourds",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "754",
+      "label": "Pyrethrum, dried flowers",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "523",
+      "label": "Quinces",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "92",
+      "label": "Quinoa",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "788",
+      "label": "Ramie, raw or retted",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "270",
+      "label": "Rape or colza seed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "547",
+      "label": "Raspberries",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "951",
+      "label": "Raw milk of buffalo",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1130",
+      "label": "Raw milk of camel",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "882",
+      "label": "Raw milk of cattle",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1020",
+      "label": "Raw milk of goats",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "982",
+      "label": "Raw milk of sheep",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "27",
+      "label": "Rice",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "71",
+      "label": "Rye",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "280",
+      "label": "Safflower seed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "328",
+      "label": "Seed cotton, unginned",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "289",
+      "label": "Sesame seed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "987",
+      "label": "Shorn wool, greasy, including fleece-washed shorn wool",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1185",
+      "label": "Silk-worm cocoons suitable for reeling",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "789",
+      "label": "Sisal, raw",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "1176",
+      "label": "Snails, fresh, chilled, frozen, dried, salted or in brine, except sea snails",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "83",
+      "label": "Sorghum",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "530",
+      "label": "Sour cherries",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "236",
+      "label": "Soya beans",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "373",
+      "label": "Spinach",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "307",
+      "label": "Stillingia oil",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "544",
+      "label": "Strawberries",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "423",
+      "label": "String beans",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "157",
+      "label": "Sugar beet",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "156",
+      "label": "Sugar cane",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "267",
+      "label": "Sunflower seed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "122",
+      "label": "Sweet potatoes",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "305",
+      "label": "Tallowtree seeds",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "495",
+      "label": "Tangerines, mandarins, clementines",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "136",
+      "label": "Taro",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "667",
+      "label": "Tea leaves",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "674",
+      "label": "Tea nes (herbal tea)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "388",
+      "label": "Tomatoes",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "97",
+      "label": "Triticale",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "777",
+      "label": "True hemp, raw or retted",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "275",
+      "label": "Tung nuts",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "826",
+      "label": "Unmanufactured tobacco",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "692",
+      "label": "Vanilla, raw",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "306",
+      "label": "Vegetable tallow",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "205",
+      "label": "Vetches",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "222",
+      "label": "Walnuts, in shell",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "567",
+      "label": "Watermelons",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "15",
+      "label": "Wheat",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "137",
+      "label": "Yams",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "135",
+      "label": "Yautia",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2051",
+      "label": "Agriculture + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "2051>",
+      "label": "Agriculture > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1717",
+      "label": "Cereals, primary + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1717>",
+      "label": "Cereals, primary > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1804",
+      "label": "Citrus Fruit, Total + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1804>",
+      "label": "Citrus Fruit, Total > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1814",
+      "label": "Coarse Grain, Total + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1814>",
+      "label": "Coarse Grain, Total > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1714>",
+      "label": "Crops, primary > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1783",
+      "label": "Eggs Primary + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1783>",
+      "label": "Eggs Primary > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1753",
+      "label": "Fibre Crops Primary + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1753>",
+      "label": "Fibre Crops Primary > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1801",
+      "label": "Fruit excl Melons, Total + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1801>",
+      "label": "Fruit excl Melons, Total > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1737>",
+      "label": "Fruit Incl Melons > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1738",
+      "label": "Fruit Primary + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1738>",
+      "label": "Fruit Primary > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1751",
+      "label": "Jute & Jute-like Fibres + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1751>",
+      "label": "Jute & Jute-like Fibres > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "2044",
+      "label": "Livestock + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "2044>",
+      "label": "Livestock > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1769>",
+      "label": "Meat Liveweight, Total > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1765",
+      "label": "Meat, Total + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1765>",
+      "label": "Meat, Total > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1780",
+      "label": "Milk, Total + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1780>",
+      "label": "Milk, Total > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1732",
+      "label": "Oilcrops, Oil Equivalent + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1732>",
+      "label": "Oilcrops, Oil Equivalent > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1726",
+      "label": "Pulses, Total + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1726>",
+      "label": "Pulses, Total > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1720",
+      "label": "Roots and Tubers, Total + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1720>",
+      "label": "Roots and Tubers, Total > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1729",
+      "label": "Treenuts, Total + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1729>",
+      "label": "Treenuts, Total > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1734>",
+      "label": "Vegetables > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1800",
+      "label": "Vegetables and Melons, Total + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1800>",
+      "label": "Vegetables and Melons, Total > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "1735",
+      "label": "Vegetables Primary + (Total)",
+      "aggregate_type": "+"
+    },
+    {
+      "code": "1735>",
+      "label": "Vegetables Primary > (List)",
+      "aggregate_type": ">"
+    }
+  ]
+}

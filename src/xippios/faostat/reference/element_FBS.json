@@ -1,0 +1,112 @@
+{
+  "param": "element",
+  "endpoint": "getCodeList",
+  "fetched": "2026-10-29T07:06:51Z",
+  "records": [
+    {
+      "code": "511",
+      "label": "Total Population - Both sexes",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2510",
+      "label": "Production Quantity",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2610",
+      "label": "Import quantity",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2071",
+      "label": "Stock Variation",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2910",
+      "label": "Export quantity",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2300",
+      "label": "Domestic supply quantity",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2520",
+      "label": "Feed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2525",
+      "label": "Seed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2120",
+      "label": "Losses",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2130",
+      "label": "Processed",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2151",
+      "label": "Other uses (non-food)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "5171",
+      "label": "Tourist consumption",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "5170",
+      "label": "Residuals",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "2141",
+      "label": "Food",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "645",
+      "label": "Food supply quantity (kg/capita/yr)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "664",
+      "label": "Food supply (kcal/capita/day)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "661",
+      "label": "Food supply (kcal)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "674",
+      "label": "Protein supply quantity (g/capita/day)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "671",
+      "label": "Protein supply quantity (t)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "684",
+      "label": "Fat supply quantity (g/capita/day)",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "681",
+      "label": "Fat supply quantity (t)",
+      "aggregate_type": "0"
+    }
+  ]
+}

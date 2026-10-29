@@ -37,3 +37,15 @@ All notable changes to this project are documented here. The format follows
   dates (`groupsanddomains`). Tool `faostat_list_domains`.
 - The wrappers `api.auth_login`, `api.get_data` and `api.get_groupsanddomains`, their
   recorded fixtures, and the nightly live run with the account's two org secrets.
+- Fifteen packaged code tables under `reference/`, the area, element and item codes of
+  QCL, TCL, FBS, PP and RL as FAOSTAT's `getCodeList` lists them, fetched on 2026-10-29 by
+  `scripts/refresh_reference.py` through the new wrapper `api.get_code_list`.
+- `list_areas(domain, *, search)`, `list_elements(domain, *, search)` and
+  `list_items(domain, *, search)`, a domain's codes from the packaged tables, without a
+  request, `search` over code and label; the element lists hold the codes a data query
+  filters by, not those the rows print. Tools `faostat_list_areas`,
+  `faostat_list_elements` and `faostat_list_items`, up to 1,000 rows each.
+- `get_data` refuses an area, element or item code the packaged table of QCL, TCL, FBS,
+  PP or RL lacks with `UnknownCode` before sending, naming the table, its fetch date and
+  the closest codes (`element=5510` on QCL names 2510, Production Quantity), since
+  FAOSTAT answers an unknown code with no rows; another domain's codes are sent unchecked.

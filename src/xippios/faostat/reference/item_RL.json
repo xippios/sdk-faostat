@@ -1,0 +1,343 @@
+{
+  "param": "item",
+  "endpoint": "getCodeList",
+  "fetched": "2026-10-29T07:07:05Z",
+  "records": [
+    {
+      "code": "6600",
+      "label": "Country area",
+      "parent": "#",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6601",
+      "label": "Land area",
+      "parent": "#",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "66020>",
+      "label": "Agriculture > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "6602",
+      "label": "Agriculture",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6610",
+      "label": "- Agricultural land",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6620",
+      "label": "-- Cropland",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6621",
+      "label": "--- Arable land",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6630",
+      "label": "---- Temporary crops",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6633",
+      "label": "---- Temporary meadows and pastures",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6640",
+      "label": "---- Temporary fallow",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6650",
+      "label": "--- Permanent crops",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6655",
+      "label": "-- Permanent meadows and pastures",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6656",
+      "label": "--- Perm. meadows & pastures - Cultivated",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6659",
+      "label": "--- Perm. meadows & pastures - Nat. growing",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6649",
+      "label": "- Farm buildings and Farmyards",
+      "parent": "66020>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "66630>",
+      "label": "Forestland > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "6646",
+      "label": "Forest land",
+      "parent": "66630>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6717",
+      "label": "- Naturally regenerating forest",
+      "parent": "66630>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6714",
+      "label": "-- Primary Forest",
+      "parent": "66630>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6716",
+      "label": "- Planted Forest",
+      "parent": "66630>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6670",
+      "label": "Other land",
+      "parent": "#",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "66800>",
+      "label": "Water > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "6680",
+      "label": "Inland waters",
+      "parent": "66800>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6773",
+      "label": "Coastal waters",
+      "parent": "66800>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6643",
+      "label": "Exclusive Economic Zone (EEZ)",
+      "parent": "66800>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "66900>",
+      "label": "Irrigation > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "6690",
+      "label": "Land area equipped for irrigation",
+      "parent": "66900>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6616",
+      "label": "Land area actually irrigated",
+      "parent": "66900>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6611",
+      "label": "Agriculture area actually irrigated",
+      "parent": "66900>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6694",
+      "label": "Cropland area actually irrigated",
+      "parent": "66900>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6657",
+      "label": "Perm. meadows & pastures area actually irrig.",
+      "parent": "66900>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6695",
+      "label": "Forestry area actually irrigated",
+      "parent": "66900>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "66710>",
+      "label": "Agricultural practices > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "6671",
+      "label": "Agriculture area under organic agric.",
+      "parent": "66710>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6672",
+      "label": "Agriculture area certified organic",
+      "parent": "66710>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6668",
+      "label": "Cropland area under organic agric.",
+      "parent": "66710>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6669",
+      "label": "Cropland area certified organic",
+      "parent": "66710>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6681",
+      "label": "Perm. meadows & pastures area under organic agric.",
+      "parent": "66710>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6682",
+      "label": "Perm. meadows & pastures area certified organic",
+      "parent": "66710>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6664",
+      "label": "Cropland area under conventional tillage",
+      "parent": "66710>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6665",
+      "label": "Cropland area under conservation tillage",
+      "parent": "66710>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6666",
+      "label": "Cropland area under zero or no tillage",
+      "parent": "66710>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6774",
+      "label": "Cropland area under protective cover",
+      "parent": "66710>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "67620>",
+      "label": "Aquaculture and Fisheries > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "6762",
+      "label": "Land used for aquaculture",
+      "parent": "67620>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6767",
+      "label": "Inland waters used for aquac. or holding facilities",
+      "parent": "67620>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6771",
+      "label": "Inland waters used for capture fisheries",
+      "parent": "67620>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6641",
+      "label": "Coastal waters used for aquac. or holding facilities",
+      "parent": "67620>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6642",
+      "label": "Coastal waters used for capture fisheries",
+      "parent": "67620>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6644",
+      "label": "EEZ used for aquac. or holding facilities",
+      "parent": "67620>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "6645",
+      "label": "EEZ used for capture fisheries",
+      "parent": "67620>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "66020>",
+      "label": "Agriculture > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "66630>",
+      "label": "Forestland > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "66800>",
+      "label": "Water > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "66900>",
+      "label": "Irrigation > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "66710>",
+      "label": "Agricultural practices > (List)",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "67620>",
+      "label": "Aquaculture and Fisheries > (List)",
+      "aggregate_type": ">"
+    }
+  ]
+}
