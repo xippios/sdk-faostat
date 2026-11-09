@@ -8,6 +8,7 @@ core_version: 0.3.0
 gateway: none
 has_files: true
 import_path: faostat
+live_secrets: '[FAOSTAT_USERNAME, FAOSTAT_PASSWORD]'
 rate_limit_burst: 1
 rate_limit_per_minute: 30
 rate_limit_provenance: self-imposed
