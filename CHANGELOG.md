@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- `.copier-answers.yml` records the answer
+  `live_secrets: '[FAOSTAT_USERNAME, FAOSTAT_PASSWORD]'` ahead of the adoption of
+  sdk-template v0.3.2, which asks it: the rendered `live.yml` then passes the account's
+  two secrets, `FAOSTAT_USERNAME` and `FAOSTAT_PASSWORD`, to the live step, which until
+  now takes them by a hand edit that the template's render drops.
+
 ## [0.1.0] - 2026-10-29
 
 First release, on xippios-core 0.3.0 from PyPI (`~=0.3.0`), sdk-template v0.3.0 and the
