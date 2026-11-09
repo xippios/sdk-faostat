@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Adopts sdk-template v0.3.2, from v0.3.0.
 - `.copier-answers.yml` records the answer
   `live_secrets: '[FAOSTAT_USERNAME, FAOSTAT_PASSWORD]'` ahead of the adoption of
   sdk-template v0.3.2, which asks it: the rendered `live.yml` then passes the account's

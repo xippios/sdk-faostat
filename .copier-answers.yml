@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v0.3.0
+_commit: v0.3.2
 _src_path: https://github.com/xippios/sdk-template.git
 api_base_url: https://faostatservices.fao.org/api/v1
 api_key_env: ''
@@ -7,6 +7,7 @@ core_git_ref: ''
 core_version: 0.3.0
 gateway: none
 has_files: true
+human: jdidaskalu
 import_path: faostat
 live_secrets: '[FAOSTAT_USERNAME, FAOSTAT_PASSWORD]'
 rate_limit_burst: 1
