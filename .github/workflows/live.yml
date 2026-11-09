@@ -1,9 +1,8 @@
 # Nightly live smoke tests (conventions §10): every test marked `live` against the real
 # upstream, on a schedule and on demand, never on a pull request.
-# Rendered by the template, its start time derived from the slug; differs from the render
-# from the first tasks PR on, by hand: FAOSTAT logs in with an account, whose two variables
-# the template cannot render (it renders the source's key variable and its dependencies'),
-# so the live step takes the account's two secrets, FAOSTAT_USERNAME and FAOSTAT_PASSWORD.
+# Rendered by the template (the one workflow that is): each secret it names is a variable
+# its live tests read, from the answer live_secrets, and its start time derives from the
+# slug.
 name: Live
 
 on:
@@ -32,6 +31,8 @@ jobs:
       # --tb=short: a failing test's frame arguments, a raw upstream payload among them,
       # stay out of a log that is public (conventions §10).
       - run: uv run pytest -m live --tb=short
+        # The variables live_secrets names, each from the secret of the same name, for
+        # this step only: checkout, setup-uv and uv sync never see them.
         env:
           XIPPIOS_LIVE_TESTS: "1"
           FAOSTAT_USERNAME: ${{ secrets.FAOSTAT_USERNAME }}
