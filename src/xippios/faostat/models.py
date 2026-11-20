@@ -21,7 +21,7 @@ Two models mirror the bulk downloads, which are files on ``bulks-faostat.fao.org
 answers of the API: ``DatasetsCatalogue`` with ``Datasets`` and ``BulkDataset`` is the
 catalogue ``datasets_E.json`` (``docs/upstream/bulk/datasets_E.json``), and
 ``BulkRecord`` one row of a dataset's normalized CSV, ``<Name>_E_All_Data_(Normalized).csv``
-in its ZIP, the fields the file's headers snake_cased (ADR-0020 decision 2).
+in its ZIP, the fields the file's headers snake_cased (sdk-core ADR-0020, decision 2).
 """
 
 from collections.abc import Mapping
@@ -56,7 +56,7 @@ class _KeepsColumns(UpstreamModel):
     ``DataRecord``, ``CodeItem`` and ``BulkRecord`` share it: each declares ``columns``
     itself, last, and the validator below fills it with the keys that no field and no
     ``validation_alias`` names, under upstream's names, as sent and in the record's order
-    (ADR-0003: nothing dropped), so a named column is never there too.
+    (sdk-core ADR-0028: nothing dropped), so a named column is never there too.
     """
 
     @model_validator(mode="before")
@@ -173,11 +173,11 @@ class DataRecord(_KeepsColumns):
     ``tests/fixtures/get_data/PP_231_2020_page_size_2.json``), so ``months_code`` and
     ``months`` are ``None`` in a domain without them and ``note`` in one without it. Every
     column the row prints beyond the named ones is kept in ``columns`` under upstream's
-    header, so nothing is dropped (ADR-0003); a named column is never there too. A query
-    with ``area_cs`` or ``item_cs`` renames the code column: the recorded answer to
-    ``area_cs=FAO`` and ``item_cs=FAO`` prints ``Area Code (FAO)`` and ``Item Code (FAO)``
-    (``tests/fixtures/get_data/QCL_231_FAO_15_FAO_2510_2020.json``), and the one to
-    ``area_cs=M49`` names ``Area Code (M49)`` in its ``metadata.dsd``
+    header, so nothing is dropped (sdk-core ADR-0028); a named column is never there
+    too. A query with ``area_cs`` or ``item_cs`` renames the code column: the recorded
+    answer to ``area_cs=FAO`` and ``item_cs=FAO`` prints ``Area Code (FAO)`` and ``Item
+    Code (FAO)`` (``tests/fixtures/get_data/QCL_231_FAO_15_FAO_2510_2020.json``), and
+    the one to ``area_cs=M49`` names ``Area Code (M49)`` in its ``metadata.dsd``
     (``tests/fixtures/get_data/QCL_840_M49_15_2510_2020.json``, no rows); such a row has
     ``area_code`` or ``item_code`` ``None`` and its coded column in ``columns``. The
     OpenAPI document's ``DataResponse`` spells the two columns ``Area Code (M49)`` and
@@ -187,7 +187,7 @@ class DataRecord(_KeepsColumns):
     ``element_code`` is the code the answer prints, which is not the code a query filters
     by: a query with ``element=2510`` (Production Quantity in ``codes/element/QCL``)
     answers rows with ``element_code`` ``"5510"`` (Production), and nothing is translated
-    (ADR-0003); ``list_elements`` lists the filter codes.
+    (sdk-core ADR-0028); ``list_elements`` lists the filter codes.
 
     Attributes:
         domain_code: The domain, e.g. ``"QCL"``; upstream's ``Domain Code``.
@@ -335,13 +335,13 @@ class CodeItem(_KeepsColumns):
     elements (``"2510"`` Production Quantity), ``codes/item/QCL`` its items (``"15"``
     Wheat). An element code here is a filter code, which the data rows do not print: a
     query with ``element=2510`` answers rows whose ``element_code`` is ``"5510"``
-    (Production), and nothing is translated between the two (ADR-0003). The document's
-    schema names ``code``, ``label`` and ``aggregate_type``; QCL's and TCL's item lists,
-    RL's on 51 of its 57 records, and TCL's and RL's element lists carry ``parent`` as
-    well (2026-10-29), which this model names, and every other field a list carries is
-    kept in ``columns`` under upstream's name, so nothing is dropped. A list may name a
-    code twice (QCL's item list its five top groups, ``QC>`` among them), as upstream
-    sends it.
+    (Production), and nothing is translated between the two (sdk-core ADR-0028). The
+    document's schema names ``code``, ``label`` and ``aggregate_type``; QCL's and TCL's
+    item lists, RL's on 51 of its 57 records, and TCL's and RL's element lists carry
+    ``parent`` as well (2026-10-29), which this model names, and every other field a
+    list carries is kept in ``columns`` under upstream's name, so nothing is dropped. A
+    list may name a code twice (QCL's item list its five top groups, ``QC>`` among
+    them), as upstream sends it.
 
     Attributes:
         code: The code, as a data query sends it, e.g. ``"231"``, ``"2510"``, ``"15"``,
@@ -484,23 +484,23 @@ class BulkRecord(_KeepsColumns):
 
     The file is the member ``<Name>_E_All_Data_(Normalized).csv`` of the dataset's ZIP:
     one header row, then one row per value, comma-separated, every cell quoted text but
-    an empty one, lines ending in CRLF (ADR-0020 decision 2: the model mirrors the file).
-    The named fields are the columns of RL's header (2026-10-29), ``Area Code``, ``Area
-    Code (M49)``, ``Area``, ``Item Code``, ``Item``, ``Element Code``, ``Element``, ``Year
-    Code``, ``Year``, ``Unit``, ``Value``, ``Flag``, ``Note``, and ``Item Code (CPC)``,
-    which the OpenAPI document's ``DataResponse`` names beside ``Area Code (M49)`` and the
-    production and trade files are expected to print; each header snake_cased, the
-    parenthesised system a suffix. Each is ``None`` in a dataset that does not print the
-    column: the normalized table is the dataset's own, not one table. MDDW's prints
-    ``Survey Code``, ``Survey``, ``Food Group Code``, ``Food Group``, ``Indicator Code``,
-    ``Indicator``, ``Geographic Level Code``, ``Geographic Level``, ``Element Code``,
-    ``Element``, ``Unit``, ``Value`` and ``Flag``: its rows have ``element_code``,
-    ``element``, ``unit``, ``value`` and ``flag``, the rest under their headers in
-    ``columns``. Every column the row prints beyond the named ones is kept there, so
-    nothing is dropped (ADR-0003). Every value is text as printed, an empty cell ``""``,
-    but ``value``. ``DataRecord`` stays the API's row: the files print other columns
-    (no ``Domain Code`` or ``Flag Description``) and other forms (``Value`` with six
-    decimals).
+    an empty one, lines ending in CRLF (sdk-core ADR-0020, decision 2: the model mirrors
+    the file). The named fields are the columns of RL's header (2026-10-29), ``Area
+    Code``, ``Area Code (M49)``, ``Area``, ``Item Code``, ``Item``, ``Element Code``,
+    ``Element``, ``Year Code``, ``Year``, ``Unit``, ``Value``, ``Flag``, ``Note``, and
+    ``Item Code (CPC)``, which the OpenAPI document's ``DataResponse`` names beside
+    ``Area Code (M49)`` and the production and trade files are expected to print; each
+    header snake_cased, the parenthesised system a suffix. Each is ``None`` in a dataset
+    that does not print the column: the normalized table is the dataset's own, not one
+    table. MDDW's prints ``Survey Code``, ``Survey``, ``Food Group Code``, ``Food
+    Group``, ``Indicator Code``, ``Indicator``, ``Geographic Level Code``, ``Geographic
+    Level``, ``Element Code``, ``Element``, ``Unit``, ``Value`` and ``Flag``: its rows
+    have ``element_code``, ``element``, ``unit``, ``value`` and ``flag``, the rest under
+    their headers in ``columns``. Every column the row prints beyond the named ones is
+    kept there, so nothing is dropped (sdk-core ADR-0028). Every value is text as
+    printed, an empty cell ``""``, but ``value``. ``DataRecord`` stays the API's row:
+    the files print other columns (no ``Domain Code`` or ``Flag Description``) and other
+    forms (``Value`` with six decimals).
 
     Attributes:
         area_code: The area's FAO code, e.g. ``"2"`` (Afghanistan); upstream's ``Area

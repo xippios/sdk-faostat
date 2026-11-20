@@ -57,7 +57,7 @@ Eight tasks:
   column under its header in `columns`, a code column that `area_cs` or `item_cs`
   renames among them (`area_code` or `item_code` then `None`). `meta.vintage` is the
   domain's `date_update` from `groupsanddomains`, read through the cache;
-  `meta.published_at` and `meta.total` are `None` (row 263; ADR-0012).
+  `meta.published_at` and `meta.total` are `None` (row 263; sdk-core ADR-0034).
 - `get_series(domain, area, item, element, *, since, until)`: one `get_data` request
   with the years `since` to `until` as upstream's year list, or no year filter when both
   are `None`; one alone, or `since` after `until`, refused before sending. It composes
@@ -103,9 +103,10 @@ keyed calls, in #4); each file's `fetched` is its `meta.retrieved_at`. Codes per
 
 The element tables hold the codes a query filters by (2510, Production Quantity), not
 the `Element Code` the rows print (5510, Production); nothing is translated between the
-two (ADR-0003). The tables come from the dimension ids, which the data endpoint filters
-by (`codes/area/QCL`, 278 codes), not from the subdimension ids the OpenAPI document's
-examples name (`codes/countries/QCL`, QCL's 210 countries without its 68 aggregates).
+two (sdk-core ADR-0028). The tables come from the dimension ids, which the data endpoint
+filters by (`codes/area/QCL`, 278 codes), not from the subdimension ids the OpenAPI
+document's examples name (`codes/countries/QCL`, QCL's 210 countries without its 68
+aggregates).
 
 ## Known limits
 
@@ -133,8 +134,8 @@ examples name (`codes/countries/QCL`, QCL's 210 countries without its 68 aggrega
 
 ## Pace, cache, live budget
 
-- Pace: 30 requests per minute, burst 1, self-imposed (G5 question 6; ADR-0010):
-  FAOSTAT documents no limit, and no answer carried a rate-limit header or
+- Pace: 30 requests per minute, burst 1, self-imposed (G5 question 6; sdk-core
+  ADR-0033): FAOSTAT documents no limit, and no answer carried a rate-limit header or
   `Retry-After` (step 0); no `QuotaPolicy`. The bulk host goes through the same client
   and its pace.
 - Cache: answers of HTTP 200 in core's `MemoryCache` at its defaults, five minutes, up
@@ -221,11 +222,11 @@ G5 question 7, and row 254 asks for a rule.
   `area_cs=FAO` with `item_cs=FAO`; a failed login mapped by the taxonomy; `LoginAuth`
   reads only the login's answer.
 - 08:20, PR 6: the code check for the FAO coding system only (row 278).
-- 08:31, PR 7: a year past the domain's last has no row (ADR-0022 decision 6 governs
-  one call per period, not a one-request series); `since` after `until` refused
-  (ADR-0007).
+- 08:31, PR 7: a year past the domain's last has no row (sdk-core ADR-0041, decision 6
+  governs one call per period, not a one-request series); `since` after `until` refused
+  (sdk-core ADR-0007).
 - 09:01, PR 8: the wrapper `datasets_e`, named by conventions 1.22 §2's path rule;
-  `list_bulk_datasets` a cap of its own (ADR-0016); rows 124 and 271 extended.
+  `list_bulk_datasets` a cap of its own (sdk-core ADR-0038); rows 124 and 271 extended.
 - 09:03, G5 third round, Johannes: Q17 no reference refresh before the release: the
   tables fetched on 2026-10-29 at 07:06Z, the release's own day, ship, which meets D15;
   Q18 the release's live evidence is one dispatch of `live.yml` on `main` after PR 8
@@ -278,9 +279,9 @@ Extended:
 
 | Row | Repository | Title | Extended with |
 | --- | --- | --- | --- |
-| 72 | sdk-core | gap: where a probe-backed list of how the live API deviates from its snapshot lives (conventions §3, ADR-0003; from the sdk-usda-esmis snapshot review) | PR 2: the observed list hand-written in `scripts/refresh_upstream.py` and printed into FETCHED.md's capture section, an interim |
+| 72 | sdk-core | gap: where a probe-backed list of how the live API deviates from its snapshot lives (conventions §3, sdk-core ADR-0028; from the sdk-usda-esmis snapshot review) | PR 2: the observed list hand-written in `scripts/refresh_upstream.py` and printed into FETCHED.md's capture section, an interim |
 | 90 | sdk-core | gap: a task that composes another task of the same package (eurostat slices call get_data async); conventions §2 says tasks compose endpoint wrappers (from sdk-eurostat PR 7) | PR 7: the second consumer, `get_series` over `get_data_async` |
-| 124 | sdk-template | the secret scan flags a recorder body_base64 line as a high-entropy string: every binary fixture of ADR-0019 trips detect-secrets (from sdk-eurostat PR 8) | PR 8: MDDW's recorded ZIP, one more audited entry |
+| 124 | sdk-template | the secret scan flags a recorder body_base64 line as a high-entropy string: every binary fixture of sdk-core ADR-0040 trips detect-secrets (from sdk-eurostat PR 8) | PR 8: MDDW's recorded ZIP, one more audited entry |
 | 125 | sdk-core | decode_csv over an open text stream, or opening a gzip path itself (from sdk-eurostat PR 8) | PR 8: the second carrier, `parse/bulk_csv.py` reading a ZIP member as a stream |
 | 144 | sdk-template | the rendered .secrets.baseline has empty results, so a source whose docs/upstream snapshot carries high-entropy strings is class human on every template update (from sdk-comtrade PR 1) | PR 2: FETCHED.md's quoted S3 ETags |
 | 167 | sdk-template | refresh_upstream.py skeleton limits met by the sdk-usda-wasde snapshot (six points, from PR 2) | PR 2: (f) `html.parser` as declaring no converter; (e) confirmed, the terms page's HTML re-rendered with its Markdown unchanged |

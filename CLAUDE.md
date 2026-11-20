@@ -12,11 +12,12 @@ follows, sdk-core's conventions among them, are listed under
 | --- | --- |
 | Upstream | FAOSTAT, https://www.fao.org/faostat/ |
 | API base URL | `https://faostatservices.fao.org/api/v1` |
+| Bulk host | `https://bulks-faostat.fao.org/production`, the bulk downloads' catalogue and ZIPs, sent without the account through the API's one client: 30 requests per minute, burst 1, shared with the API, a self-imposed pace, since FAO documents no limit for either host |
 | Documentation | FAO's OpenAPI document, https://www.fao.org/faostat/en/docs/faostat_openapi.yaml (`SPEC_URL` of `scripts/refresh_upstream.py`; no page links it), kept verbatim as `docs/upstream/openapi/faostat_openapi.yaml`, and the ReDoc page that renders it, https://www.fao.org/faostat/en/docs/redoc-static.html (`/refresh-upstream`) |
-| Credentials | a FAO account: `FAOSTAT_USERNAME` (the account's e-mail) and `FAOSTAT_PASSWORD` from the environment; the package logs in at `POST /auth/login` (operation `auth_login`) and sends the access token as a bearer (queue row 252); the nightly `live.yml` passes both as org secrets |
-| Rate limit | 30 requests per minute, burst 1; a self-imposed pace: upstream documents no per-second or per-minute limit (sdk-core ADR-0010); enforced client-side in `_client.py`; FAOSTAT documents no hourly or daily quota, so no `QuotaPolicy` is installed |
+| Credentials | a FAO account: `FAOSTAT_USERNAME` (the account's e-mail) and `FAOSTAT_PASSWORD` from the environment, both in `ENV_VARS`; the package logs in at `POST /auth/login` (operation `auth_login`) through core's `RenewingBearerAuth` and sends the access token as a bearer (queue row 252); the nightly `live.yml` passes both as org secrets |
+| Rate limit | 30 requests per minute, burst 1; a self-imposed pace: upstream documents no per-second or per-minute limit (sdk-core ADR-0033); enforced client-side in `_client.py`; FAOSTAT documents no hourly or daily quota, so no `QuotaPolicy` is installed |
 | Write tools | no, this package is read-only |
-| Files | the bulk downloads on `bulks-faostat.fao.org`, without the account: the catalogue `production/datasets_E.json` (`api.datasets_e`) and one ZIP per dataset, holding its normalized table `<Name>_E_All_Data_(Normalized).csv` beside small code lists, the file kind `bulk-csv`, read by `parse/bulk_csv.py` with the standard library's `zipfile` and `csv`; the parser tests read the samples under `tests/fixtures/files/`, their provenance in its `README.md` (sdk-core ADR-0020) |
+| Files | the bulk downloads on `bulks-faostat.fao.org`, without the account: the catalogue `production/datasets_E.json` (`api.datasets_e`) and one ZIP per dataset, holding its normalized table `<Name>_E_All_Data_(Normalized).csv` beside small code lists, the file kind `bulk-csv`, read by `parse/bulk_csv.py`, the ZIP opened with the standard library's `zipfile` and its table's rows read through core's `decode_csv`, the header alone through `csv`; the parser tests read the samples under `tests/fixtures/files/`, their provenance in its `README.md` (sdk-core ADR-0020) |
 
 The snapshot listed in `docs/upstream/FETCHED.md` is the reference for names, parameters and
 semantics; a wrapper is never written from memory of the API.
@@ -28,8 +29,9 @@ src/xippios/faostat/
   __init__.py      public surface: __version__ and re-exported task functions
   py.typed         PEP 561 marker; consumers' mypy --strict needs it
   _version.py      __version__ from distribution metadata
-  _client.py       the one configured AsyncClient (base URL, rate limit, cache), LoginAuth,
-                   the account's login, and classify, upstream's documented error shapes
+  _client.py       the one configured AsyncClient (base URL, rate limit, cache), ENV_VARS,
+                   the variables the package reads, LoginAuth, the account's login on
+                   core's RenewingBearerAuth, and classify, upstream's documented error shapes
   errors.py        the package's own error classes, where conventions §5 calls for one
   models.py        pydantic models mirroring upstream payloads (UpstreamModel); by the
                    family's precedent also an enumeration written by hand, for a value set
@@ -43,7 +45,8 @@ src/xippios/faostat/
                    the Python-only ones (download_dataset); MCP_CAPS any per-tool result
                    caps; get_series composes get_data, one request with a year list (queue
                    row 90); list_bulk_datasets and download_dataset read the bulk catalogue
-  mcp.py           xippios-faostat-mcp entry point
+  mcp.py           xippios-faostat-mcp entry point: build(), the tool set a host serves,
+                   and server, built from it
   http.py          FastAPI router
   params.py        the packaged reference lists, read from reference/: the fifteen code
                    tables, DIMENSIONS by DOMAINS
@@ -52,8 +55,9 @@ src/xippios/faostat/
   reference/       fifteen packaged code tables, <dimension>_<domain>.json (area, element
                    and item of QCL, TCL, FBS, PP and RL), plus README with provenance
 scripts/
-  refresh_reference.py   fetches the fifteen code tables through api.get_code_list, writes
-                         reference/ and its README's provenance rows, regenerates enums.py
+  refresh_reference.py   fetches the fifteen code tables through api.get_code_list, each
+                         request once and counted, writes reference/ and its README's
+                         provenance rows, regenerates enums.py; --only fetches some tables
   refresh_upstream.py    captures docs/upstream/ and writes FETCHED.md (/refresh-upstream): the
                          OpenAPI document, the terms of use, the bulk catalogue, and four
                          samples fetched with the account's token after one login
@@ -69,9 +73,13 @@ tests/
                    README status table, the template tag, the core bound
   test_api.py      the endpoint wrappers' own tests: get_code_list and datasets_e on their
                    recordings
+  test_client.py   the login and classify on the recorded exchanges
+  test_contract.py the package contract, mcp.build() and ENV_VARS, and what core's adapters
+                   answer a caller
   test_parse.py    parse_bulk_csv on the samples under tests/fixtures/files/bulk-csv/
   test_refresh_reference.py  the refresh script on the recorded code lists, and the
                    committed tables and provenance rows against each other
+  test_refresh_upstream.py   the capture script's FETCHED.md, offline
   test_tasks.py    per-task replay tests
   test_live.py     @pytest.mark.live smoke tests, one per task and one per domain for
                    get_data; a run sends nine keyed requests and three without the
@@ -110,14 +118,15 @@ uv run pre-commit run --all-files
 python3 scripts/adr_index.py --check   # the index matches the records in docs/adr/
 uv run pytest -m live --tb=short --assert=plain   # needs XIPPIOS_LIVE_TESTS=1, FAOSTAT_USERNAME, FAOSTAT_PASSWORD
 
-# refreshes the fifteen code tables under reference/: one login and fifteen requests
+# refreshes the fifteen code tables under reference/: one login and fifteen requests, each
+# sent once, the count printed; --only element_QCL ... fetches the tables named alone
 direnv exec <workspace root> uv run python scripts/refresh_reference.py
 
 uv run xippios-faostat-mcp   # stdio; add --http for streamable HTTP
 ```
 
 `uv run pytest` is offline: core's plugin refuses the network and skips the rate limiter's
-waits in every test not marked `live` (conventions §10, sdk-core ADR-0013). A test that
+waits in every test not marked `live` (conventions §10, sdk-core ADR-0035). A test that
 asserts a limiter wait or a quota pause is marked `rate_limited`, one that must reach the
 network `network`.
 
@@ -143,6 +152,17 @@ and counts, never on a raw payload.
 - Upstream's documented error shapes go into `classify` in `_client.py`, once, and an error
   class of the package's own into `errors.py`; a wrapper never inspects a status code
   (conventions §5, §6).
+- One limiter paces each host the package sends to (conventions §2, §6). A second base URL
+  on the host of the API base URL goes through the one `client` of `_client.py` by its
+  absolute URL, and `classify`'s path checks name both bases. An origin or mirror that the
+  publisher runs itself, where its canonical host refuses automated requests, takes that
+  host's pace through the same client, and `docs/upstream/` names both hosts; a mirror that
+  anyone else runs is never sent to. A host that a dependency sends to is reached through
+  the dependency's tasks alone. Any other host gets a client of its own in `_client.py`,
+  its base URL and its `RateLimit` beside the first's, and a row of its own in the table
+  under What this package wraps, with its pace and where the pace comes from. The bulk
+  host, which predates the rule, is still sent to through the API's one client, its row
+  saying so: a client of its own would change the pace of the bulk downloads.
 - A change brings its tests, written before the code, and passes the offline checks above;
   its changelog entry is a fragment under `changelog/`, one file holding its bullet, as
   `changelog/README.md` lays it out (conventions §12). Commit subjects follow Conventional
@@ -158,16 +178,17 @@ and counts, never on a raw payload.
 - Never hand-write a fixture, and never commit one without grepping it for key patterns
   (conventions §10).
 - Never read or print `.envrc`, `.env`, the credential variables of this package,
-  `FAOSTAT_USERNAME`, `FAOSTAT_PASSWORD`, or any variable ending in `_API_KEY`, `_REFRESH_TOKEN` or
+  `FAOSTAT_USERNAME`, `FAOSTAT_PASSWORD`, or any variable ending in `_API_KEY`, `_TOKEN` or
   `_SECRET`.
 - Never write a key, a token or another credential into a file or a commit.
 - Never put logic in `mcp.py` or `http.py`, and never add a route or a tool by hand: the
   adapters register `tasks.__all__` (sdk-core ADR-0001).
-- Never rename or re-map an upstream concept to another source's (sdk-core ADR-0003).
+- Never rename or re-map an upstream concept to another source's (sdk-core ADR-0028).
 - Never return a documented personal identifier in a task's projection, echo one in
   `meta.request`, or commit one in a fixture (sdk-core ADR-0017).
-- Never edit `docs/upstream/` by hand: `/refresh-upstream` fetches it, and the pull request
-  shows its diff (conventions §3).
+- Never edit `docs/upstream/` by hand but `docs/upstream/OBSERVED.md`, the notes on what
+  upstream does but never documents: `/refresh-upstream` fetches the rest, and the pull
+  request shows its diff (conventions §3).
 - Never add `src/xippios/__init__.py`, nor an `__init__.py` at a level between it and the
   package (sdk-core ADR-0006).
 - Never push a tag by hand: a release's tag comes from `publish.yml` alone (conventions §12).
@@ -179,7 +200,7 @@ template release reaches it in a pull request of its own, with
 `uvx --from 'copier>=9.19' copier update --defaults --vcs-ref=<tag>` (conventions §15): the
 update renders the template's files again and never overwrites the files this package
 fills, `__init__.py`, `_client.py`, `errors.py`, `models.py`, `api/`, `parse/`, `tasks.py`,
-`params.py`, `enums.py`, `reference/`, `scripts/refresh_reference.py`,
+`tasks_write.py`, `params.py`, `enums.py`, `reference/`, `scripts/refresh_reference.py`,
 `scripts/refresh_upstream.py`, `tests/test_tasks.py`, `tests/test_live.py`,
 `tests/fixtures/`, `docs/upstream/`, `docs/adr.md`, `docs/adr.json`, `README.md`,
 `CHANGELOG.md` and `CLAUDE.md`. sdk-template's
@@ -207,17 +228,19 @@ used.
 
 ### The login and its recordings
 
-`_client.LoginAuth` logs in once per process (`auth_login`, `POST /auth/login`, form
-fields `username` and `password`), keeps the access token alone, a `SecretStr`, for its
-`ExpiresIn` less 60 s, and logs in once more on a 401 or 403 (queue row 252). The login
-runs inside `httpx`'s auth flow, below core's limiter, so the 30-per-minute pace does not
-pace it, and two requests that start together before the first login answers may each
-log in. A login refused with HTTP 400 and Cognito's `UserNotFoundException` or
-`NotAuthorizedException` is `AuthError`, naming the status and the `__type` (`classify`
-for `api.auth_login`, `LoginAuth` for its own login, which also maps a 401 or 403 so);
-any other answer of `LoginAuth`'s login but HTTP 200 is core's `error_from_response`
-(`RateLimitError` for a 429, `UpstreamError` for a 5xx). The flow reads the login's
-answer and hands every other answer back unread. Offline tests send core's placeholder
+`_client.LoginAuth`, core's `RenewingBearerAuth` with FAOSTAT's `token_request`,
+`read_token` and `token_refused`, logs in once per process (`auth_login`, `POST
+/auth/login`, form fields `username` and `password`), keeps the access token alone, a
+`SecretStr`, for its `ExpiresIn` less 60 s, and logs in once more on a 401 or 403
+(`renew_on`; queue row 252). The login runs inside `httpx`'s auth flow, below core's
+limiter and hooks, so the 30-per-minute pace does not pace it, and two requests that start
+together before the first login answers wait for it and log in once. A login refused with
+HTTP 400 and Cognito's `UserNotFoundException` or `NotAuthorizedException` is
+`AuthError`, naming the status and the `__type` (`classify` for `api.auth_login`,
+`LoginAuth.token_refused` for its own login, which also maps a 401 or 403 so); any other
+answer of the login but HTTP 200 is core's `token_refused` (`RateLimitError` for a 429,
+`UpstreamError` for a 5xx). The flow reads the login's answer and hands every other
+answer back unread. Offline tests send core's placeholder
 as both variables (`xippios_placeholder_key_envs` in `pyproject.toml`); the replayed
 `tests/fixtures/auth_login/login.json` answers it.
 
@@ -253,7 +276,7 @@ Production), and a filter with the answer's code matches nothing. See
 `docs/upstream/samples/codes_element_QCL.json` and
 `docs/upstream/samples/data_QCL_231_2510_15_2015-2021.json`. The packaged element tables
 hold the filter codes, so `get_data` refuses `element=5510` on QCL naming `2510`; nothing
-is translated between the two systems (sdk-core ADR-0003; G5 2026-10-29, question 10).
+is translated between the two systems (sdk-core ADR-0028; G5 2026-10-29, question 10).
 
 ### The packaged code tables
 
@@ -286,9 +309,9 @@ bulk files print M49 codes with a leading apostrophe (`'004`, in the RL ZIP on
 2026-10-29); whether the API's M49 filter wants that form is not established.
 `models.DataRecord` names both shapes' columns, `area_code` and `item_code` `None` where
 a coding system renamed them, and keeps every column a domain prints beyond the named
-ones in `columns`, under upstream's headers (sdk-core ADR-0003: nothing dropped), so a named
-column is never there too; the live tests check that every column of each domain they
-read is named or kept there.
+ones in `columns`, under upstream's headers (sdk-core ADR-0028: nothing dropped), so a
+named column is never there too; the live tests check that every column of each domain
+they read is named or kept there.
 
 ### The bulk downloads
 

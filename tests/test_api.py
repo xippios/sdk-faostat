@@ -1,5 +1,8 @@
 """The endpoint wrappers' own tests: ``get_code_list`` and ``datasets_e`` on their recordings.
 
+Every wrapper that reads a cached answer returns core's ``Answer``, the parsed answer as
+its ``payload`` beside ``retrieved_at``, never a pair of its own (conventions §6).
+
 ``tests/fixtures/get_code_list/`` holds ``getCodeList``'s answers for QCL, recorded on
 2026-10-29 through the package's client with the account's token:
 ``codes/area/QCL``, ``codes/element/QCL``, ``codes/item/QCL`` and
@@ -17,6 +20,7 @@ from pathlib import Path
 
 import pytest
 import respx
+from xippios.core import Answer
 from xippios.core.testing import (
     ReplayFixture,
     assert_time_between,
@@ -66,10 +70,11 @@ async def test_get_code_list(replay_fixture: ReplayFixture, dimension: str, case
     after = datetime.now(UTC)
     assert route.call_count == 1
     assert sent_query(route) == {}, "show_lists left to upstream's default"
-    assert answer.response == recorded(case)
-    assert answer.response.data
-    assert all(isinstance(code, CodeItem) for code in answer.response.data)
-    assert answer.response.metadata.output_type == "OBJECTS"
+    assert isinstance(answer, Answer)
+    assert answer.payload == recorded(case)
+    assert answer.payload.data
+    assert all(isinstance(code, CodeItem) for code in answer.payload.data)
+    assert answer.payload.metadata.output_type == "OBJECTS"
     assert_time_between(answer.retrieved_at, before, after)
 
 
@@ -84,7 +89,7 @@ async def test_get_code_list_keeps_upstreams_records(replay_fixture: ReplayFixtu
     replay_fixture(CODES, "item_QCL")
     answer = await api.get_code_list.get_code_list("en", "item", "QCL")
     body = load_fixture(FIXTURES / CODES / "item_QCL.json").response.body
-    assert [code.dump_upstream() for code in answer.response.data] == json.loads(body)["data"]
+    assert [code.dump_upstream() for code in answer.payload.data] == json.loads(body)["data"]
 
 
 def test_code_list_path_quotes_each_segment() -> None:
@@ -100,13 +105,14 @@ async def test_datasets_e(replay_fixture: ReplayFixture, respx_mock: respx.MockR
     answer = await api.datasets_e.datasets_e()
     after = datetime.now(UTC)
     assert sent_urls(route) == [api.datasets_e.URL]
+    assert isinstance(answer, Answer)
     assert [call.request.headers.get("authorization") for call in route.calls] == [None]
     assert {call.request.url.host for call in respx_mock.calls} == {"bulks-faostat.fao.org"}, (
         "no login"
     )
-    assert answer.response == DatasetsCatalogue.model_validate_json(body)
+    assert answer.payload == DatasetsCatalogue.model_validate_json(body)
     assert_time_between(answer.retrieved_at, before, after)
-    datasets = answer.response.datasets.dataset
+    datasets = answer.payload.datasets.dataset
     printed = json.loads(body)["Datasets"]["Dataset"]
     assert [dataset.dataset_code for dataset in datasets] == [row["DatasetCode"] for row in printed]
     assert all(isinstance(dataset, BulkDataset) for dataset in datasets)
@@ -119,3 +125,18 @@ async def test_datasets_e(replay_fixture: ReplayFixture, respx_mock: respx.MockR
     assert all(dataset.file_location.endswith(".zip") for dataset in datasets)
     assert all(isinstance(dataset.file_rows, int) for dataset in datasets)
     assert {(row.compression_format, row.file_type) for row in datasets} == {("zip", "csv")}
+
+
+@pytest.mark.parametrize(
+    ("module", "pair"),
+    [
+        (api.get_data, "DataAnswer"),
+        (api.get_code_list, "CodeListAnswer"),
+        (api.get_groupsanddomains, "GroupsAndDomainsAnswer"),
+        (api.datasets_e, "DatasetsCatalogueAnswer"),
+    ],
+)
+def test_no_wrapper_keeps_a_pair_of_its_own(module: object, pair: str) -> None:
+    """Core's ``Answer[T]`` replaced the pairs (https://github.com/xippios/sdk-core/issues/123)."""
+    assert pair not in vars(module)
+    assert pair not in getattr(module, "__all__", ())

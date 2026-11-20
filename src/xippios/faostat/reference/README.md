@@ -32,7 +32,7 @@ and item codes against them before it sends.
 
 The element tables hold the codes a data query filters by (`2510` Production Quantity
 in QCL), not the `Element Code` the data rows print (`5510` Production); nothing is
-translated between the two (ADR-0003).
+translated between the two (sdk-core ADR-0028).
 
 The tables come from the dimension ids, not the subdimension ids. `get_dimensions`
 answers for QCL the dimensions `area`, `element`, `item` and `year`, the names

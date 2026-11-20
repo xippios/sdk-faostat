@@ -1,12 +1,13 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v0.3.4
+_commit: v0.4.0
 _src_path: https://github.com/xippios/sdk-template.git
 api_base_url: https://faostatservices.fao.org/api/v1
 api_key_env: ''
 core_git_ref: ''
-core_version: 0.3.0
+core_version: 0.4.0
 gateway: none
 has_files: true
+has_reference_data: true
 human: jdidaskalu
 import_path: faostat
 live_secrets: '[FAOSTAT_USERNAME, FAOSTAT_PASSWORD]'
@@ -16,5 +17,7 @@ rate_limit_provenance: self-imposed
 source_dependencies: '[]'
 source_name: FAOSTAT
 source_slug: faostat
+tenant_param: ''
 upstream_docs_url: https://www.fao.org/faostat/en/docs/redoc-static.html
 upstream_url: https://www.fao.org/faostat/
+write_server: false

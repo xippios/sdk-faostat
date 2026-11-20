@@ -21,16 +21,14 @@ The document's other operation on codes, ``get_codes`` (``/{lang}/codes/{id}/{do
 is not wrapped: no task sends it.
 """
 
-from datetime import datetime
-from typing import NamedTuple
 from urllib.parse import quote
 
-from xippios.core import parse
+from xippios.core import Answer
 
-from xippios.faostat._client import SOURCE, client
+from xippios.faostat._client import client
 from xippios.faostat.models import CodeResponse
 
-__all__ = ["ENDPOINT", "CodeListAnswer", "code_list_path", "get_code_list"]
+__all__ = ["ENDPOINT", "code_list_path", "get_code_list"]
 
 ENDPOINT = "getCodeList"
 """The operation's ``operationId``."""
@@ -44,22 +42,9 @@ def code_list_path(lang: str, dimension_id: str, domain_code: str) -> str:
     )
 
 
-class CodeListAnswer(NamedTuple):
-    """What ``get_code_list`` returns: the answer and when it was retrieved.
-
-    Attributes:
-        response: The answer, parsed.
-        retrieved_at: Timezone-aware UTC: on a cache hit the time the entry was stored,
-            else the time the answer arrived (``AsyncClient.get_answer``).
-    """
-
-    response: CodeResponse
-    retrieved_at: datetime
-
-
 async def get_code_list(
     lang: str, dimension_id: str, domain_code: str, *, show_lists: bool | None = None
-) -> CodeListAnswer:
+) -> Answer[CodeResponse]:
     """Call ``getCodeList``: the codes of one dimension of a domain, in upstream's order.
 
     A parameter left ``None`` is not sent, so upstream's default applies.
@@ -75,10 +60,12 @@ async def get_code_list(
             default is true.
 
     Returns:
-        The answer and when it was retrieved.
+        Core's ``Answer``: the answer, parsed, as ``payload``, and ``retrieved_at``,
+        timezone-aware UTC, on a cache hit the time the entry was stored, else the time
+        the answer arrived. An answer that does not parse is not cached.
     """
     params = {} if show_lists is None else {"show_lists": str(show_lists).lower()}
     path = code_list_path(lang, dimension_id, domain_code)
-    answer = await client.get_answer(path, params=params or None)
-    response = parse(CodeResponse, answer.payload, source=SOURCE, endpoint=ENDPOINT)
-    return CodeListAnswer(response=response, retrieved_at=answer.retrieved_at)
+    return await client.get_answer(
+        path, params=params or None, parse=CodeResponse, endpoint=ENDPOINT
+    )

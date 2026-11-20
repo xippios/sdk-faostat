@@ -2,9 +2,9 @@
 
 A sample of each file kind the parsers read, `<file_kind>/<case>.<ext>`: a small real
 file, or the first rows of one as conventions §10 allows, never typed in by hand
-(ADR-0020). A binary file carries no comment, so each sample's provenance is one row
-here: the release id, the URL, the bytes and sha256 of the full file as upstream serves
-it, and the UTC time it was fetched, with `Z`.
+(sdk-core ADR-0020). A binary file carries no comment, so each sample's provenance is
+one row here: the release id, the URL, the bytes and sha256 of the full file as upstream
+serves it, and the UTC time it was fetched, with `Z`.
 
 `bulk-csv/` holds the ZIPs `parse_bulk_csv` reads, recorded on 2026-10-29 without the
 account by a one-off recording script, which fetched the catalogue and both files: MDDW's
@@ -12,10 +12,10 @@ whole ZIP, the smallest dataset's, the response body of the recorded exchange
 `tests/fixtures/download_dataset/MDDW.json` byte for byte; and, for a header of the
 production shape (area, item, element, year), a new ZIP the script wrote from RL's fetched
 file, holding one member of it, the normalized table, cut to its header and first rows as
-printed (ADR-0019 decision 5: one member of the archive cut to a few rows, a real sample,
-never a byte-truncated archive). The release is the catalogue's `DateUpdate` for the
-dataset. `tests/test_parse.py` reads both and checks the first against its recording; it
-asserts shape, never values or sizes.
+printed (sdk-core ADR-0040, decision 5: one member of the archive cut to a few rows, a
+real sample, never a byte-truncated archive). The release is the catalogue's
+`DateUpdate` for the dataset. `tests/test_parse.py` reads both and checks the first
+against its recording; it asserts shape, never values or sizes.
 
 | File | Release | URL | Bytes | sha256 | Fetched | What |
 | --- | --- | --- | --- | --- | --- | --- |

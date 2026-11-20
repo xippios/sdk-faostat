@@ -1,4 +1,4 @@
-"""The login (``LoginAuth``) and ``classify`` against the recorded exchanges.
+"""The login (``LoginAuth``, on core's ``RenewingBearerAuth``) and ``classify``, recorded.
 
 Recorded on 2026-10-29 through the package's client (``tests/fixtures/``):
 ``auth_login/login``, the account's login, HTTP 200, its three tokens and the form fields
@@ -16,6 +16,7 @@ test. No assertion names a credential: the values compared are the placeholder a
 scrubbed token, read through helpers that keep no request in a test's frame.
 """
 
+import asyncio
 import dataclasses
 import json
 from collections.abc import AsyncIterator, Iterator
@@ -34,6 +35,7 @@ from xippios.core import (
     InvalidRequestError,
     NotFoundError,
     RateLimitError,
+    RenewingBearerAuth,
     UpstreamError,
     ValidationError,
     error_from_response,
@@ -49,7 +51,6 @@ from xippios.core.testing.plugin import PLACEHOLDER_KEY
 from xippios.faostat import api, tasks
 from xippios.faostat._client import (
     BASE_URL,
-    EXPIRY_MARGIN,
     PASSWORD_ENV,
     SOURCE,
     USERNAME_ENV,
@@ -187,7 +188,7 @@ async def test_the_token_lapses_expires_in_less_the_margin_after_the_login(
     http = AsyncClient(dataclasses.replace(config, cache=None), auth=timed)
     try:
         await http.get_answer("/en/groupsanddomains")
-        now[0] += expires_in - EXPIRY_MARGIN - 1
+        now[0] += expires_in - timed.margin - 1
         await http.get_answer("/en/groupsanddomains")
         assert login.call_count == 1, "still current a second before it lapses"
         now[0] += 1
@@ -195,6 +196,39 @@ async def test_the_token_lapses_expires_in_less_the_margin_after_the_login(
         assert login.call_count == 2, "lapsed: a new login"
     finally:
         await http.aclose()
+
+
+def test_the_login_is_core_renewing_bearer_renewed_on_401_and_403() -> None:
+    """Core's ``RenewingBearerAuth`` keeps the token; FAOSTAT refuses one with 401 or 403."""
+    assert isinstance(auth, RenewingBearerAuth)
+    assert LoginAuth.renew_on == frozenset({401, 403})
+    assert auth.margin == 60.0, "renewed a minute before ExpiresIn runs out"
+
+
+@pytest.mark.anyio
+async def test_two_requests_that_start_together_log_in_once(
+    replay_fixture: ReplayFixture, respx_mock: respx.MockRouter
+) -> None:
+    """The login answers after a pause, so the second request starts while it is pending."""
+    recorded_login = answer(recorded("auth_login", "login"))
+
+    async def slow_login(request: httpx.Request) -> httpx.Response:
+        await asyncio.sleep(0.01)
+        return httpx.Response(
+            recorded_login.status_code,
+            headers=recorded_login.headers,
+            content=recorded_login.content,
+        )
+
+    login = respx_mock.post(LOGIN_URL).mock(side_effect=slow_login)
+    data = replay_fixture("get_data", QCL)
+    replay_fixture("get_groupsanddomains", "all")
+    await asyncio.gather(
+        tasks.get_data_async("QCL", **QCL_ARGUMENTS), tasks.get_data_async("QCL", **QCL_ARGUMENTS)
+    )
+    assert login.call_count == 1, "one login for both"
+    assert data.call_count == 2
+    assert bearers(data) == ["Bearer REDACTED", "Bearer REDACTED"]
 
 
 @pytest.mark.parametrize("name", [USERNAME_ENV, PASSWORD_ENV])
@@ -379,7 +413,8 @@ def test_classify_maps_an_unknown_domain() -> None:
     assert isinstance(error, NotFoundError)
     assert str(error) == (
         "FAOSTAT has no domain 'XXX': GET /api/v1/en/data/XXX answered HTTP 500, "
-        '"Index: 0, Size: 0"; list_domains names the domains'
+        '"Index: 0, Size: 0"; list_domains names the domains (over MCP, the tool '
+        "faostat_list_domains)"
     )
     assert "faostatservices" not in str(error), "no host"
     assert "area=" not in str(error), "no query"

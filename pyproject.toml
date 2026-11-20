@@ -18,13 +18,13 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "xippios-core~=0.3.0",
+  "xippios-core~=0.4.0",
 ]
 
 [project.optional-dependencies]
-mcp = ["xippios-core[mcp]~=0.3.0"]
-http = ["xippios-core[http]~=0.3.0"]
-testing = ["xippios-core[testing]~=0.3.0"]
+mcp = ["xippios-core[mcp]~=0.4.0"]
+http = ["xippios-core[http]~=0.4.0"]
+testing = ["xippios-core[testing]~=0.4.0"]
 
 [project.scripts]
 xippios-faostat-mcp = "xippios.faostat.mcp:run"
@@ -103,5 +103,5 @@ testpaths = ["tests"]
 # record_property, in a live test say, warns under xunit2 when a run writes --junitxml.
 junit_family = "xunit1"
 # The FAO account's two variables hold core's placeholder in every test not marked live
-# (ADR-0013): the replayed login answers it with the recorded, scrubbed token.
+# (sdk-core ADR-0035): the replayed login answers it with the recorded, scrubbed token.
 xippios_placeholder_key_envs = ["FAOSTAT_USERNAME", "FAOSTAT_PASSWORD"]

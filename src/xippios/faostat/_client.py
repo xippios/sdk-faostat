@@ -4,32 +4,36 @@ FAOSTAT's API answers an account's requests only: the OpenAPI document requires
 ``bearerAuth``, an HTTP bearer, on every operation, and ``auth_login`` (``POST
 /auth/login``, form fields ``username`` and ``password``) issues the token
 (``docs/upstream/openapi/faostat_openapi.yaml``). ``LoginAuth`` is the client's
-``auth``: on the first request of the process it reads ``FAOSTAT_USERNAME`` (the
-account's e-mail) and ``FAOSTAT_PASSWORD`` from the environment, logs in, keeps the
-answer's ``AuthenticationResult.AccessToken`` and sends it as ``Authorization: Bearer
-<token>`` on that request and every later one. A request sent with ``auth=None`` passes
-it by: the bulk downloads' catalogue and files on ``bulks-faostat.fao.org``
+``auth``, a ``RenewingBearerAuth`` of core's (sdk-core ADR-0025, amendment 2026-11-18,
+point c) that writes what is FAOSTAT's: the login's request, the reading of its answer
+and its refusals. On the first request of the process core's flow has it read
+``FAOSTAT_USERNAME`` (the account's e-mail) and ``FAOSTAT_PASSWORD`` from the
+environment, logs in, keeps the answer's ``AuthenticationResult.AccessToken`` and sends
+it as ``Authorization: Bearer <token>`` on that request and every later one; requests
+that start together while the login runs wait for it and send the token it brought. A
+request sent with ``auth=None`` passes it by, and the client sends its auth to the base
+URL's origin only: the bulk downloads' catalogue and files on ``bulks-faostat.fao.org``
 (``api.datasets_e``, ``tasks.download_dataset``) go without a login and without the
-token. The token lives ``ExpiresIn`` seconds (3600 in the recorded login); it is used
-for that time less a margin of ``EXPIRY_MARGIN`` (60 s), and the first request after it
-logs in again. A request answered with HTTP 401 or 403 logs in once more and is sent
-again, once: a second 401 or 403 goes back to core, whose status mapping raises
-``AuthError``. So a request logs in at most twice (queue row 252). The login runs inside
-the request's ``httpx`` auth flow, below core's limiter, hooks, cache and ``classify``:
-a login is not paced and not cached. A login refused with HTTP 401 or 403, or with HTTP
-400 and Cognito's ``UserNotFoundException`` (recorded for an unknown user) or
+token. The token lives ``ExpiresIn`` seconds (3600 in the recorded login); it is used for
+that time less core's margin of 60 s, and the first request after it logs in again. A
+request answered with HTTP 401 or 403 (``REFUSED``) logs in once more and is sent again,
+once: a second 401 or 403 goes back to core, whose status mapping raises ``AuthError``.
+So a request logs in at most twice (queue row 252). The login runs inside the request's
+``httpx`` auth flow, below core's limiter, hooks, cache and ``classify``: a login is not
+paced, observed or cached. A login refused with HTTP 401 or 403, or with HTTP 400 and
+Cognito's ``UserNotFoundException`` (recorded for an unknown user) or
 ``NotAuthorizedException``, raises ``AuthError`` naming the status and upstream's
-``__type``; any other answer but HTTP 200 raises what core's ``error_from_response``
-makes of it (``RateLimitError`` for a 429, ``UpstreamError`` for a 5xx). The flow reads
-the login's answer and no other: the answer of the request it signs, a streamed
-download's among them, goes back to the client unread.
+``__type``; any other answer but HTTP 200 raises what core's ``token_refused`` makes of
+it (``RateLimitError`` for a 429, ``UpstreamError`` for a 5xx), quoting nothing of it.
+The flow reads the login's answer and no other: the answer of the request it signs, a
+streamed download's among them, goes back to the client unread.
 
 Nothing of the account is logged, printed or kept but the access token: neither the
 user name nor the password, read where the login request is built and kept in no
 attribute and in no local that outlives the call, nor the answer's id token, which
 carries the account's e-mail, nor its refresh token. The access token is kept as a
 ``SecretStr``, whose ``repr`` is masked. An error names a variable, a status and
-upstream's ``__type``, never a value.
+upstream's ``__type``, never a value. ``ENV_VARS`` names the two variables for a host.
 
 The developer portal (https://www.fao.org/faostat/en/#developer-portal) draws in the
 browser with a guest token of its own; this package does not use it, it logs in with
@@ -46,35 +50,34 @@ mapping: the 401 ``Missing Authorization Header`` and the 403 ``Authentication F
 (recorded under ``tests/fixtures/get_data/``) are ``AuthError`` there.
 
 Answers of HTTP 200 are cached in core's ``MemoryCache`` with its default lifetime of
-five minutes, up to core's ``cache_max_bytes`` of 8 MiB a body (ADR-0019 decision 3):
-``tasks.get_data``'s look-up of a domain's release date in ``get_groupsanddomains``
-costs one request per process per five minutes, as does the bulk catalogue
-(``datasets_E.json``, 107 KB), and a larger data answer is returned and fetched again the
-next time. A bulk file goes through ``download`` and is never cached.
+five minutes, up to core's ``cache_max_bytes`` of 8 MiB a body (sdk-core ADR-0040,
+decision 3), once ``get_answer`` has decoded them: ``tasks.get_data``'s look-up of a
+domain's release date in ``get_groupsanddomains`` costs one request per process per five
+minutes, as does the bulk catalogue (``datasets_E.json``, 107 KB), a larger data answer
+is returned and fetched again the next time, and an answer that is not JSON is asked
+again. A bulk file goes through ``download`` and is never cached.
 """
 
-import os
 import re
-import threading
 import time
-from collections.abc import AsyncGenerator, Callable, Generator
+from collections.abc import Callable
 from urllib.parse import unquote
 
 import httpx
 import pydantic
-from pydantic import SecretStr
 from xippios.core import (
     AsyncClient,
     AuthError,
+    BearerToken,
     ClientConfig,
-    ConfigError,
+    EnvVar,
     InvalidRequestError,
     NotFoundError,
     RateLimit,
-    UpstreamError,
+    RenewingBearerAuth,
     ValidationError,
     XippiosError,
-    error_from_response,
+    request_description,
 )
 from xippios.core.client import MemoryCache
 
@@ -91,13 +94,21 @@ USERNAME_ENV = "FAOSTAT_USERNAME"
 # The variable's name, not a value: detect-secrets reads the assignment as one.
 PASSWORD_ENV = "FAOSTAT_PASSWORD"  # pragma: allowlist secret
 """The variable holding the FAO account's password: ``auth_login``'s ``password``."""
+ENV_VARS: tuple[EnvVar, ...] = (
+    EnvVar(USERNAME_ENV, secret=True, required=True),
+    EnvVar(PASSWORD_ENV, secret=True, required=True),
+)
+"""The variables the package reads, for a host (conventions §7; sdk-core ADR-0026, amendment
+2026-11-18, point c): the account's two, both secret, since the user name is the account's
+e-mail and never printed, and both required, since every request to the API logs in. An
+``EnvVar`` names a variable and reads none."""
 LOGIN_PATH = "/auth/login"
 """``auth_login``'s path, under ``BASE_URL``; ``api.auth_login`` and ``LoginAuth`` send it."""
-EXPIRY_MARGIN = 60.0
-"""Seconds before the token's ``ExpiresIn`` runs out that ``LoginAuth`` logs in again."""
 REFUSED = frozenset({401, 403})
-"""The statuses that make ``LoginAuth`` log in once more and send the request again."""
-# A self-imposed pace: upstream documents no per-second or per-minute limit (ADR-0010 decision 1).
+"""The statuses that make ``LoginAuth`` log in once more and send the request again: FAOSTAT
+refuses a bearer with either (``tests/fixtures/get_data/``)."""
+# A self-imposed pace: upstream documents no per-second or per-minute limit (sdk-core ADR-0033
+# decision 1).
 RATE_LIMIT = RateLimit(per_minute=30, burst=1)
 
 FILTER_REFUSAL = "Please add at least one filter."
@@ -115,22 +126,6 @@ CREDENTIAL_REFUSALS = frozenset({"UserNotFoundException", "NotAuthorizedExceptio
 ``UserNotFoundException``, recorded for an unknown user
 (``tests/fixtures/auth_login/user_not_found.json``), and ``NotAuthorizedException``,
 Cognito's answer to a wrong password."""
-
-
-def _credential(name: str, source: str | None) -> str:
-    """The value of the variable ``name``; an empty one counts as unset.
-
-    Raises:
-        ConfigError: The variable is unset or empty; the message names it, never a value.
-    """
-    value = os.environ.get(name)
-    if value:
-        return value
-    raise ConfigError(
-        f"{name} is not set; FAOSTAT needs a FAO account: export {USERNAME_ENV} (the "
-        f"account's e-mail) and {PASSWORD_ENV}",
-        source=source,
-    )
 
 
 def _upstream_type(response: httpx.Response) -> str | None:
@@ -156,35 +151,32 @@ def _login_refused(
 ) -> AuthError:
     """``AuthError`` for a refused login, naming the status and upstream's ``__type``.
 
-    Never a credential: the message names the method, the path, the status and the
-    ``__type``, and the body is not quoted.
+    Never a credential: the message names the request as ``request_description`` does,
+    the status and the ``__type``, and the body is not quoted.
     """
-    request = response.request
     status = response.status_code
     kind = _upstream_type(response)
     return AuthError(
-        f"FAOSTAT refused the login: {request.method} {request.url.path} answered HTTP "
+        f"FAOSTAT refused the login: {request_description(response)} answered HTTP "
         f"{status}{f' ({kind})' if kind else ''}{hint}",
         status=status,
         source=source,
     )
 
 
-class LoginAuth(httpx.Auth):
-    """Log in with the FAO account once, send its access token, log in again when it lapses.
+class LoginAuth(RenewingBearerAuth):
+    """Log in with the FAO account, send its access token, log in again when it lapses.
 
-    The ``httpx.Auth`` of the package's client (queue row 252: this source's helper; core
-    has none for a login). On the first request it builds ``auth_login``'s request on
-    ``base_url`` (``POST /auth/login``, form-encoded ``username`` and ``password`` from
-    ``FAOSTAT_USERNAME`` and ``FAOSTAT_PASSWORD``, read there and kept in no attribute and
-    in no local that outlives the call) and sends it ahead of the request; from the answer,
-    which it reads in full (and no other answer), it keeps the access token, a ``SecretStr``,
-    and when it lapses, ``ExpiresIn`` less ``EXPIRY_MARGIN`` seconds from the answer, under
-    a lock, and nothing else. Every request goes out with ``Authorization: Bearer
-    <token>``. A request answered with HTTP 401 or 403 logs in once more and goes out
-    again, once; the answer to that one is returned as it is, unread. Two requests that
-    start together before the first login has answered may each log in. It runs on core's
-    async client only (``async_auth_flow``).
+    Core's ``RenewingBearerAuth`` (sdk-core ADR-0025, amendment 2026-11-18, point c) with
+    what is FAOSTAT's: ``token_request`` builds ``auth_login``'s request on ``base_url``
+    (``POST /auth/login``, form-encoded ``username`` and ``password`` from
+    ``FAOSTAT_USERNAME`` and ``FAOSTAT_PASSWORD``, read through ``credential`` there and
+    kept in no attribute), ``read_token`` keeps the answer's access token and its
+    ``ExpiresIn``, and ``token_refused`` names the two variables when the login refuses
+    them. Core keeps the token, a ``SecretStr``, until 60 s before it lapses, logs in once
+    for requests that start together, and logs in once more on a 401 or a 403
+    (``renew_on``), sending the request again once; that answer is returned as it is,
+    unread. It runs on core's async client only.
 
     Args:
         source: Source slug for the errors, e.g. ``"faostat"``.
@@ -198,14 +190,13 @@ class LoginAuth(httpx.Auth):
             403, or HTTP 400 with Cognito's ``UserNotFoundException`` or
             ``NotAuthorizedException``); the message names the status and the ``__type``.
         XippiosError: From a request, for any other answer of the login but HTTP 200:
-            core's mapping, e.g. ``RateLimitError`` for a 429, ``UpstreamError`` for a 5xx.
+            core's ``token_refused``, e.g. ``RateLimitError`` for a 429, ``UpstreamError``
+            for a 5xx.
         ValidationError: From a request, when the login's HTTP 200 is not the documented
             ``Auth`` answer; nothing of the answer is quoted.
     """
 
-    # The flow reads the login's answer itself; a response of the request it signs, a
-    # streamed download's among them, is never buffered by it (ADR-0019 decision 1).
-    requires_response_body = False
+    renew_on = REFUSED
 
     def __init__(
         self,
@@ -214,69 +205,35 @@ class LoginAuth(httpx.Auth):
         base_url: str = BASE_URL,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
-        self.source = source
+        super().__init__(source=source, clock=clock)
         self.login_url = httpx.URL(base_url.rstrip("/") + LOGIN_PATH)
-        self._clock = clock
-        self._token: SecretStr | None = None
-        self._lapses_at = 0.0
-        self._lock = threading.Lock()
 
-    def reset(self) -> None:
-        """Forget the token, so that the next request logs in again."""
-        with self._lock:
-            self._token = None
-            self._lapses_at = 0.0
+    def credential_help(self, name: str) -> str:
+        """What the ``ConfigError`` of an unset variable tells the user: the account's two."""
+        return (
+            f"FAOSTAT needs a FAO account: export {USERNAME_ENV} (the account's e-mail) and "
+            f"{PASSWORD_ENV}"
+        )
 
-    def _current(self) -> SecretStr | None:
-        """The token while it has not lapsed, else ``None``."""
-        with self._lock:
-            if self._token is not None and self._clock() < self._lapses_at:
-                return self._token
-            return None
-
-    def _login(self, request: httpx.Request) -> httpx.Request:
-        """``auth_login``'s request, ahead of ``request``, whose ``User-Agent`` it sends."""
-        headers = {"Accept": "application/json"}
-        if "user-agent" in request.headers:
-            headers["User-Agent"] = request.headers["user-agent"]
+    def token_request(self, request: httpx.Request) -> httpx.Request:
+        """``auth_login``'s request, sent ahead of ``request``, with its ``User-Agent``."""
         return httpx.Request(
             "POST",
             self.login_url,
             data={
-                "username": _credential(USERNAME_ENV, self.source),
-                "password": _credential(PASSWORD_ENV, self.source),
+                "username": self.credential(USERNAME_ENV),
+                "password": self.credential(PASSWORD_ENV),
             },
-            headers=headers,
+            headers={"Accept": "application/json"},
         )
 
-    def _keep(self, response: httpx.Response) -> None:
-        """Keep the access token and when it lapses from the login's answer, read in full.
+    def read_token(self, response: httpx.Response) -> BearerToken:
+        """The access token and its ``ExpiresIn`` from the login's HTTP 200.
 
         Raises:
-            AuthError: The credentials were refused: HTTP 401 or 403, or HTTP 400 with
-                Cognito's ``UserNotFoundException`` or ``NotAuthorizedException``; the
-                message names the two variables to check.
-            XippiosError: Another 4xx or 5xx, by core's mapping (``error_from_response``):
-                ``RateLimitError`` for a 429, ``UpstreamError`` for a 5xx.
-            UpstreamError: Another status below 400 than HTTP 200.
-            ValidationError: The HTTP 200 is not the documented ``Auth`` answer.
+            ValidationError: The answer is not the documented ``Auth`` answer; nothing of
+                it is quoted.
         """
-        status = response.status_code
-        if status != 200:
-            if _credentials_refused(response):
-                raise _login_refused(
-                    response, source=self.source, hint=f"; check {USERNAME_ENV} and {PASSWORD_ENV}"
-                )
-            error = error_from_response(response, source=self.source)
-            if error is None:
-                error = UpstreamError(
-                    f"POST {self.login_url.path} answered HTTP {status}, not the documented "
-                    "200; the answer is not shown",
-                    status=status,
-                    body="",
-                    source=self.source,
-                )
-            raise error
         try:
             result = Auth.model_validate_json(response.content).authentication_result
         except pydantic.ValidationError:
@@ -287,50 +244,19 @@ class LoginAuth(httpx.Auth):
                 raw="",
                 source=self.source,
             ) from None
-        lapses_at = self._clock() + max(0.0, result.expires_in - EXPIRY_MARGIN)
-        with self._lock:
-            self._token = result.access_token
-            self._lapses_at = lapses_at
+        return BearerToken(token=result.access_token, expires_in=result.expires_in)
 
-    def _sign(self, request: httpx.Request) -> None:
-        """Attach the kept token to ``request`` as a bearer."""
-        with self._lock:
-            token = self._token
-        if token is None:  # pragma: no cover - _keep sets it or raises
-            raise AuthError("no FAOSTAT token to send", status=401, source=self.source)
-        request.headers["Authorization"] = f"Bearer {token.get_secret_value()}"
+    def token_refused(self, response: httpx.Response) -> XippiosError:
+        """``AuthError`` naming the two variables for a refusal of the credentials, else core's.
 
-    async def async_auth_flow(
-        self, request: httpx.Request
-    ) -> AsyncGenerator[httpx.Request, httpx.Response]:
-        """The httpx hook: log in without a current token, sign, log in once more on 401/403.
-
-        Only a login's answer is read here; the signed request's answer is handed back
-        to the client unread, its status alone looked at.
+        A refusal is HTTP 401 or 403, or HTTP 400 with Cognito's ``UserNotFoundException``
+        or ``NotAuthorizedException``; any other status is core's ``token_refused``.
         """
-        if self._current() is None:
-            login = yield self._login(request)
-            await login.aread()
-            self._keep(login)
-        self._sign(request)
-        response = yield request
-        if response.status_code in REFUSED:
-            login = yield self._login(request)
-            await login.aread()
-            self._keep(login)
-            self._sign(request)
-            yield request
-
-    def sync_auth_flow(self, request: httpx.Request) -> Generator[httpx.Request, httpx.Response]:
-        """Not served: core's client is async, and runs ``async_auth_flow``.
-
-        Raises:
-            NotImplementedError: Always; send through ``_client.client``.
-        """
-        raise NotImplementedError(
-            "LoginAuth runs on core's async client only (async_auth_flow); send through "
-            "xippios.faostat._client.client"
-        )
+        if _credentials_refused(response):
+            return _login_refused(
+                response, source=self.source, hint=f"; check {USERNAME_ENV} and {PASSWORD_ENV}"
+            )
+        return super().token_refused(response)
 
 
 def classify(response: httpx.Response) -> XippiosError | None:
@@ -343,19 +269,21 @@ def classify(response: httpx.Response) -> XippiosError | None:
     upstream's refusal of the credentials (conventions §5), naming the status and the
     ``__type``, never a credential; ``api.auth_login`` raises it, and ``LoginAuth``, whose
     login runs below this hook, raises the same for it and for a login's 401 or 403, and
-    core's mapping for any other status. ``GET /{lang}/data/{domain_code}`` answers two
+    core's ``token_refused`` for any other status. ``GET /{lang}/data/{domain_code}`` answers two
     refusals with HTTP 500 and a plain text body (``Content-Type: text/plain``), recorded
     on 2026-10-29:
 
     - ``Please add at least one filter.``, a query without ``area``, ``item``,
       ``element`` or ``year``, is ``InvalidRequestError``, upstream's refusal of the
-      query as given (ADR-0007); ``tasks.get_data`` refuses such a query before sending;
+      query as given (sdk-core ADR-0007); ``tasks.get_data`` refuses such a query before
+      sending;
     - ``Index: 0, Size: 0``, a domain code FAOSTAT does not have, is ``NotFoundError``
-      naming the domain.
+      naming the domain and the task, and its tool, that lists the domains (conventions §8).
 
     Everything else falls through, and core's mapping applies: the 401 and 403 of a
     request without a valid token are ``AuthError``, another 500 ``UpstreamError``.
-    Messages name the method and the path, never the host or the query (conventions §5).
+    Messages name the method and the path, ``request_description``'s, never the host or
+    the query (conventions §5).
     """
     request = response.request
     if (
@@ -373,15 +301,16 @@ def classify(response: httpx.Response) -> XippiosError | None:
     body = response.text.strip()
     if body == FILTER_REFUSAL:
         return InvalidRequestError(
-            f"FAOSTAT refused {request.method} {request.url.path} with HTTP 500, "
+            f"FAOSTAT refused {request_description(response)} with HTTP 500, "
             f'"{FILTER_REFUSAL}": a data query needs area, item, element or year',
             source=SOURCE,
         )
     if body == UNKNOWN_DOMAIN:
         domain_code = unquote(match["domain_code"])
         return NotFoundError(
-            f"FAOSTAT has no domain {domain_code!r}: {request.method} {request.url.path} "
-            f'answered HTTP 500, "{UNKNOWN_DOMAIN}"; list_domains names the domains',
+            f"FAOSTAT has no domain {domain_code!r}: {request_description(response)} answered "
+            f'HTTP 500, "{UNKNOWN_DOMAIN}"; list_domains names the domains (over MCP, the '
+            f"tool {SOURCE}_list_domains)",
             source=SOURCE,
         )
     return None
@@ -397,7 +326,7 @@ config = ClientConfig(
 )
 
 # A source with a documented hourly or daily quota installs a QuotaPolicy of its own on
-# config (conventions §6, ADR-0015); core's README shows how. FAOSTAT documents none.
+# config (conventions §6, sdk-core ADR-0037); core's README shows how. FAOSTAT documents none.
 
 auth = LoginAuth(source=SOURCE)
 """The process's one login: every request of ``client`` sends its token but those sent with
@@ -409,7 +338,7 @@ __all__ = [
     "API_KEY_ENV",
     "BASE_URL",
     "CREDENTIAL_REFUSALS",
-    "EXPIRY_MARGIN",
+    "ENV_VARS",
     "FILTER_REFUSAL",
     "LOGIN_PATH",
     "PASSWORD_ENV",

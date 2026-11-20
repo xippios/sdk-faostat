@@ -6,10 +6,10 @@ first test checks, its normalized table with MDDW's own columns (surveys, food g
 indicators, geographic levels) beside four code lists; and ``RL_first_rows.zip``, a new
 ZIP holding RL's normalized table cut to its header and first rows, the production-shaped
 header (area with its M49 code, item, element, year, unit, value, flag, note).
-``tests/fixtures/files/README.md`` gives their provenance (ADR-0020 decision 6). The tests
-assert the parser's shape against the samples' own text, read here with the standard
-library's ``zipfile`` and ``csv``, never values or sizes typed into a test (conventions
-§10). ``NOT RECORDED`` marks a sample changed in memory to show a refusal.
+``tests/fixtures/files/README.md`` gives their provenance (sdk-core ADR-0020, decision
+6). The tests assert the parser's shape against the samples' own text, read here with
+the standard library's ``zipfile`` and ``csv``, never values or sizes typed into a test
+(conventions §10). ``NOT RECORDED`` marks a sample changed in memory to show a refusal.
 """
 
 import csv
@@ -246,8 +246,7 @@ def test_parse_bulk_csv_refuses_a_row_that_does_not_match_its_header(tmp_path: P
     with pytest.raises(ValidationError) as refused:
         next(rows)
     assert str(refused.value) == (
-        f"faostat: {table_name(RL)} in short.zip has a row, line 3, whose values do not "
-        "match its header"
+        f"faostat: {table_name(RL)} has a row, line 3, whose values do not match its header"
     )
 
 
@@ -259,7 +258,7 @@ def test_parse_bulk_csv_refuses_a_header_naming_a_column_twice(tmp_path: Path) -
     with pytest.raises(ValidationError) as refused:
         next(parse_bulk_csv(rl_with(tmp_path / "twice.zip", lines)))
     assert str(refused.value) == (
-        f"faostat: {table_name(RL)} in twice.zip names a column twice in its header: Flag"
+        f"faostat: {table_name(RL)} names a column twice in its header: Flag"
     )
 
 
@@ -275,7 +274,7 @@ def test_parse_bulk_csv_refuses_text_that_is_not_utf8(tmp_path: Path) -> None:
     with pytest.raises(ValidationError) as refused:
         list(read)
     assert str(refused.value) == (
-        f"faostat: {table_name(RL)} in latin.zip is not UTF-8 text: invalid start byte"
+        f"faostat: {table_name(RL)} is not UTF-8 text: invalid start byte"
     )
 
 
@@ -287,6 +286,6 @@ def test_parse_bulk_csv_refuses_csv_the_csv_module_cannot_read(tmp_path: Path) -
     with pytest.raises(ValidationError) as refused:
         list(parse_bulk_csv(rl_with(tmp_path / "wide.zip", lines)))
     assert str(refused.value) == (
-        f"faostat: {table_name(RL)} in wide.zip is not CSV the csv module reads: field larger "
+        f"faostat: {table_name(RL)} is not CSV the csv module reads: field larger "
         f"than field limit ({csv.field_size_limit()})"
     )

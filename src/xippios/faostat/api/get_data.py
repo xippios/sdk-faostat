@@ -20,33 +20,18 @@ Refusals are mapped once in ``_client.classify``: a query without a filter
 upstream; this wrapper inspects no status.
 """
 
-from datetime import datetime
-from typing import Literal, NamedTuple
+from typing import Literal
 from urllib.parse import quote
 
-from xippios.core import parse
+from xippios.core import Answer
 
-from xippios.faostat._client import SOURCE, client
+from xippios.faostat._client import client
 from xippios.faostat.models import DataResponse
 
-__all__ = ["ENDPOINT", "DataAnswer", "get_data"]
+__all__ = ["ENDPOINT", "get_data"]
 
 ENDPOINT = "get_data"
 """The operation's ``operationId``."""
-
-
-class DataAnswer(NamedTuple):
-    """What ``get_data`` returns: the answer and when it was retrieved.
-
-    Attributes:
-        response: The answer, parsed.
-        retrieved_at: Timezone-aware UTC: on a cache hit the time the entry was stored,
-            else the time the answer arrived (``AsyncClient.get_answer``); the task's
-            ``meta.retrieved_at``.
-    """
-
-    response: DataResponse
-    retrieved_at: datetime
 
 
 def _flag(value: bool | None) -> str | None:
@@ -72,7 +57,7 @@ async def get_data(
     show_notes: bool | None = None,
     null_values: bool | None = None,
     output_type: Literal["objects"] | None = None,
-) -> DataAnswer:
+) -> Answer[DataResponse]:
     """Call ``get_data``: one domain's rows for the codes given.
 
     A parameter left ``None`` is not sent.
@@ -103,7 +88,9 @@ async def get_data(
             document's other value, ``csv``, is no JSON and is not offered.
 
     Returns:
-        The answer and when it was retrieved.
+        Core's ``Answer``: the answer, parsed, as ``payload``, and ``retrieved_at``,
+        timezone-aware UTC, on a cache hit the time the entry was stored, else the time
+        the answer arrived. An answer that does not parse is not cached.
 
     Raises:
         InvalidRequestError: No filter was sent (upstream's HTTP 500).
@@ -127,6 +114,4 @@ async def get_data(
     }
     params = {name: value for name, value in sent.items() if value is not None}
     path = f"/{quote(lang, safe='')}/data/{quote(domain_code, safe='')}"
-    answer = await client.get_answer(path, params=params)
-    response = parse(DataResponse, answer.payload, source=SOURCE, endpoint=ENDPOINT)
-    return DataAnswer(response=response, retrieved_at=answer.retrieved_at)
+    return await client.get_answer(path, params=params, parse=DataResponse, endpoint=ENDPOINT)

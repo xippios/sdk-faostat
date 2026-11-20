@@ -14,16 +14,16 @@ date, so ``meta.vintage`` is the domain's ``date_update`` as ``get_groupsanddoma
 prints it (``"2025-12-31"``), read after the data answer through the cache (one request
 per process per five minutes), ``None`` for a domain the list lacks; ``meta.published_at``
 stays ``None``, since a date is no release time (conventions §4; queue row 263).
-``meta.total`` is ``None``: the answer counts no rows (ADR-0012).
+``meta.total`` is ``None``: the answer counts no rows (sdk-core ADR-0034).
 
 ``get_series`` is one ``get_data`` request for an area, item and element over a year
 range: ``since`` and ``until`` become ``get_data``'s ``year`` filter, the years
 ``since..until`` as upstream's comma list, or no ``year`` filter when both are ``None``,
 which answers every year the domain holds; one without the other is refused before any
-request (Johannes, G5 2026-10-29, second round, question 15; ADR-0003: upstream's own
-filter, nothing cut on the client). It composes the task, not the wrapper, as
-sdk-eurostat's slices compose theirs (queue row 90), so the filter refusal, the code
-checks, ``classify`` and the meta rules are ``get_data``'s; its ``meta`` is
+request (Johannes, G5 2026-10-29, second round, question 15; sdk-core ADR-0028:
+upstream's own filter, nothing cut on the client). It composes the task, not the
+wrapper, as sdk-eurostat's slices compose theirs (queue row 90), so the filter refusal,
+the code checks, ``classify`` and the meta rules are ``get_data``'s; its ``meta`` is
 ``get_data``'s, ``meta.request`` the year list sent plus ``since`` and ``until`` as
 given. One request, so no ceiling in conventions §4's sense; the rows keep upstream's
 order, area, item, year ascending in every recorded answer.
@@ -36,12 +36,13 @@ group and release dates, filtered by ``search`` in Python (``xippios.core.matche
 (``params``; Johannes, G5 2026-10-29, questions 3 and 5), without a request, filtered by
 ``search`` over code and label; ``meta`` is the packaged file's (``PackagedList.meta``:
 ``endpoint`` ``getCodeList``, ``retrieved_at`` the file's ``fetched``, ``vintage`` and
-``total`` ``None``; ADR-0022). With them ``get_data`` checks the area, element and item
-codes of those five domains before it sends, since FAOSTAT answers an unknown code with
-no rows: a code the domain's table lacks is refused with core's ``UnknownCode``, naming
-the table, its fetch date and the closest codes (conventions §5; ADR-0022, amendment
-2026-10-27, decision 3). The element tables hold the filter codes, not the codes the
-rows print, and nothing is translated between the two (ADR-0003; G5, question 10).
+``total`` ``None``; sdk-core ADR-0041). With them ``get_data`` checks the area, element
+and item codes of those five domains before it sends, since FAOSTAT answers an unknown
+code with no rows: a code the domain's table lacks is refused with core's
+``UnknownCode``, naming the table, its fetch date and the closest codes (conventions §5;
+sdk-core ADR-0041, decision 8). The element tables hold the filter codes, not the codes
+the rows print, and nothing is translated between the two (sdk-core ADR-0028; G5,
+question 10).
 
 ``list_bulk_datasets`` answers from the bulk downloads' catalogue, ``datasets_E.json`` on
 ``bulks-faostat.fao.org`` (``api.datasets_e``), fetched without the account and cached for
@@ -51,17 +52,18 @@ five minutes, filtered by ``search`` over ``dataset_code`` and ``dataset_name``
 version, and ``meta.total`` ``None``.
 
 ``download_dataset`` is the bulk task, named in ``BULK_TASKS`` and so Python-only: the
-adapters skip it, and no tool or route returns a file path (ADR-0019 decision 4). It
-looks the domain up in the catalogue and streams the ZIP its ``FileLocation`` names to the
-file the caller gives, through core's ``download`` with ``auth=None``, so the account's
-token never goes to the bulk host (conventions §6); ``parse.parse_bulk_csv`` reads the
-file. Its release metadata is the catalogue's: ``meta.vintage`` the dataset's
-``DateUpdate`` as printed (``"2026-10-02T00:00:00"``) and ``meta.published_at`` the same
-time, which the catalogue prints without a zone, ``published_at_naive`` set (conventions
-§4, ADR-0022 rule 2). That is a time, unlike the API's date-only ``date_update``, which
-``get_data`` keeps in ``meta.vintage`` alone (queue row 263). ``meta.endpoint`` is the
-file kind as upstream names the member it holds, ``All_Data_(Normalized).csv`` (ADR-0020
-decision 5), ``meta.request`` the domain and the file's URL.
+adapters skip it, and no tool or route returns a file path (sdk-core ADR-0040, decision
+4). It looks the domain up in the catalogue and streams the ZIP its ``FileLocation``
+names to the file the caller gives, through core's ``download`` with ``auth=None``, so
+the account's token never goes to the bulk host (conventions §6);
+``parse.parse_bulk_csv`` reads the file. Its release metadata is the catalogue's:
+``meta.vintage`` the dataset's ``DateUpdate`` as printed (``"2026-10-02T00:00:00"``) and
+``meta.published_at`` the same time, which the catalogue prints without a zone,
+``published_at_naive`` set (conventions §4, sdk-core ADR-0041, decision 2). That is a
+time, unlike the API's date-only ``date_update``, which ``get_data`` keeps in
+``meta.vintage`` alone (queue row 263). ``meta.endpoint`` is the file kind as upstream
+names the member it holds, ``All_Data_(Normalized).csv`` (sdk-core ADR-0020, decision
+5), ``meta.request`` the domain and the file's URL.
 """
 
 import os
@@ -100,9 +102,10 @@ __all__ = [
 ]
 
 BULK_TASKS: frozenset[str] = frozenset({"download_dataset"})
-"""Tasks the adapters skip (ADR-0019 decision 4): ``download_dataset``, which writes a file
-and is Python-only. Core's ``build_server`` and ``router_from_tasks`` read it from this
-module and leave its names out, so ``mcp.py`` and ``http.py`` pass ``__all__`` whole."""
+"""Tasks the adapters skip (sdk-core ADR-0040, decision 4): ``download_dataset``, which
+writes a file and is Python-only. Core's ``tool_functions`` and ``router_from_tasks`` read
+it from this module and leave its names out, so ``mcp.py`` passes ``tool_functions(tasks)``
+and ``http.py`` ``__all__`` whole."""
 
 MCP_CAPS: Mapping[str, ResultCap] = {
     "get_data": ResultCap(
@@ -147,7 +150,7 @@ MCP_CAPS: Mapping[str, ResultCap] = {
         ),
     ),
 }
-"""MCP result caps of their own, by task function name (conventions §8, ADR-0016).
+"""MCP result caps of their own, by task function name (conventions §8, sdk-core ADR-0038).
 
 ``get_data`` keeps the family's 200 rows and 64 KB and adds a note naming its paging and
 its filters; a row of the recorded answers is 356 (QCL) to 383 (PP) bytes as compact
@@ -156,18 +159,18 @@ note naming ``since`` and ``until`` and one code per dimension, since it does no
 ``list_domains`` keeps the family's cap too: its 78 rows of 2026-10-29 fit; the note
 names ``search``.
 
-The three code lists take up to 1,000 rows within the family's 64 KB (ADR-0016 decision
-4), as sdk-eurostat's ``list_codes`` does, so a table an agent needs whole comes whole up
-to the byte bound: a code is about 85 to 110 bytes as compact JSON, and of the fifteen
-tables packaged on 2026-10-29 fourteen fit, the largest QCL's 338 items at 32,872 bytes;
-TCL's 674 items, 66,970 bytes, are cut by the bytes at 657 rows, with the note naming
-``search``.
+The three code lists take up to 1,000 rows within the family's 64 KB (sdk-core ADR-0038,
+decision 4), as sdk-eurostat's ``list_codes`` does, so a table an agent needs whole
+comes whole up to the byte bound: a code is about 85 to 110 bytes as compact JSON, and
+of the fifteen tables packaged on 2026-10-29 fourteen fit, the largest QCL's 338 items
+at 32,872 bytes; TCL's 674 items, 66,970 bytes, are cut by the bytes at 657 rows, with
+the note naming ``search``.
 
 ``list_bulk_datasets`` takes a cap of its own, 100 rows and 160 KiB (163,840 bytes), so
-the whole catalogue, which an agent needs to choose a dataset, comes uncut (ADR-0016): on
-2026-10-29 it measured 69 datasets and 107,481 bytes as compact JSON, a dataset 399 to
-4,104 bytes, its description the most of it, where the family's 64 KB would cut it at 39
-rows. The note names ``search`` for a catalogue grown past the bound.
+the whole catalogue, which an agent needs to choose a dataset, comes uncut (sdk-core
+ADR-0038): on 2026-10-29 it measured 69 datasets and 107,481 bytes as compact JSON, a
+dataset 399 to 4,104 bytes, its description the most of it, where the family's 64 KB
+would cut it at 39 rows. The note names ``search`` for a catalogue grown past the bound.
 """
 
 LANG: Final = "en"
@@ -217,6 +220,15 @@ LIST_TASKS: Mapping[str, str] = {
 }
 """The task that lists each packaged dimension's codes, for a refusal to name."""
 
+
+def _tool(task: str) -> str:
+    """The MCP tool that serves ``task``, ``faostat_list_areas`` for ``list_areas``.
+
+    A refusal that names another task names its tool too (conventions §8).
+    """
+    return f"{SOURCE}_{task}"
+
+
 UNKNOWN_CODE_REASON = (
     "FAOSTAT answers a code it does not know with no rows, as it answers a query without "
     "data, so the package refuses it before sending;"
@@ -241,9 +253,13 @@ def _check_codes(dimension: str, codes: str | None, domain: str) -> None:
     for code in codes.split(","):
         if code in labels:
             continue
-        reason = f'{UNKNOWN_CODE_REASON} {LIST_TASKS[dimension]}("{domain}") lists the codes'
+        task = LIST_TASKS[dimension]
+        reason = f'{UNKNOWN_CODE_REASON} {task}("{domain}") lists the codes'
         if dimension == "element":
-            reason += " a filter takes, which are not the element_code the rows print"
+            reason += " a filter takes"
+        reason += f" (over MCP, the tool {_tool(task)})"
+        if dimension == "element":
+            reason += ", which are not the element_code the rows print"
         raise UnknownCode(
             dimension,
             code,
@@ -258,7 +274,7 @@ def _check_codes(dimension: str, codes: str | None, domain: str) -> None:
 async def _date_update(domain: str) -> str | None:
     """The domain's ``date_update`` as ``get_groupsanddomains`` prints it, else ``None``."""
     answer = await api.get_groupsanddomains.get_groupsanddomains(LANG)
-    for row in answer.response.data:
+    for row in answer.payload.data:
         if row.domain_code == domain:
             return row.date_update
     return None
@@ -368,7 +384,7 @@ async def get_data_async(
         request={"lang": LANG, "domain_code": domain, **sent},
         total=None,
     )
-    return Result(data=answer.response.data, meta=meta)
+    return Result(data=answer.payload.data, meta=meta)
 
 
 get_data = sync(get_data_async)
@@ -478,7 +494,7 @@ async def list_domains_async(*, search: str | None = None) -> Result[list[Domain
     answer = await api.get_groupsanddomains.get_groupsanddomains(LANG)
     rows = [
         row
-        for row in answer.response.data
+        for row in answer.payload.data
         if matches(search, row.domain_code, row.domain_name, row.group_name)
     ]
     meta = ResultMeta(
@@ -508,7 +524,8 @@ def _code_list(dimension: str, domain: str, search: str | None) -> Result[list[C
         raise InvalidRequestError(
             f"{LIST_TASKS[dimension]} answers for the domains whose code tables the package "
             f"carries, {', '.join(params.DOMAINS)}, not {domain!r}.{hint} get_data sends "
-            f"another domain's codes unchecked, and its rows print each {dimension}'s code.",
+            f"another domain's codes unchecked (over MCP, the tool {_tool('get_data')}), and "
+            f"its rows print each {dimension}'s code.",
             source=SOURCE,
         )
     name = params.table_name(dimension, domain)
@@ -606,8 +623,8 @@ upstream names its member, ``<Name>_E_All_Data_(Normalized).csv``."""
 def _target(dest: str | os.PathLike[str]) -> Path:
     """``dest`` as a path, refused when it is a directory or its directory is missing.
 
-    Core's own text (``AsyncClient.download``), as the taxonomy's refusal, before any
-    request.
+    Core's ``download`` refuses the same with the same text and error, but only once the
+    catalogue has answered; this check refuses before any request.
 
     Raises:
         InvalidRequestError: ``dest`` is a directory, or its directory does not exist.
@@ -660,7 +677,7 @@ async def list_bulk_datasets_async(*, search: str | None = None) -> Result[list[
     answer = await api.datasets_e.datasets_e()
     rows = [
         dataset
-        for dataset in answer.response.datasets.dataset
+        for dataset in answer.payload.datasets.dataset
         if matches(search, dataset.dataset_code, dataset.dataset_name)
     ]
     meta = ResultMeta(
@@ -713,7 +730,7 @@ async def download_dataset_async(domain: str, dest: str | os.PathLike[str]) -> R
     """
     target = _target(dest)
     answer = await api.datasets_e.datasets_e()
-    listed = {dataset.dataset_code: dataset for dataset in answer.response.datasets.dataset}
+    listed = {dataset.dataset_code: dataset for dataset in answer.payload.datasets.dataset}
     dataset = listed.get(domain)
     if dataset is None:
         near = closest(domain, {code: entry.dataset_name for code, entry in listed.items()})

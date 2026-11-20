@@ -20,18 +20,17 @@ its last four columns ``Unit``, ``Value``, ``Flag`` and ``Note`` (``"1000 ha"``,
 Level Code``, ``Geographic Level``, ``Element Code``, ``Element``, ``Unit``, ``Value``
 and ``Flag``. Each row becomes a ``models.BulkRecord``, the
 columns it names as fields and every other under its header in ``columns``, nothing
-renamed or computed (ADR-0020 decision 2); ``Value`` is parsed as a ``Decimal`` where its
+renamed or computed (sdk-core ADR-0020, decision 2); ``Value`` is parsed as a ``Decimal`` where its
 text is a number.
 
 The member is chosen by its name, the one ending in ``_All_Data_(Normalized).csv``;
-none, or more than one, is refused. It is read lazily from the archive through the
-standard library, ``zipfile.ZipFile`` and ``io.TextIOWrapper(..., encoding="utf-8-sig",
-newline="")`` under ``csv.DictReader``, headers as printed, as core's ``decode_csv`` reads
-a path, its errors worded alike: ``decode_csv`` takes a path or a response, not an open
-stream, and a decompressed copy on disk would write the whole table again, RL's 50 MB
-from a ZIP of 3 MB and TCL's from one of 267 MB, before its first row could be read
-(Johannes, G5 2026-10-29, second round, question 14; gap, row 125). Neither the archive
-nor the table is ever held in memory whole.
+none, or more than one, is refused. Its rows are read lazily from the archive, through
+core's ``decode_csv`` over ``io.TextIOWrapper(..., encoding="utf-8-sig", newline="")``
+of the member the standard library's ``zipfile`` opens, headers as printed, so an error
+of the table names the member alone, as ``decode_csv`` names a stream by its file. The
+header is read apart first, from a second opening of the member, since ``decode_csv``'s
+mappings keep one value of a column named twice. Neither the archive nor the table is
+ever held in memory whole, nor decompressed to disk.
 """
 
 import csv
@@ -42,9 +41,11 @@ import zlib
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import IO
 
 import pydantic
 from xippios.core import ValidationError, parse
+from xippios.core.client import decode_csv
 
 from xippios.faostat._client import SOURCE
 from xippios.faostat.models import BulkRecord
@@ -62,6 +63,11 @@ MEMBER_SUFFIX = "_All_Data_(Normalized).csv"
 def _refuse(name: str, reason: str) -> ValidationError:
     """A refusal worded as ``decode_csv`` words its own: ``"faostat: <file> <reason>"``."""
     return ValidationError(f"{SOURCE}: {name} {reason}", raw="", source=SOURCE)
+
+
+def _text(raw: IO[bytes]) -> io.TextIOWrapper:
+    """The member's text, as the table is printed: UTF-8, a byte order mark dropped."""
+    return io.TextIOWrapper(raw, encoding="utf-8-sig", newline="")
 
 
 @contextmanager
@@ -124,27 +130,24 @@ def parse_bulk_csv(path: str | os.PathLike[str]) -> Generator[BulkRecord, None, 
     file = Path(path)
     with _reading(file.name, file.name), zipfile.ZipFile(file) as archive:
         member = _member(archive, file.name)
-        table = f"{member.filename} in {file.name}"
-        with (
-            _reading(file.name, table),
-            archive.open(member) as raw,
-            io.TextIOWrapper(raw, encoding="utf-8-sig", newline="") as text,
-        ):
-            records = csv.DictReader(text)
-            header = records.fieldnames
+        table = member.filename
+        with _reading(file.name, table):
+            with archive.open(member) as raw, _text(raw) as text:
+                header = next(csv.reader(text), None)
             if header is None:
                 return
             twice = sorted({column for column in header if header.count(column) > 1})
             if twice:
                 raise _refuse(table, f"names a column twice in its header: {', '.join(twice)}")
-            for line, record in enumerate(records, start=2):
-                if None in record or None in record.values():
-                    raise _refuse(
-                        table, f"has a row, line {line}, whose values do not match its header"
-                    )
-                try:
-                    yield BulkRecord.model_validate(record)
-                except pydantic.ValidationError:
-                    yield parse(
-                        BulkRecord, record, source=SOURCE, endpoint=f"{FILE_KIND} line {line}"
-                    )
+            with archive.open(member) as raw, _text(raw) as text:
+                for line, record in enumerate(decode_csv(text, source=SOURCE), start=2):
+                    if None in record or None in record.values():
+                        raise _refuse(
+                            table, f"has a row, line {line}, whose values do not match its header"
+                        )
+                    try:
+                        yield BulkRecord.model_validate(record)
+                    except pydantic.ValidationError:
+                        yield parse(
+                            BulkRecord, record, source=SOURCE, endpoint=f"{FILE_KIND} line {line}"
+                        )
