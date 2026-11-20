@@ -28,11 +28,11 @@ from typing import Any
 import httpx
 import pytest
 import respx
-from xippios.core import PackagedList, UpstreamError, sync
+from xippios.core import AuthError, PackagedList, UpstreamError, sync
 from xippios.core.testing import ReplayFixture, assert_time_between, load_fixture
 
 from xippios.faostat import params
-from xippios.faostat._client import BASE_URL, auth
+from xippios.faostat._client import BASE_URL, LOGIN_PATH, auth
 from xippios.faostat.models import CodeItem
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -333,3 +333,58 @@ def test_only_refuses_while_a_kept_table_is_not_packaged_before_a_request(
 def test_render_names_no_class_of_its_own() -> None:
     """Core's default names a class after its list or id field (sdk-core ADR-0031)."""
     assert "class_names" not in inspect.getsource(script.render)
+
+
+def test_a_refused_login_is_counted(
+    respx_mock: respx.MockRouter,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A test double: the login refused with HTTP 401, which ends the run."""
+    respx_mock.routes.clear()  # the recorded login of the autouse fixture gives way
+    respx_mock.post(f"{BASE_URL}{LOGIN_PATH}").mock(return_value=httpx.Response(401))
+    reference = qcl_run(monkeypatch, tmp_path)
+    with pytest.raises(AuthError):
+        script.refresh()
+    assert len(respx_mock.calls) == 1
+    assert sorted(path.name for path in reference.iterdir()) == ["README.md"], "nothing written"
+    printed = capsys.readouterr().out.splitlines()
+    assert "requests sent: 1, logins among them: 1; quota left: not reported" in printed
+
+
+def test_a_renewal_whose_login_fails_is_counted_with_the_refused_request(
+    replay_fixture: ReplayFixture,
+    respx_mock: respx.MockRouter,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Test doubles: the second table refused with HTTP 403, the renewal's login with 503."""
+    recorded_login = load_fixture(FIXTURES / "auth_login" / "login.json").response
+    respx_mock.routes.clear()  # the recorded login of the autouse fixture gives way
+    respx_mock.post(f"{BASE_URL}{LOGIN_PATH}").mock(
+        side_effect=[
+            httpx.Response(200, headers=recorded_login.headers, content=recorded_login.content),
+            httpx.Response(503, text="Service Unavailable"),
+        ]
+    )
+    replay_fixture(CODES, "area_QCL")
+    respx_mock.get(f"{BASE_URL}/en/codes/element/QCL").mock(return_value=httpx.Response(403))
+    qcl_run(monkeypatch, tmp_path)
+    with pytest.raises(UpstreamError):
+        script.refresh()
+    assert len(respx_mock.calls) == 4, "a login, a table, the refused table, the renewal"
+    printed = capsys.readouterr().out.splitlines()
+    assert "requests sent: 4, logins among them: 2; quota left: not reported" in printed
+
+
+def test_a_readme_without_its_provenance_table_stops_the_run_before_a_request(
+    respx_mock: respx.MockRouter, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    reference = qcl_run(monkeypatch, tmp_path)
+    (reference / "README.md").write_text("# Reference data\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="no table headed"):
+        script.refresh()
+    assert not respx_mock.calls, "neither the login nor a table was asked"
+    assert sorted(path.name for path in reference.iterdir()) == ["README.md"], "nothing written"

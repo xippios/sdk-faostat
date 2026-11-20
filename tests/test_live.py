@@ -112,8 +112,8 @@ async def test_get_data(domain: str) -> None:
         null_values=False,
         output_type="objects",
     )
-    printed = {column.key for column in answer.response.metadata.dsd}
-    assert all(printed - HEADERS <= set(row.columns) for row in answer.response.data), (
+    printed = {column.key for column in answer.payload.metadata.dsd}
+    assert all(printed - HEADERS <= set(row.columns) for row in answer.payload.data), (
         f"{domain}: a column neither named nor kept in columns"
     )
 
@@ -162,7 +162,7 @@ async def test_list_elements() -> None:
     One ``getCodeList`` request through the wrapper the refresh script fetches with.
     """
     answer = await api.get_code_list.get_code_list("en", "element", "QCL")
-    live = answer.response.data
+    live = answer.payload.data
     table = params.packaged("element_QCL")
     assert live
     assert all(isinstance(code, CodeItem) and code.code and code.label for code in live)

@@ -173,3 +173,23 @@ def test_an_answer_that_is_not_json_is_not_cached(
     rows = list_domains().data
     assert route.call_count == 2, "asked again, not answered from the cache"
     assert len(rows) == len(json.loads(recorded.content)["data"])
+
+
+def test_an_answer_that_is_not_the_documented_one_is_not_cached(
+    replay_fixture: ReplayFixture, respx_mock: respx.MockRouter
+) -> None:
+    """A test double: JSON without the documented ``data``, then the recorded list."""
+    replay_fixture("auth_login", "login")
+    recorded = load_fixture(FIXTURES / "get_groupsanddomains" / "all.json").response
+    route = respx_mock.get(f"{BASE_URL}/en/groupsanddomains").mock(
+        side_effect=[
+            httpx.Response(200, json={"unexpected": True}),
+            httpx.Response(200, headers=recorded.headers, content=recorded.content),
+        ]
+    )
+    with pytest.raises(Exception, match="get_groupsanddomains") as raised:
+        list_domains()
+    assert type(raised.value).__name__ == "ValidationError"
+    rows = list_domains().data
+    assert route.call_count == 2, "asked again, not answered from the cache"
+    assert len(rows) == len(json.loads(recorded.content)["data"])
