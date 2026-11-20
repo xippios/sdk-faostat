@@ -223,7 +223,10 @@ def test_get_data_refuses_the_rows_element_code_before_sending(
     message = str(refusal)
     assert f"in the packaged element_QCL list (fetched {table.fetched:%Y-%m-%d})" in message
     assert f"2510 ({labels['2510']})" in message
-    assert 'list_elements("QCL") lists the codes a filter takes' in message
+    assert (
+        'list_elements("QCL") lists the codes a filter takes (over MCP, the tool '
+        "faostat_list_elements)"
+    ) in message
     assert "not the element_code the rows print" in message
 
 
@@ -248,6 +251,7 @@ def test_get_data_refuses_a_code_the_domain_table_lacks(
     assert raised.value.list_name == name
     assert raised.value.fetched == params.packaged(name).fetched
     assert f'{tasks.LIST_TASKS[dimension]}("QCL") lists the codes' in str(raised.value)
+    assert f"(over MCP, the tool faostat_{tasks.LIST_TASKS[dimension]})" in str(raised.value)
 
 
 @pytest.mark.parametrize(
@@ -821,7 +825,9 @@ def test_list_task_refuses_a_domain_without_a_table(
     message = str(raised.value)
     assert not isinstance(raised.value, UnknownCode)
     assert "QCL, TCL, FBS, PP, RL, not 'QV'" in message
-    assert "get_data sends another domain's codes unchecked" in message
+    assert (
+        "get_data sends another domain's codes unchecked (over MCP, the tool faostat_get_data)"
+    ) in message
     assert not respx_mock.calls
     with pytest.raises(InvalidRequestError, match=r"Did you mean QCL\?"):
         task("qcl")

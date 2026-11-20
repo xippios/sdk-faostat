@@ -10,9 +10,13 @@ The tests replay QCL's answers through the script's fetcher, check that a packag
 record is upstream's record as sent, run the refresh into a directory of the test's own
 on QCL's three tables, and check the committed files and the provenance table against
 each other. They read the committed files' counts and fetch times, never pinning them.
+A run sends each request once and prints what it sent, the login among it, a failed
+run's too; ``--only`` fetches the tables it names and keeps the others' files, and both
+are checked before the first request. The 503 below is a test double, no recording.
 """
 
 import importlib.util
+import inspect
 import json
 import shutil
 from collections.abc import Iterator
@@ -21,12 +25,14 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+import httpx
 import pytest
-from xippios.core import PackagedList, sync
+import respx
+from xippios.core import PackagedList, UpstreamError, sync
 from xippios.core.testing import ReplayFixture, assert_time_between, load_fixture
 
 from xippios.faostat import params
-from xippios.faostat._client import auth
+from xippios.faostat._client import BASE_URL, auth
 from xippios.faostat.models import CodeItem
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -220,3 +226,110 @@ def test_render_only_writes_the_committed_enums(
     monkeypatch.setattr(script, "ENUMS", tmp_path / "enums.py")
     script.render()
     assert (tmp_path / "enums.py").read_text(encoding="utf-8") == ENUMS.read_text(encoding="utf-8")
+
+
+def qcl_run(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, *kept: str) -> Path:
+    """The script on QCL's three tables, into a reference directory of the test's own.
+
+    ``kept`` are the tables whose committed files the directory starts with.
+    """
+    reference = tmp_path / "reference"
+    reference.mkdir()
+    shutil.copy(REFERENCE / "README.md", reference / "README.md")
+    for name in kept:
+        shutil.copy(REFERENCE / f"{name}.json", reference / f"{name}.json")
+    monkeypatch.setattr(script, "TABLES", {name: script.TABLES[name] for name in QCL_TABLES})
+    monkeypatch.setattr(script, "PACKAGED_LISTS", QCL_TABLES)
+    monkeypatch.setattr(script, "REFERENCE", reference)
+    monkeypatch.setattr(script, "README", reference / "README.md")
+    monkeypatch.setattr(script, "ENUMS", tmp_path / "enums.py")
+    return reference
+
+
+def test_a_refresh_prints_the_requests_it_sent_the_login_among_them(
+    replay_fixture: ReplayFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    for name in QCL_TABLES:
+        replay_fixture(CODES, name)
+    qcl_run(monkeypatch, tmp_path)
+    script.refresh()
+    printed = capsys.readouterr().out.splitlines()
+    assert "requests sent: 4, logins among them: 1; quota left: not reported" in printed
+
+
+def test_a_failed_fetch_is_sent_once_writes_nothing_and_is_counted(
+    replay_fixture: ReplayFixture,
+    respx_mock: respx.MockRouter,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    replay_fixture(CODES, "area_QCL")
+    replay_fixture(CODES, "element_QCL")
+    failing = respx_mock.get(f"{BASE_URL}/en/codes/item/QCL").mock(
+        return_value=httpx.Response(503, text="Service Unavailable")
+    )
+    reference = qcl_run(monkeypatch, tmp_path)
+    with pytest.raises(UpstreamError):
+        script.refresh()
+    assert failing.call_count == 1, "one attempt: a 5xx spends no second keyed call"
+    assert sorted(path.name for path in reference.iterdir()) == ["README.md"], "nothing written"
+    assert (reference / "README.md").read_bytes() == (REFERENCE / "README.md").read_bytes()
+    printed = capsys.readouterr().out.splitlines()
+    assert "requests sent: 4, logins among them: 1; quota left: not reported" in printed
+    assert script.client.config.retry.max_attempts > 1, "the client's own policy restored"
+
+
+def test_only_fetches_the_named_table_and_keeps_the_others(
+    replay_fixture: ReplayFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    kept = ("area_QCL", "item_QCL")
+    route = replay_fixture(CODES, "element_QCL")
+    reference = qcl_run(monkeypatch, tmp_path, *kept)
+    script.main(["--only", "element_QCL"])
+    assert route.call_count == 1
+    for name in kept:
+        assert (reference / f"{name}.json").read_bytes() == (
+            REFERENCE / f"{name}.json"
+        ).read_bytes()
+    fetched = PackagedList.model_validate_json(
+        (reference / "element_QCL.json").read_text(encoding="utf-8")
+    )
+    assert fetched.records == recorded_rows("element_QCL")
+    readme = (reference / "README.md").read_text(encoding="utf-8")
+    rows = [line.split("`")[1] for line in readme.splitlines() if line.startswith("| `")]
+    assert rows == [f"{name}.json" for name in QCL_TABLES], "a row for every packaged table"
+    assert "requests sent: 2, logins among them: 1; quota left: not reported" in (
+        capsys.readouterr().out.splitlines()
+    )
+
+
+def test_only_refuses_a_table_the_script_does_not_package_before_a_request(
+    respx_mock: respx.MockRouter, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    qcl_run(monkeypatch, tmp_path, "area_QCL", "item_QCL")
+    with pytest.raises(SystemExit, match=r"^--only: no list element_XXX in area_QCL, "):
+        script.main(["--only", "element_XXX"])
+    assert not respx_mock.calls, "neither the login nor a table was asked"
+
+
+def test_only_refuses_while_a_kept_table_is_not_packaged_before_a_request(
+    respx_mock: respx.MockRouter, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The provenance rows read every table's file, so a kept one must be there first."""
+    reference = qcl_run(monkeypatch, tmp_path, "item_QCL")
+    with pytest.raises(SystemExit, match=r"^area_QCL is not packaged yet: run without --only"):
+        script.main(["--only", "element_QCL"])
+    assert not respx_mock.calls, "neither the login nor a table was asked"
+    assert sorted(path.name for path in reference.iterdir()) == ["README.md", "item_QCL.json"]
+
+
+def test_render_names_no_class_of_its_own() -> None:
+    """Core's default names a class after its list or id field (sdk-core ADR-0031)."""
+    assert "class_names" not in inspect.getsource(script.render)
