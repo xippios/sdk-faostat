@@ -1329,7 +1329,7 @@ def render_fetched(rows: Sequence[Row], fetched: str, *, observed: bool = False)
             str(response.status),
             str(len(response.body)) if kept else "-",
             hashlib.sha256(response.body).hexdigest() if kept else "-",
-            (response.etag or "-") if kept else "-",
+            f"`{response.etag}`" if kept and response.etag else "-",
             _iso_http_date(response.last_modified) if kept else "-",
             _note(row),
         ]
