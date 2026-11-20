@@ -1,20 +1,32 @@
-"""``scripts/refresh_upstream.py``'s ``FETCHED.md`` and its writing, offline.
+"""``scripts/refresh_upstream.py``'s ``FETCHED.md`` and the notes of ``OBSERVED.md``, offline.
 
 Nothing here sends a request: ``render_fetched``, ``write_snapshot`` and ``compare`` take
 what a capture run fetched, here one row made up for the test alone, written under
 ``tmp_path``, never to ``docs/upstream/``. ``OBSERVED.md`` is the one file under
 ``docs/upstream/`` written by hand (conventions §3, sdk-core ADR-0028), which the table
-lists in a row of its own where it exists.
+lists in a row of its own where it exists. The committed ``FETCHED.md`` and
+``OBSERVED.md`` are read as they stand: the script's text is the committed text, which a
+``--check`` would compare after a request to every page, and each note of ``OBSERVED.md``
+is a ``###`` section whose last paragraph, ``Probe:``, names its date, its operation and
+its sample, every file it cites present.
 """
 
 import importlib.util
+import re
 from pathlib import Path
 from types import ModuleType
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "refresh_upstream.py"
+UPSTREAM = ROOT / "docs" / "upstream"
+OBSERVED = UPSTREAM / "OBSERVED.md"
 FETCHED = "2026-11-20T09:00:00Z"
 HAND = "written by hand: what upstream does but never documents; not fetched or checked"
+DATE = re.compile(r"\b20\d\d-\d\d-\d\d\b")
+CITED = re.compile(r"`((?:tests|docs|src)/[^`\s]+\.[a-z]+)`")
+REQUEST = re.compile(r"`GET [^`]+`")
+FILES = "## Files and pages"
+LEFT_OUT = "## Not fetched"
 
 
 def load_script() -> ModuleType:
@@ -82,3 +94,72 @@ def test_a_snapshot_leaves_observed_md_as_written_and_check_reads_it(tmp_path: P
     assert script.compare(tmp_path, [a_row()]) == []
     notes.unlink()
     assert script.compare(tmp_path, [a_row()]) == ["FETCHED.md"], "the row of a file now gone"
+
+
+def test_the_script_keeps_no_observed_notes() -> None:
+    """The notes moved to ``OBSERVED.md``: the script neither holds nor prints them."""
+    assert not hasattr(script, "OBSERVED")
+    text = " ".join(render(observed=True).split())
+    assert "observed in probes" not in text
+    assert "no_records" not in text
+
+
+def test_a_page_left_out_has_a_row_in_not_fetched() -> None:
+    """Each page the snapshot cites and never requests, with its reason (conventions §3)."""
+    lines = render(observed=True).splitlines()
+    start = lines.index(LEFT_OUT)
+    assert lines[start + 2 : start + 4] == [
+        "| URL | HTTP | Redirects to | Reason |",
+        "| --- | --- | --- | --- |",
+    ]
+    rows = [f"| {page.url} | (not requested) | - | {page.reason} |" for page in script.NOT_FETCHED]
+    assert lines[start + 4 : start + 4 + len(rows)] == rows
+    assert lines.index(f"| {script.OBSERVED_FILE} | - | - | - | - | - | - | - | {HAND} |") < start
+    assert lines[-1].startswith("Regenerate")
+
+
+def test_the_pages_the_snapshot_cites_unfetched_are_not_fetched_rows() -> None:
+    left_out = {page.url for page in script.NOT_FETCHED}
+    assert {script.REUSE_URL, script.DEV_SERVER["url"]} <= left_out
+    fetched = {script.SPEC_URL, script.DOCS_URL, script.PORTAL_URL, script.TERMS_URL}
+    assert not left_out & (fetched | {script.CATALOGUE_URL})
+
+
+def test_the_committed_fetched_md_is_the_scripts_text() -> None:
+    """What ``--check`` compares beside the rows: the prose above the table and the table
+    ``Not fetched`` below it are the script's, and the table lists ``OBSERVED.md``."""
+    committed = (UPSTREAM / "FETCHED.md").read_text(encoding="utf-8")
+    rendered = script.render_fetched([], FETCHED, observed=True)
+    assert committed.split(FILES)[0] == rendered.split(FILES)[0]
+    assert committed[committed.index(LEFT_OUT) :] == rendered[rendered.index(LEFT_OUT) :]
+    row = f"| {script.OBSERVED_FILE} | - | - | - | - | - | - | - | {HAND} |"
+    assert row in committed.splitlines()
+
+
+def notes() -> dict[str, list[str]]:
+    """Each ``###`` note of ``OBSERVED.md``: its heading and its paragraphs, each joined."""
+    parts = re.split(r"^(##|###) (.+)$", OBSERVED.read_text(encoding="utf-8"), flags=re.M)
+    return {
+        heading: [" ".join(block.split()) for block in body.split("\n\n") if block.strip()]
+        for level, heading, body in zip(parts[1::3], parts[2::3], parts[3::3], strict=True)
+        if level == "###"
+    }
+
+
+def test_every_note_ends_with_its_probe_its_date_and_its_operation() -> None:
+    spec = (UPSTREAM / "openapi" / "faostat_openapi.yaml").read_text(encoding="utf-8")
+    operations = set(re.findall(r"operationId:\s*(\S+)", spec))
+    found = notes()
+    assert len(found) >= 12
+    for heading, paragraphs in found.items():
+        probe = paragraphs[-1]
+        assert probe.startswith("Probe: "), heading
+        assert DATE.search(probe), heading
+        named = set(re.findall(r"`(\w+)`", probe)) & operations
+        assert named or REQUEST.search(probe), heading
+
+
+def test_every_file_a_note_cites_exists() -> None:
+    cited = set(CITED.findall(OBSERVED.read_text(encoding="utf-8")))
+    assert cited
+    assert sorted(path for path in cited if not (ROOT / path).is_file()) == []
