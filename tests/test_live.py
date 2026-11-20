@@ -24,10 +24,10 @@ and one ``getCodeList`` request; the other look-ups, ``get_series``'s among them
 one more request, without the account. The bulk tasks have one each, without the
 account: ``list_bulk_datasets``'s fetches the catalogue, and ``download_dataset``'s
 downloads MDDW's ZIP, the smallest dataset's (12 KB), to a temporary file and reads it
-with ``parse_bulk_csv``, the live parser test of the file kind ``bulk-csv`` (ADR-0020
-decision 6), its look-up in the catalogue a cache hit: two requests, and a guard fails
-either test if a request goes through the account's login. The tests assert shape and
-release metadata, never values, which FAOSTAT revises.
+with ``parse_bulk_csv``, the live parser test of the file kind ``bulk-csv`` (sdk-core
+ADR-0020, decision 6), its look-up in the catalogue a cache hit: two requests, and a
+guard fails either test if a request goes through the account's login. The tests assert
+shape and release metadata, never values, which FAOSTAT revises.
 """
 
 import csv

@@ -527,7 +527,7 @@ async def test_get_data_tool_cap_note_names_paging(replay_fixture: ReplayFixture
 
 
 def test_get_data_route_takes_a_json_body(replay_fixture: ReplayFixture) -> None:
-    """The filters take lists, so the route is a POST (ADR-0007)."""
+    """The filters take lists, so the route is a POST (sdk-core ADR-0007)."""
     route = replay_fixture(GET_DATA, QCL)
     replay_fixture(DOMAINS, "all")
     app = FastAPI()
@@ -883,7 +883,7 @@ async def test_list_task_tool_cap_note_names_search(name: str) -> None:
 
 
 def test_list_areas_route_is_a_get() -> None:
-    """Every parameter is a scalar, so the route is a GET with a query (ADR-0007)."""
+    """Every parameter is a scalar, so the route is a GET with a query (sdk-core ADR-0007)."""
     app = FastAPI()
     app.include_router(router)
     with TestClient(app) as http:
@@ -1001,7 +1001,7 @@ async def test_list_bulk_datasets_tool_end_to_end(
 async def test_list_bulk_datasets_tool_serves_the_whole_catalogue_uncut(
     replay_fixture: ReplayFixture,
 ) -> None:
-    """The cap of its own (ADR-0016) serves every dataset of the recorded catalogue, no note."""
+    """The cap of its own (sdk-core ADR-0038) serves the whole recorded catalogue, no note."""
     replay_fixture(CATALOGUE, "all")
     cap = tasks.MCP_CAPS["list_bulk_datasets"]
     assert cap.note is not None
@@ -1109,7 +1109,7 @@ def test_download_dataset_refuses_a_dest_it_cannot_write(
 
 
 def test_download_dataset_is_served_by_no_adapter() -> None:
-    """A bulk task: no MCP tool, no route (ADR-0019 decision 4); the catalogue task is both."""
+    """A bulk task: no tool, no route (sdk-core ADR-0040, decision 4); the catalogue has both."""
     assert {"download_dataset"} == tasks.BULK_TASKS
     assert "download_dataset" in tasks.__all__
     tools = {tool.name for tool in run(server.list_tools())}

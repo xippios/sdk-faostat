@@ -6,10 +6,10 @@ first test checks, its normalized table with MDDW's own columns (surveys, food g
 indicators, geographic levels) beside four code lists; and ``RL_first_rows.zip``, a new
 ZIP holding RL's normalized table cut to its header and first rows, the production-shaped
 header (area with its M49 code, item, element, year, unit, value, flag, note).
-``tests/fixtures/files/README.md`` gives their provenance (ADR-0020 decision 6). The tests
-assert the parser's shape against the samples' own text, read here with the standard
-library's ``zipfile`` and ``csv``, never values or sizes typed into a test (conventions
-§10). ``NOT RECORDED`` marks a sample changed in memory to show a refusal.
+``tests/fixtures/files/README.md`` gives their provenance (sdk-core ADR-0020, decision
+6). The tests assert the parser's shape against the samples' own text, read here with
+the standard library's ``zipfile`` and ``csv``, never values or sizes typed into a test
+(conventions §10). ``NOT RECORDED`` marks a sample changed in memory to show a refusal.
 """
 
 import csv

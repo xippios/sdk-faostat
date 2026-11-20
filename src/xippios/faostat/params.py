@@ -11,14 +11,15 @@ written by hand (Johannes, G5 2026-10-29, questions 3 and 5). A file is named
 (``element_QCL.json``); its ``param`` is the dimension, the name of the data endpoint's
 filter that takes its codes (``"element"``), its ``endpoint`` ``getCodeList``, and its
 records ``models.CodeItem``'s fields under upstream's names, in upstream's order
-(ADR-0022). ``list_areas``, ``list_elements`` and ``list_items`` answer from them, and
-``get_data`` checks the codes of a packaged domain against them before it sends.
+(sdk-core ADR-0041). ``list_areas``, ``list_elements`` and ``list_items`` answer from
+them, and ``get_data`` checks the codes of a packaged domain against them before it
+sends.
 
 The element tables hold the codes a query filters by (``2510`` Production Quantity in
 QCL), which are not the ``Element Code`` the data rows print (``5510`` Production);
-nothing is translated between the two (ADR-0003; G5 2026-10-29, question 10). No enum is
-generated from the tables; ``enums.py`` holds none. ``reference/README.md`` carries the
-provenance of every file.
+nothing is translated between the two (sdk-core ADR-0028; G5 2026-10-29, question 10).
+No enum is generated from the tables; ``enums.py`` holds none. ``reference/README.md``
+carries the provenance of every file.
 """
 
 import functools
