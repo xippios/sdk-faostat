@@ -121,5 +121,21 @@ request sends a credential, and neither the credentials nor the token is written
 | https://www.fao.org/contact-us/terms/en/ | (not requested) | - | FAO's Terms and Conditions regarding the Reuse of Web content, which the terms page links and incorporates by reference: terms of the website, no API documentation; cited under Attribution |
 | https://creativecommons.org/licenses/by/4.0/legalcode.en | (not requested) | - | the CC BY 4.0 licence, which the terms page links: a third-party licence, cited, not snapshotted; the terms quote its name |
 | https://api-faostat.dev.fao.org/api/v1 | (not requested) | - | the development server that the ReDoc page's copy of the document lists before the document's one, “available for testing purposes only on FAO network”: an API server, no documentation |
+| https://bulks-faostat.fao.org/production/ | (not requested) | - | the folder of the ZIPs that the catalogue's `FileLocation` names, one per dataset: data, no documentation; `download_dataset` fetches one on a caller's request |
+| https://app.amis-outlook.org/#/market-database/supply-and-demand-overview | (not requested) | - | Agricultural Market Information Systems (AMIS), a database that Annex 1 of the terms lists: no API documentation |
+| https://www.fao.org/aid-monitor/en/ | (not requested) | - | AIDmonitor, a database that Annex 1 of the terms lists: no API documentation |
+| https://data-in-emergencies.fao.org/ | (not requested) | - | Data in Emergencies Hub (DIEM), a database that Annex 1 of the terms lists: no API documentation |
+| https://www.fao.org/dad-is/data/en/ | (not requested) | - | Domestic Animal Diversity Information System (DAD-IS), a database that Annex 1 of the terms lists: no API documentation |
+| https://dataexplorer.fao.org/ | (not requested) | - | FAODATA Explorer, a database that Annex 1 of the terms lists: no API documentation |
+| https://www.fao.org/infoods/infoods/tables-and-databases/faoinfoods-databases/en/ | (not requested) | - | FAO/INFOODS Food Composition Databases, a database that Annex 1 of the terms lists: no API documentation |
+| https://www.fao.org/fishery/en/fishstat | (not requested) | - | Fisheries and Aquaculture (FishStat), a database that Annex 1 of the terms lists: no API documentation |
+| https://www.fao.org/giews/food-prices/tool/public/ | (not requested) | - | Food Price Monitoring and Analysis (FPMA) Tool, a database that Annex 1 of the terms lists: no API documentation |
+| https://empres-i.apps.fao.org/ | (not requested) | - | Global Animal Disease Information System (EMPRES-i +), a database that Annex 1 of the terms lists: no API documentation |
+| https://fra-data.fao.org/assessments/fra/2020/ | (not requested) | - | Global Forest Resources Assessments (FRA), a database that Annex 1 of the terms lists: no API documentation |
+| https://www.fao.org/gift-individual-food-consumption/en | (not requested) | - | Global Individual Food Consumption (FAO/WHO GIFT), a database that Annex 1 of the terms lists: no API documentation |
+| https://www.fao.org/nr/water/aquastat/data/query/index.html?lang=en | (not requested) | - | Global Information System on Water and Agriculture (AQUASTAT), a database that Annex 1 of the terms lists: no API documentation |
+| https://www.fao.org/hih-geospatial-platform/en | (not requested) | - | Hand-in-Hand (HiH) Geospatial Platform, a database that Annex 1 of the terms lists: no API documentation |
+| https://data.apps.fao.org/wapor/?lang=en | (not requested) | - | WaPOR, a database that Annex 1 of the terms lists: no API documentation |
+| https://www.fao.org/wiews/data/domains/monitoring-framework/en/ | (not requested) | - | World Information and Early Warning System on Plant Genetic Resources for Food and Agriculture (WIEWS), a database that Annex 1 of the terms lists: no API documentation |
 
 Regenerate, with `FAOSTAT_USERNAME` and `FAOSTAT_PASSWORD` set: `uv run scripts/refresh_upstream.py`
