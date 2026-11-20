@@ -217,6 +217,15 @@ LIST_TASKS: Mapping[str, str] = {
 }
 """The task that lists each packaged dimension's codes, for a refusal to name."""
 
+
+def _tool(task: str) -> str:
+    """The MCP tool that serves ``task``, ``faostat_list_areas`` for ``list_areas``.
+
+    A refusal that names another task names its tool too (conventions §8).
+    """
+    return f"{SOURCE}_{task}"
+
+
 UNKNOWN_CODE_REASON = (
     "FAOSTAT answers a code it does not know with no rows, as it answers a query without "
     "data, so the package refuses it before sending;"
@@ -241,9 +250,13 @@ def _check_codes(dimension: str, codes: str | None, domain: str) -> None:
     for code in codes.split(","):
         if code in labels:
             continue
-        reason = f'{UNKNOWN_CODE_REASON} {LIST_TASKS[dimension]}("{domain}") lists the codes'
+        task = LIST_TASKS[dimension]
+        reason = f'{UNKNOWN_CODE_REASON} {task}("{domain}") lists the codes'
         if dimension == "element":
-            reason += " a filter takes, which are not the element_code the rows print"
+            reason += " a filter takes"
+        reason += f" (over MCP, the tool {_tool(task)})"
+        if dimension == "element":
+            reason += ", which are not the element_code the rows print"
         raise UnknownCode(
             dimension,
             code,
@@ -508,7 +521,8 @@ def _code_list(dimension: str, domain: str, search: str | None) -> Result[list[C
         raise InvalidRequestError(
             f"{LIST_TASKS[dimension]} answers for the domains whose code tables the package "
             f"carries, {', '.join(params.DOMAINS)}, not {domain!r}.{hint} get_data sends "
-            f"another domain's codes unchecked, and its rows print each {dimension}'s code.",
+            f"another domain's codes unchecked (over MCP, the tool {_tool('get_data')}), and "
+            f"its rows print each {dimension}'s code.",
             source=SOURCE,
         )
     name = params.table_name(dimension, domain)
