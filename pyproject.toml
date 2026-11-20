@@ -18,13 +18,13 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "xippios-core~=0.3.0",
+  "xippios-core~=0.4.0",
 ]
 
 [project.optional-dependencies]
-mcp = ["xippios-core[mcp]~=0.3.0"]
-http = ["xippios-core[http]~=0.3.0"]
-testing = ["xippios-core[testing]~=0.3.0"]
+mcp = ["xippios-core[mcp]~=0.4.0"]
+http = ["xippios-core[http]~=0.4.0"]
+testing = ["xippios-core[testing]~=0.4.0"]
 
 [project.scripts]
 xippios-faostat-mcp = "xippios.faostat.mcp:run"
