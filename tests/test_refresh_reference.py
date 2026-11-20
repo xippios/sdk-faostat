@@ -388,3 +388,27 @@ def test_a_readme_without_its_provenance_table_stops_the_run_before_a_request(
         script.refresh()
     assert not respx_mock.calls, "neither the login nor a table was asked"
     assert sorted(path.name for path in reference.iterdir()) == ["README.md"], "nothing written"
+
+
+def test_a_renewal_per_table_is_counted_with_its_refused_request(
+    replay_fixture: ReplayFixture,
+    respx_mock: respx.MockRouter,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Test doubles: each table refused with HTTP 401 once, then its recorded answer."""
+    for name in QCL_TABLES:
+        dimension = name.split("_")[0]
+        recorded = load_fixture(FIXTURES / CODES / f"{name}.json").response
+        respx_mock.get(f"{BASE_URL}/en/codes/{dimension}/QCL").mock(
+            side_effect=[
+                httpx.Response(401),
+                httpx.Response(200, headers=recorded.headers, content=recorded.content),
+            ]
+        )
+    qcl_run(monkeypatch, tmp_path)
+    script.refresh()
+    assert len(respx_mock.calls) == 10, "the first login, then a refusal and a login per table"
+    printed = capsys.readouterr().out.splitlines()
+    assert "requests sent: 10, logins among them: 4; quota left: not reported" in printed

@@ -24,11 +24,14 @@ paragraph says.
 The package's client sends each request once, ``RetryPolicy(max_attempts=1)``, so a 5xx
 or a 429 spends no second keyed call: a run that fails writes nothing and is run again.
 After the fetches it prints the requests it sent, the logins among them, and the quota
-left that upstream reported, a failed run's too; FAOSTAT reports none (``QUOTA_HEADER``).
+left that upstream reported, a failed run's too, a refused login and a failed renewal
+included; FAOSTAT reports none (``QUOTA_HEADER``). A request that fails in transport is
+not counted: its error ends the run.
 ``--only <list> [<list> ...]`` fetches the named tables alone, writes their files and
 keeps every other table's file as it is, as a change that packages a new table does; the
 provenance rows and ``enums.py`` are then written from all of them, so every table it
-keeps must be packaged already, which is checked before the first request.
+keeps must be packaged already. That, the names ``--only`` takes and the provenance table
+of ``reference/README.md`` are checked before the first request.
 
 ``--render-only`` regenerates ``enums.py`` from the packaged ``reference/*.json`` alone,
 without a request and without a key: after a core release changes the renderer
@@ -72,7 +75,7 @@ from xippios.core import AsyncClient, PackagedList, RetryPolicy, UpstreamModel, 
 from xippios.core.reference import id_name_pairs, render_enums
 
 from xippios.faostat import api
-from xippios.faostat._client import auth, client
+from xippios.faostat._client import LoginAuth, auth, client
 from xippios.faostat.models import CodeItem
 from xippios.faostat.params import DIMENSIONS, DOMAINS, PACKAGED_LISTS, table_name
 
@@ -170,9 +173,11 @@ class Meter:
     calls the hook the client had first, a quota policy's say (sdk-core ADR-0037), and keeps
     the last count that upstream sent in ``QUOTA_HEADER``. A request is counted by its
     response: with no retry each has one, but for one that fails in transport, whose error
-    ends the run. The login runs inside the client's auth flow, below the hook, so it is
-    counted from the response's ``history``, where httpx keeps the exchanges of the flow
-    that came before it: a login, and a refused request with the login after it.
+    ends the run. The login runs inside the client's auth flow, below the hook, so
+    ``metered`` counts it where the flow builds it, through ``exchanged``, whether it is
+    then answered or refused: a login the flow builds for a signed request renews a token
+    that request was refused with, and the refused request is counted with it. The
+    script's requests go one at a time, so no other request's login renews that token.
     """
 
     def __init__(self, observe: Callable[[httpx.Response], None] | None) -> None:
@@ -182,18 +187,25 @@ class Meter:
         self._observe = observe
 
     def __call__(self, response: httpx.Response) -> None:
-        """Count ``response`` and the flow's before it, keep the quota it reports."""
+        """Count ``response`` and keep the quota it reports, after the hook it replaces."""
         if self._observe is not None:
             self._observe(response)
-        self.sent += 1 + len(response.history)
-        self.logins += sum(
-            1
-            for earlier in response.history
-            if earlier.request.method == "POST" and earlier.request.url == auth.login_url
-        )
+        self.sent += 1
         value = response.headers.get(QUOTA_HEADER) if QUOTA_HEADER else None
         if value is not None and value.isascii() and value.isdigit():
             self.left = int(value)
+
+    def exchanged(self, request: httpx.Request) -> None:
+        """Count a login built ahead of ``request``, and ``request`` where it was refused.
+
+        ``request`` carries a bearer only where the flow renews the token it was refused
+        with; the first login of a run, or one after the token lapsed, precedes an
+        unsigned request.
+        """
+        self.sent += 1
+        self.logins += 1
+        if "authorization" in request.headers:
+            self.sent += 1
 
     def report(self) -> str:
         """The requests sent, the logins among them and the quota left, one line."""
@@ -202,19 +214,31 @@ class Meter:
 
 
 @contextmanager
-def metered(target: AsyncClient) -> Iterator[Meter]:
+def metered(target: AsyncClient, login: LoginAuth) -> Iterator[Meter]:
     """``target`` for the block: one attempt per request, each counted, then the report.
 
     ``RetryPolicy(max_attempts=1)`` keeps a 5xx or a 429 from spending a second keyed
-    call. ``target``'s configuration is restored after the block, and the report is
-    printed, a failed run's too.
+    call. ``login``, ``target``'s auth, has its ``token_request`` wrapped for the block, so
+    each login it builds is counted, a refused one too. ``target``'s configuration and
+    ``login``'s method are restored after the block, and the report is printed, a failed
+    run's too.
     """
     configured = target.config
     meter = Meter(configured.observe)
+    build = login.token_request
+
+    def counted(request: httpx.Request) -> httpx.Request:
+        built = build(request)
+        meter.exchanged(request)
+        return built
+
     target.config = replace(configured, retry=RetryPolicy(max_attempts=1), observe=meter)
+    # The flow builds each login through the instance, so the wrapper sees every one.
+    login.token_request = counted  # type: ignore[method-assign]
     try:
         yield meter
     finally:
+        del login.token_request
         target.config = configured
         print(meter.report())  # noqa: T201
 
@@ -276,6 +300,16 @@ def provenance_rows() -> list[str]:
     return rows
 
 
+def check_provenance(readme: str) -> None:
+    """Stop unless ``readme`` holds the provenance table under ``PROVENANCE_HEADER``.
+
+    Raises:
+        SystemExit: ``readme`` holds no provenance table.
+    """
+    if PROVENANCE_HEADER not in readme.splitlines():
+        raise SystemExit(f"{README.name} has no table headed {PROVENANCE_HEADER!r}")
+
+
 def with_provenance(readme: str, rows: Sequence[str]) -> str:
     """``readme`` with the rows of its provenance table replaced by ``rows``.
 
@@ -285,9 +319,8 @@ def with_provenance(readme: str, rows: Sequence[str]) -> str:
     Raises:
         SystemExit: ``readme`` holds no provenance table.
     """
+    check_provenance(readme)
     lines = readme.splitlines()
-    if PROVENANCE_HEADER not in lines:
-        raise SystemExit(f"{README.name} has no table headed {PROVENANCE_HEADER!r}")
     start = lines.index(PROVENANCE_HEADER) + 2
     end = start
     while end < len(lines) and lines[end].startswith("|"):
@@ -300,8 +333,9 @@ def refresh(only: Sequence[str] = ()) -> None:
 
     ``only``, the tables ``--only`` names, fetches those alone and keeps every other
     table's file, which must be packaged already, since the provenance rows and the render
-    read every file. Both are checked before the first request, and every table is fetched
-    before the first file is written, each request sent once and counted.
+    read every file. Both, and the README's provenance table, are checked before the first
+    request, and every table is fetched before the first file is written, each request
+    sent once and counted.
     """
     names = [*LISTS, *ID_LISTS, *TABLES]
     if sorted(names) != sorted(PACKAGED_LISTS):
@@ -312,7 +346,8 @@ def refresh(only: Sequence[str] = ()) -> None:
     kept = [name for name in names if name not in chosen]
     if missing := [name for name in kept if not (REFERENCE / f"{name}.json").is_file()]:
         raise SystemExit(f"{', '.join(missing)} is not packaged yet: run without --only")
-    with metered(client):
+    check_provenance(README.read_text(encoding="utf-8"))
+    with metered(client, auth):
         lists = [
             *(
                 (name, packaged(name, endpoint, [{name: value} for value in sync(fetch)()]))
