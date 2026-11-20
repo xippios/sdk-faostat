@@ -12,8 +12,9 @@ lists it in a row of its own.
 Each note ends with its probe: the date, the operation and the sample. A sample recorded
 as a fixture is named by its path under `tests/fixtures/`, a sample file of the bulk
 downloads by its path under `tests/fixtures/files/`, whose `README.md` gives its
-provenance. The first probes of 2026-10-29, sent before the recordings, kept no answer:
-their notes name the request.
+provenance, and a file of this snapshot by its path under `docs/upstream/`, as the capture
+of 2026-11-20 wrote it. The first probes of 2026-10-29, sent before the recordings, kept no
+answer: their notes name the request.
 
 ## The data endpoint
 
@@ -141,10 +142,15 @@ Probe: 2026-10-29, `GET production/datasets_E.json` and the ZIPs its `FileLocati
 for RL and MDDW; samples `tests/fixtures/files/bulk-csv/RL_first_rows.zip` and
 `tests/fixtures/files/bulk-csv/MDDW.zip`.
 
-### `FileRows` miscounts a table
+### `FileRows` is recounted without a new release
 
-The catalogue's `FileRows` counts RL's table, 421,850 rows, but not MDDW's: it prints
-2,035 where the table holds 1,223 rows.
+The catalogue's `FileRows` is its own count of a table's rows, which changes while the
+dataset's `DateUpdate` and `FileSize` stay as they were. On 2026-10-29 it counted RL's
+table, 421,850 rows, but not MDDW's: it printed 2,035 where the table held 1,223 rows. On
+2026-11-20 it printed 1,223 for MDDW, and the `FileRows` of eight datasets, CB, EA, FBS,
+FO, HCES, MDDW, SCL and SUA, had changed with their `DateUpdate` and `FileSize` unchanged
+(FBS from 5,878,736 to 4,820,497). Only RL's and MDDW's tables were read.
 
-Probe: 2026-10-29, `GET production/datasets_E.json` and MDDW's ZIP; samples
-`tests/fixtures/datasets_e/all.json` and `tests/fixtures/files/bulk-csv/MDDW.zip`.
+Probe: 2026-10-29 and 2026-11-20, `GET production/datasets_E.json`, and MDDW's ZIP on
+2026-10-29; samples `tests/fixtures/datasets_e/all.json`,
+`docs/upstream/bulk/datasets_E.json` and `tests/fixtures/files/bulk-csv/MDDW.zip`.
