@@ -118,11 +118,24 @@ def test_a_page_left_out_has_a_row_in_not_fetched() -> None:
     assert lines[-1].startswith("Regenerate")
 
 
-def test_the_pages_the_snapshot_cites_unfetched_are_not_fetched_rows() -> None:
-    left_out = {page.url for page in script.NOT_FETCHED}
-    assert {script.REUSE_URL, script.DEV_SERVER["url"]} <= left_out
-    fetched = {script.SPEC_URL, script.DOCS_URL, script.PORTAL_URL, script.TERMS_URL}
-    assert not left_out & (fetched | {script.CATALOGUE_URL})
+def page(url: str) -> str:
+    """The page a link names: its fragment, which is never sent, and a trailing slash dropped."""
+    return url.split("#", 1)[0].rstrip("/")
+
+
+def test_every_page_the_documentation_links_is_fetched_or_not_fetched() -> None:
+    """The pages the documentation links, the terms' and the ReDoc copy's server among them,
+    and the folder of the ZIPs the catalogue names: each is fetched or a row of Not fetched,
+    never both (conventions §3)."""
+    left_out = {page(row.url) for row in script.NOT_FETCHED}
+    fetched = {page(url) for url in (script.SPEC_URL, script.DOCS_URL, script.PORTAL_URL)}
+    fetched |= {page(script.TERMS_URL), page(script.CATALOGUE_URL)}
+    assert not left_out & fetched
+    terms = (UPSTREAM / script.TERMS_FILE).read_text(encoding="utf-8")
+    linked = {page(url) for url in re.findall(r"\]\((https?://[^)\s]+)\)", terms)}
+    linked |= {page(script.DEV_SERVER["url"]), page(f"{script.BULK_BASE}/")}
+    assert len(linked) >= 19
+    assert sorted(linked - fetched - left_out) == []
 
 
 def test_the_committed_fetched_md_is_the_scripts_text() -> None:
