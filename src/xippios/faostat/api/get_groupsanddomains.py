@@ -5,9 +5,9 @@ operation ``get_groupsanddomains`` ("FAOSTAT groups and domains tree."), the pat
 parameter ``lang``. The document's answer schema names ``GroupCode``, ``GroupName``,
 ``DomainaCode`` and ``DomainName``; the recorded answers carry the fields of its
 ``DomainMetadata`` schema instead, ``group_code``, ``domain_code`` and their like
-(FETCHED.md; ``docs/upstream/samples/groupsanddomains.json``), which ``models.Domain``
-mirrors. The document's optional ``datasource`` and ``section`` are not wrapped: no task
-sends them.
+(``docs/upstream/OBSERVED.md``, ``docs/upstream/samples/groupsanddomains.json``), which
+``models.Domain`` mirrors. The document's optional ``datasource`` and ``section`` are not
+wrapped: no task sends them.
 """
 
 from urllib.parse import quote

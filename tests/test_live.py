@@ -4,7 +4,7 @@
 
 They need the FAO account: ``FAOSTAT_USERNAME`` and ``FAOSTAT_PASSWORD`` in the
 environment (``live.yml`` passes the org secrets to its ``pytest -m live`` step only).
-``get_data`` has one per domain of the design round's question 5 (G5, 2026-10-29): QCL,
+``get_data`` has one per domain whose tables the package ships (``params.DOMAINS``): QCL,
 TCL, FBS, PP and RL, each on the smallest slice with codes every one of them has, the
 United States of America (area 231) in 2020, cut to its first five rows with
 ``page_size=5`` and ``page_number=1``. ``get_series`` has one, on the replay tests'
@@ -52,7 +52,7 @@ from xippios.faostat.parse.bulk_csv import MEMBER_SUFFIX
 pytestmark = [pytest.mark.live, pytest.mark.anyio]
 
 DOMAINS = ("QCL", "TCL", "FBS", "PP", "RL")
-"""The domains of G5's question 5: production, trade, food balances, prices, land use."""
+"""The domains whose tables ship: production, trade, food balances, prices, land use."""
 SLICE: dict[str, Any] = {"area": "231", "year": 2020, "page_size": 5, "page_number": 1}
 """The smallest slice with codes every domain has: one area, one year, five rows."""
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")

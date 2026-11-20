@@ -37,10 +37,10 @@ of ``reference/README.md`` are checked before the first request.
 without a request and without a key: after a core release changes the renderer
 (conventions §15, item 6), it changes ``enums.py`` and nothing else.
 
-FAOSTAT's packaged lists are fifteen tables and no enum (Johannes, G5 2026-10-29,
-questions 3 and 5): the codes of the dimensions ``area``, ``element`` and ``item`` of the
-domains QCL, TCL, FBS, PP and RL (``params.DIMENSIONS``, ``params.DOMAINS``), each
-fetched through ``api.get_code_list`` (``getCodeList``, ``GET
+FAOSTAT's packaged lists are fifteen tables and no enum, as
+https://github.com/xippios/sdk-faostat/pull/4 packaged them: the codes of the dimensions
+``area``, ``element`` and ``item`` of QCL, TCL, FBS, PP and RL (``params.DIMENSIONS``,
+``params.DOMAINS``), each fetched through ``api.get_code_list`` (``getCodeList``, ``GET
 /en/codes/<dimension>/<domain>``, ``show_lists`` left to upstream's default) and written
 to ``reference/<dimension>_<domain>.json`` with the dimension as ``param``, the filter of
 the data endpoint that takes the codes, so ``LISTS`` and ``ID_LISTS`` stay empty and
@@ -50,9 +50,9 @@ the data endpoint filters by; the subdimension ids the OpenAPI document's exampl
 the files, the script rewrites the provenance table of ``reference/README.md`` from them,
 one row per file: the operation, the path, the fetch time. The API answers an account's
 requests only, so the script runs with the account's two variables in the environment,
-through ``direnv exec`` from the family workspace's root (``CLAUDE.md``)::
+through ``direnv exec .`` from the clone or a worktree (``CLAUDE.md``)::
 
-    direnv exec <workspace root> uv run python scripts/refresh_reference.py
+    direnv exec . uv run python scripts/refresh_reference.py
 
 One login and fifteen requests, paced by the package's client at 30 a minute; the login
 is not paced, since it runs inside the client's auth flow. A request refused with HTTP 401
@@ -92,7 +92,7 @@ PROVENANCE_HEADER = "| File | Origin | Fetched |"
 QUOTA_HEADER: str | None = None
 """The response header in which upstream reports the requests left in its quota: none,
 since FAOSTAT documents no quota and no answer carried an ``X-RateLimit-*``,
-``RateLimit-*`` or ``Retry-After`` header (``docs/upstream/FETCHED.md``)."""
+``RateLimit-*`` or ``Retry-After`` header (``docs/upstream/OBSERVED.md``)."""
 
 Values = Callable[[], Coroutine[Any, Any, Sequence[str]]]
 """An async fetcher of a list's values through ``api/``."""

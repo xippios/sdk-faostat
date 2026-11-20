@@ -6,7 +6,7 @@ Fifteen tables ship inside the package, one per dimension and domain: the codes 
 dimensions ``area``, ``element`` and ``item`` (``DIMENSIONS``) of the domains QCL, TCL,
 FBS, PP and RL (``DOMAINS``), each ``getCodeList``'s answer for
 ``codes/<dimension>/<domain>`` as ``scripts/refresh_reference.py`` fetched it, never
-written by hand (Johannes, G5 2026-10-29, questions 3 and 5). A file is named
+written by hand (https://github.com/xippios/sdk-faostat/pull/4). A file is named
 ``<dimension>_<domain>.json``, the domain's code as upstream writes it
 (``element_QCL.json``); its ``param`` is the dimension, the name of the data endpoint's
 filter that takes its codes (``"element"``), its ``endpoint`` ``getCodeList``, and its
@@ -17,7 +17,7 @@ sends.
 
 The element tables hold the codes a query filters by (``2510`` Production Quantity in
 QCL), which are not the ``Element Code`` the data rows print (``5510`` Production);
-nothing is translated between the two (sdk-core ADR-0028; G5 2026-10-29, question 10).
+nothing is translated between the two (sdk-core ADR-0028).
 No enum is generated from the tables; ``enums.py`` holds none. ``reference/README.md``
 carries the provenance of every file.
 """
@@ -49,8 +49,8 @@ DIMENSIONS: tuple[str, ...] = ("area", "element", "item")
 endpoint's filters are named: ``getCodeList``'s ``dimension_id``."""
 
 DOMAINS: tuple[str, ...] = ("QCL", "TCL", "FBS", "PP", "RL")
-"""The domains whose tables are packaged (G5 2026-10-29, question 5): Crops and livestock
-products, their trade, Food Balances (2010-), Producer Prices and Land Use."""
+"""The domains whose tables are packaged: Crops and livestock products, their trade, Food
+Balances (2010-), Producer Prices and Land Use (https://github.com/xippios/sdk-faostat/pull/4)."""
 
 
 def table_name(dimension: str, domain: str) -> str:
