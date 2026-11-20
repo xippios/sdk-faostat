@@ -7,22 +7,22 @@ given and returns the answer's rows; every request of the package to the API car
 FAO account's bearer token, ``_client.LoginAuth``'s. It sends ``lang=en`` and the output
 options the portal sends, fixed (``OUTPUT_OPTIONS``: ``show_codes``, ``show_unit``,
 ``show_flags`` and ``show_notes`` true, ``null_values`` false, ``output_type`` objects;
-not in the OpenAPI document, observed on 2026-10-29, FETCHED.md's "How this is
-captured"), and ``page_size`` and ``page_number`` only when given: the default is one
+not in the OpenAPI document, observed on 2026-10-29, ``docs/upstream/OBSERVED.md``),
+and ``page_size`` and ``page_number`` only when given: the default is one
 request for every row the query matches. Release metadata: the data answer carries no
 date, so ``meta.vintage`` is the domain's ``date_update`` as ``get_groupsanddomains``
 prints it (``"2025-12-31"``), read after the data answer through the cache (one request
 per process per five minutes), ``None`` for a domain the list lacks; ``meta.published_at``
-stays ``None``, since a date is no release time (conventions §4; queue row 263).
+stays ``None``, since a date is no release time (conventions §4).
 ``meta.total`` is ``None``: the answer counts no rows (sdk-core ADR-0034).
 
 ``get_series`` is one ``get_data`` request for an area, item and element over a year
 range: ``since`` and ``until`` become ``get_data``'s ``year`` filter, the years
 ``since..until`` as upstream's comma list, or no ``year`` filter when both are ``None``,
 which answers every year the domain holds; one without the other is refused before any
-request (Johannes, G5 2026-10-29, second round, question 15; sdk-core ADR-0028:
-upstream's own filter, nothing cut on the client). It composes the task, not the
-wrapper, as sdk-eurostat's slices compose theirs (queue row 90), so the filter refusal,
+request (https://github.com/xippios/sdk-faostat/pull/5; sdk-core ADR-0028: upstream's
+own filter, nothing cut on the client). It composes the task, not the wrapper, as
+sdk-eurostat's slices compose theirs (conventions §2), so the filter refusal,
 the code checks, ``classify`` and the meta rules are ``get_data``'s; its ``meta`` is
 ``get_data``'s, ``meta.request`` the year list sent plus ``since`` and ``until`` as
 given. One request, so no ceiling in conventions §4's sense; the rows keep upstream's
@@ -33,7 +33,7 @@ group and release dates, filtered by ``search`` in Python (``xippios.core.matche
 
 ``list_areas``, ``list_elements`` and ``list_items`` answer from the package's copies of
 ``getCodeList``'s ``codes/<dimension>/<domain>`` for QCL, TCL, FBS, PP and RL
-(``params``; Johannes, G5 2026-10-29, questions 3 and 5), without a request, filtered by
+(``params``; https://github.com/xippios/sdk-faostat/pull/4), without a request, filtered by
 ``search`` over code and label; ``meta`` is the packaged file's (``PackagedList.meta``:
 ``endpoint`` ``getCodeList``, ``retrieved_at`` the file's ``fetched``, ``vintage`` and
 ``total`` ``None``; sdk-core ADR-0041). With them ``get_data`` checks the area, element
@@ -41,13 +41,13 @@ and item codes of those five domains before it sends, since FAOSTAT answers an u
 code with no rows: a code the domain's table lacks is refused with core's
 ``UnknownCode``, naming the table, its fetch date and the closest codes (conventions §5;
 sdk-core ADR-0041, decision 8). The element tables hold the filter codes, not the codes
-the rows print, and nothing is translated between the two (sdk-core ADR-0028; G5,
-question 10).
+the rows print, and nothing is translated between the two (sdk-core ADR-0028;
+https://github.com/xippios/sdk-faostat/pull/3).
 
 ``list_bulk_datasets`` answers from the bulk downloads' catalogue, ``datasets_E.json`` on
 ``bulks-faostat.fao.org`` (``api.datasets_e``), fetched without the account and cached for
 five minutes, filtered by ``search`` over ``dataset_code`` and ``dataset_name``
-(Johannes, G5 2026-10-29, question 4); ``meta.endpoint`` is the catalogue's path
+(https://github.com/xippios/sdk-faostat/pull/6); ``meta.endpoint`` is the catalogue's path
 ``production/datasets_E.json``, ``meta.vintage`` ``None``, since the catalogue carries no
 version, and ``meta.total`` ``None``.
 
@@ -61,7 +61,7 @@ the account's token never goes to the bulk host (conventions §6);
 ``meta.published_at`` the same time, which the catalogue prints without a zone,
 ``published_at_naive`` set (conventions §4, sdk-core ADR-0041, decision 2). That is a
 time, unlike the API's date-only ``date_update``, which ``get_data`` keeps in
-``meta.vintage`` alone (queue row 263). ``meta.endpoint`` is the file kind as upstream
+``meta.vintage`` alone (conventions §4). ``meta.endpoint`` is the file kind as upstream
 names the member it holds, ``All_Data_(Normalized).csv`` (sdk-core ADR-0020, decision
 5), ``meta.request`` the domain and the file's URL.
 """
@@ -184,9 +184,9 @@ OUTPUT_OPTIONS: Mapping[str, bool | str] = {
     "null_values": False,
     "output_type": "objects",
 }
-"""The output options ``get_data`` sends, those the portal sends (FETCHED.md, observed
-2026-10-29; not in the OpenAPI document): an answer without them carried the same 15
-columns."""
+"""The output options ``get_data`` sends, those the portal sends (observed 2026-10-29,
+``docs/upstream/OBSERVED.md``; not in the OpenAPI document): an answer without them
+carried the same 15 columns."""
 
 Codes = str | int | Sequence[str | int]
 """One code or several: ``"231"``, ``2020`` or ``["15", "27"]``."""

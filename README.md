@@ -128,9 +128,9 @@ food groups.
 }
 ```
 
-Tools are read-only and named `faostat_<verb>_<noun>`. Results are capped, at
-200 rows or 64 KB unless a tool has a cap of its own, with a note on how to see the rest.
-`--http` serves streamable HTTP instead of stdio.
+Tools are read-only and named `faostat_<verb>_<noun>`. Results are capped, at 200 rows or
+64 KB unless a tool has a cap of its own, with a note on how to see the rest, after the
+client fetched the whole answer. `--http` serves streamable HTTP instead of stdio.
 
 ## Status
 

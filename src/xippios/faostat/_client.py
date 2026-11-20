@@ -18,7 +18,7 @@ token. The token lives ``ExpiresIn`` seconds (3600 in the recorded login); it is
 that time less core's margin of 60 s, and the first request after it logs in again. A
 request answered with HTTP 401 or 403 (``REFUSED``) logs in once more and is sent again,
 once: a second 401 or 403 goes back to core, whose status mapping raises ``AuthError``.
-So a request logs in at most twice (queue row 252). The login runs inside the request's
+So a request logs in at most twice (sdk-core ADR-0025). The login runs inside the request's
 ``httpx`` auth flow, below core's limiter, hooks, cache and ``classify``: a login is not
 paced, observed or cached. A login refused with HTTP 401 or 403, or with HTTP 400 and
 Cognito's ``UserNotFoundException`` (recorded for an unknown user) or
@@ -37,13 +37,13 @@ upstream's ``__type``, never a value. ``ENV_VARS`` names the two variables for a
 
 The developer portal (https://www.fao.org/faostat/en/#developer-portal) draws in the
 browser with a guest token of its own; this package does not use it, it logs in with
-the account (Johannes, G5 2026-10-29, question 8).
+the account, as https://github.com/xippios/sdk-faostat/pull/3 decided.
 
 ``classify`` maps the login's refusal of the credentials, HTTP 400 with Cognito's
 ``UserNotFoundException`` or ``NotAuthorizedException`` (recorded under
 ``tests/fixtures/auth_login/``), to ``AuthError``, and the data endpoint's two recorded
 refusals, both HTTP 500 with a plain text body (``Content-Type: text/plain``;
-FETCHED.md, "How this is captured"; ``tests/fixtures/get_data/``): ``Please add at least
+``docs/upstream/OBSERVED.md``; ``tests/fixtures/get_data/``): ``Please add at least
 one filter.`` to ``InvalidRequestError`` and ``Index: 0, Size: 0``, an unknown domain, to
 ``NotFoundError`` naming the domain. Everything else falls through to core's status
 mapping: the 401 ``Missing Authorization Header`` and the 403 ``Authentication Failed``

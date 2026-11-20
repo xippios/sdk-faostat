@@ -14,7 +14,7 @@ follows, sdk-core's conventions among them, are listed under
 | API base URL | `https://faostatservices.fao.org/api/v1` |
 | Bulk host | `https://bulks-faostat.fao.org/production`, the bulk downloads' catalogue and ZIPs, sent without the account through the API's one client: 30 requests per minute, burst 1, shared with the API, a self-imposed pace, since FAO documents no limit for either host |
 | Documentation | FAO's OpenAPI document, https://www.fao.org/faostat/en/docs/faostat_openapi.yaml (`SPEC_URL` of `scripts/refresh_upstream.py`; no page links it), kept verbatim as `docs/upstream/openapi/faostat_openapi.yaml`, and the ReDoc page that renders it, https://www.fao.org/faostat/en/docs/redoc-static.html (`/refresh-upstream`) |
-| Credentials | a FAO account: `FAOSTAT_USERNAME` (the account's e-mail) and `FAOSTAT_PASSWORD` from the environment, both in `ENV_VARS`; the package logs in at `POST /auth/login` (operation `auth_login`) through core's `RenewingBearerAuth` and sends the access token as a bearer (queue row 252); the nightly `live.yml` passes both as org secrets |
+| Credentials | a FAO account: `FAOSTAT_USERNAME` (the account's e-mail) and `FAOSTAT_PASSWORD` from the environment, both in `ENV_VARS`; the package logs in at `POST /auth/login` (operation `auth_login`) through core's `RenewingBearerAuth` and sends the access token as a bearer (sdk-core ADR-0025, amendment 2026-11-18, point c); the nightly `live.yml` passes both as org secrets |
 | Rate limit | 30 requests per minute, burst 1; a self-imposed pace: upstream documents no per-second or per-minute limit (sdk-core ADR-0033); enforced client-side in `_client.py`; FAOSTAT documents no hourly or daily quota, so no `QuotaPolicy` is installed |
 | Write tools | no, this package is read-only |
 | Files | the bulk downloads on `bulks-faostat.fao.org`, without the account: the catalogue `production/datasets_E.json` (`api.datasets_e`) and one ZIP per dataset, holding its normalized table `<Name>_E_All_Data_(Normalized).csv` beside small code lists, the file kind `bulk-csv`, read by `parse/bulk_csv.py`, the ZIP opened with the standard library's `zipfile` and its table's rows read through core's `decode_csv`, the header alone through `csv`; the parser tests read the samples under `tests/fixtures/files/`, their provenance in its `README.md` (sdk-core ADR-0020) |
@@ -43,8 +43,8 @@ src/xippios/faostat/
                    bulk_csv.py, parse_bulk_csv, a bulk ZIP's normalized table, a generator
   tasks.py         task functions; __all__ is what the adapters register, but BULK_TASKS,
                    the Python-only ones (download_dataset); MCP_CAPS any per-tool result
-                   caps; get_series composes get_data, one request with a year list (queue
-                   row 90); list_bulk_datasets and download_dataset read the bulk catalogue
+                   caps; get_series composes get_data (conventions §2), one request with a year
+                   list; list_bulk_datasets and download_dataset read the bulk catalogue
   mcp.py           xippios-faostat-mcp entry point: build(), the tool set a host serves,
                    and server, built from it
   http.py          FastAPI router
@@ -79,13 +79,13 @@ tests/
   test_parse.py    parse_bulk_csv on the samples under tests/fixtures/files/bulk-csv/
   test_refresh_reference.py  the refresh script on the recorded code lists, and the
                    committed tables and provenance rows against each other
-  test_refresh_upstream.py   the capture script's FETCHED.md, offline
+  test_refresh_upstream.py   the capture script's FETCHED.md and OBSERVED.md's notes, offline
   test_tasks.py    per-task replay tests
   test_live.py     @pytest.mark.live smoke tests, one per task and one per domain for
                    get_data; a run sends nine keyed requests and three without the
                    account, as its docstring counts
 docs/
-  upstream/        documentation snapshot and FETCHED.md
+  upstream/        documentation snapshot, FETCHED.md and OBSERVED.md, the notes by hand
   adr/             this package's design decisions, one NNNN-<slug>.md record each, laid
                    out in its README.md
   adr.md           the index of the decisions, written by scripts/adr_index.py, never by hand
@@ -120,7 +120,7 @@ uv run pytest -m live --tb=short --assert=plain   # needs XIPPIOS_LIVE_TESTS=1, 
 
 # refreshes the fifteen code tables under reference/: one login and fifteen requests, each
 # sent once, the count printed; --only element_QCL ... fetches the tables named alone
-direnv exec <workspace root> uv run python scripts/refresh_reference.py
+direnv exec . uv run python scripts/refresh_reference.py
 
 uv run xippios-faostat-mcp   # stdio; add --http for streamable HTTP
 ```
@@ -219,10 +219,10 @@ semantics or the shape of the public API.
 
 `FAOSTAT_USERNAME`, `FAOSTAT_PASSWORD` and a token are never read by value, printed,
 logged or compared, and `.envrc` is never read; code reads the two variables by name. They
-reach a process only through `direnv exec` from the family workspace's root, whose
-`.envrc` holds them, or through the org secrets. No process listing or environment dump
-(`env`, `printenv`, `set`, `export`, `ps`, `/proc/*/environ`): the shell's command line
-carries exported values. The portal's anonymous path, a guest token from
+reach a process only through `direnv exec .` from the clone or a worktree, which loads
+them from an `.envrc` that git ignores, or through the org secrets. No process listing or
+environment dump (`env`, `printenv`, `set`, `export`, `ps`, `/proc/*/environ`): the shell's
+command line carries exported values. The portal's anonymous path, a guest token from
 `GET /api/v1/auth/guest` (403 to a plain client, and not in the OpenAPI document), is not
 used.
 
@@ -232,7 +232,7 @@ used.
 `read_token` and `token_refused`, logs in once per process (`auth_login`, `POST
 /auth/login`, form fields `username` and `password`), keeps the access token alone, a
 `SecretStr`, for its `ExpiresIn` less 60 s, and logs in once more on a 401 or 403
-(`renew_on`; queue row 252). The login runs inside `httpx`'s auth flow, below core's
+(`renew_on`; sdk-core ADR-0025). The login runs inside `httpx`'s auth flow, below core's
 limiter and hooks, so the 30-per-minute pace does not pace it, and two requests that start
 together before the first login answers wait for it and log in once. A login refused with
 HTTP 400 and Cognito's `UserNotFoundException` or `NotAuthorizedException` is
@@ -246,8 +246,8 @@ as both variables (`xippios_placeholder_key_envs` in `pyproject.toml`); the repl
 
 A recording that spends the account's calls:
 
-- runs through `direnv exec <workspace root> uv run python <script>` from the
-  repository, with `RetryPolicy(max_attempts=1)`; the script reads the two variables by name
+- runs through `direnv exec . uv run python <script>` from the clone or a
+  worktree, with `RetryPolicy(max_attempts=1)`; the script reads the two variables by name
   inside Python and prints fixture paths and statuses only;
 - scrubs with one `Scrub(secrets=[...])` naming the user name and the password, each as
   given and percent-encoded (`urllib.parse.quote(value, safe="")` and `quote_plus`, the
@@ -276,16 +276,16 @@ Production), and a filter with the answer's code matches nothing. See
 `docs/upstream/samples/codes_element_QCL.json` and
 `docs/upstream/samples/data_QCL_231_2510_15_2015-2021.json`. The packaged element tables
 hold the filter codes, so `get_data` refuses `element=5510` on QCL naming `2510`; nothing
-is translated between the two systems (sdk-core ADR-0028; G5 2026-10-29, question 10).
+is translated between the two systems (sdk-core ADR-0028).
 
 ### The packaged code tables
 
 `reference/` holds fifteen tables, `getCodeList`'s answers for `codes/<dimension>/<domain>`
-of the dimensions `area`, `element` and `item` of QCL, TCL, FBS, PP and RL (Johannes, G5
-2026-10-29, questions 3 and 5), each `<dimension>_<domain>.json` with the dimension as
-`param` and `getCodeList` as `endpoint`, upstream's records as sent (`CodeItem.dump_upstream`
-leaves out a named field the record lacked). `scripts/refresh_reference.py` fetches them
-with the account, through `direnv exec <workspace root>` like a recording, and rewrites
+of the dimensions `area`, `element` and `item` of QCL, TCL, FBS, PP and RL, the domains
+https://github.com/xippios/sdk-faostat/pull/4 packaged, each `<dimension>_<domain>.json`
+with the dimension as `param` and `getCodeList` as `endpoint`, upstream's records as sent
+(`CodeItem.dump_upstream` leaves out a named field the record lacked), fetched with the
+account by `scripts/refresh_reference.py` through `direnv exec .`, which also rewrites
 the provenance rows of `reference/README.md`; no enum is generated. They come from the
 dimension ids, which the data endpoint filters by, not from the subdimension ids the
 OpenAPI document's examples name: `codes/countries/QCL` answers QCL's 210 countries,
@@ -332,8 +332,8 @@ one a `zip` of `csv`, `DateUpdate` a time without a zone (`2026-10-02T00:00:00`)
 own: RL's header is `Area Code, Area Code (M49), Area, Item Code, Item, Element Code,
 Element, Year Code, Year, Unit, Value, Flag, Note`, the M49 code printed with a leading
 apostrophe (`'004`), `Value` with six decimals; MDDW's prints no area, item or year
-(`models.BulkRecord` keeps such columns in `columns`). The catalogue's `FileRows` counts
-RL's table (421,850) but not MDDW's (2,035, where the table holds 1,223 rows). `Item
+(`models.BulkRecord` keeps such columns in `columns`). The catalogue's `FileRows` is its
+own count, recounted without a new release (`docs/upstream/OBSERVED.md`). `Item
 Code (CPC)`, which the OpenAPI document's `DataResponse` names, is expected in QCL's and
 TCL's tables, whose ZIPs (33 MB, 267 MB) were not fetched.
 
@@ -342,4 +342,4 @@ TCL's tables, whose ZIPs (33 MB, 267 MB) were not fetched.
 Paging (`page_size` with `page_number`, `limit` with `offset`), `no_records`, the `show_*`
 and `null_values` options, the coding-system parameters `area_cs` and `item_cs`, the
 refusals (HTTP 500) and the absence of rate-limit headers were observed on 2026-10-29
-and are listed in `docs/upstream/FETCHED.md`, under "How this is captured".
+and are noted, each with its probe, in `docs/upstream/OBSERVED.md`.

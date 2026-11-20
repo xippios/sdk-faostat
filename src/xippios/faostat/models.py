@@ -4,7 +4,7 @@ Conventions §3 and ``/add-endpoint`` give the rules.
 
 The names come from the OpenAPI document (``docs/upstream/openapi/faostat_openapi.yaml``)
 where its schemas match the answers, and from the recorded answers where they do not
-(FETCHED.md, "How this is captured": the answers' field names differ from the document's
+(``docs/upstream/OBSERVED.md``: the answers' field names differ from the document's
 schemas). ``Auth`` and ``AuthenticationResult`` are ``auth_login``'s answer, the
 document's ``Auth`` schema; ``DataResponse`` with ``DataMetadata``, ``DsdColumn`` and
 ``DataRecord`` is ``get_data``'s, the document's ``DataResponse`` schema as the recorded
@@ -181,8 +181,8 @@ class DataRecord(_KeepsColumns):
     (``tests/fixtures/get_data/QCL_840_M49_15_2510_2020.json``, no rows); such a row has
     ``area_code`` or ``item_code`` ``None`` and its coded column in ``columns``. The
     OpenAPI document's ``DataResponse`` spells the two columns ``Area Code (M49)`` and
-    ``Item Code (CPC)``; a query without ``area_cs`` and ``item_cs`` prints ``Area Code``
-    and ``Item Code`` (FETCHED.md). Every value is text as printed but ``value``.
+    ``Item Code (CPC)``; a query without ``area_cs`` and ``item_cs`` prints ``Area Code`` and
+    ``Item Code`` (``docs/upstream/OBSERVED.md``). Every value is text as printed but ``value``.
 
     ``element_code`` is the code the answer prints, which is not the code a query filters
     by: a query with ``element=2510`` (Production Quantity in ``codes/element/QCL``)

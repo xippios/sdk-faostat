@@ -15,7 +15,7 @@ FAOSTAT documents its API in an OpenAPI document, ``SPEC_URL``, which the ReDoc 
   fetched with the FAO account's bearer token (test fixtures are recorded separately,
   never here);
 - ``FETCHED.md``: regenerated whole, one row per file and per page recorded without a
-  file, the ReDoc page and the portal's application shell.
+  file, the ReDoc page and the portal's application shell, and ``NOT_FETCHED``'s table.
 
 Everything is fetched before anything is written, one request at a time after a pause,
 and every page is checked: a page the script does not recognise, or one that states a
@@ -29,7 +29,7 @@ printed, logged, written or returned; a failed login prints its status only. Fil
 the subdirectories the run writes to that it does not produce are removed; nothing else
 under ``docs/upstream/`` is touched, and ``OBSERVED.md``, the notes written by hand, gets a
 row of ``FETCHED.md`` where it exists. Run from the repository root, the two variables set
-(the family runs it through ``direnv exec``, which sets them for the script's process)::
+(``direnv exec .`` from the clone or a worktree sets them for the script's process)::
 
     uv run scripts/refresh_upstream.py              # fetch, then write the snapshot
     uv run scripts/refresh_upstream.py --check      # fetch and compare; write nothing
@@ -1158,40 +1158,95 @@ CAPTURE = (
         "`metadata.processing_time` changes on every request, which `--check` disregards. "
         "They are structural samples; test fixtures are recorded separately."
     ),
-    (
-        "What the API does that the OpenAPI document does not state, observed in probes on "
-        "2026-10-29 and not documented (the document lists none of these parameters for "
-        "`get_data`; `no_records` and `null_values` appear only under `post_datasize`, "
-        "`limit` only under `post_rankings`):"
-    ),
 )
 """``FETCHED.md``'s "How this is captured": what is converted, cut or left out, and why."""
 
-OBSERVED = (
-    "`page_size` with `page_number`, and `limit` with `offset`, page the data answer "
-    "(`page_size=2&page_number=2` answered rows 3 and 4, `limit=2&offset=0` rows 1 and 2); "
-    "without them the whole answer comes in one body (30,942 rows, 9.3 MB); no maximum page "
-    "size was found (`page_size=60000` answered 60,000 rows).",
-    '`no_records=true` answers `[{"NoRecords": N}]` only, `N` the number of rows, printed as '
-    "a float (`1643610.0`) for a large count.",
-    "The data endpoint takes the options `show_codes`, `show_unit`, `show_flags`, "
-    "`show_notes` and `null_values`, which the portal sends; an answer without them carried "
-    "the same 15 columns.",
-    "`area_cs` and `item_cs` name the coding system of the codes sent: with `area_cs=FAO` "
-    "and `item_cs=FAO` the columns are `Area Code (FAO)` and `Item Code (FAO)`; without them "
-    "the codes are FAO's, under `Area Code` and `Item Code`.",
-    "The element codes a query filters by are not the answer's `Element Code`: `element=2510` "
-    "(Production Quantity, as `codes/element/QCL` lists it) answers rows with `Element Code` "
-    "`5510`, and `element=5510` answers no rows, as any unknown code does.",
-    "A data query with no filter is refused with HTTP 500 and the body `Please add at least "
-    "one filter.`; an unknown domain with HTTP 500 `Index: 0, Size: 0`.",
-    "No answer carried an `X-RateLimit-*`, `RateLimit-*` or `Retry-After` header.",
-    "The answers' field names differ from the document's schemas: `groupsanddomains` "
-    "answers `group_code`, `domain_code` and their like, not `GroupCode` and `DomainaCode`; "
-    "the data answer `Area Code` and `Item Code`, not `Area Code (M49)` and "
-    "`Item Code (CPC)`; the samples show them.",
+
+@dataclass(frozen=True)
+class NotFetched:
+    """A page the documentation links that the snapshot deliberately does not request.
+
+    Attributes:
+        url: The page.
+        reason: Why: a feed, a third-party specification (cited, not snapshotted), an API
+            answer, a page that is no API documentation.
+    """
+
+    url: str
+    reason: str
+
+
+ANNEX_1 = (
+    (
+        "https://app.amis-outlook.org/#/market-database/supply-and-demand-overview",
+        "Agricultural Market Information Systems (AMIS)",
+    ),
+    ("https://www.fao.org/aid-monitor/en/", "AIDmonitor"),
+    ("https://data-in-emergencies.fao.org/", "Data in Emergencies Hub (DIEM)"),
+    (
+        "https://www.fao.org/dad-is/data/en/",
+        "Domestic Animal Diversity Information System (DAD-IS)",
+    ),
+    ("https://dataexplorer.fao.org/", "FAODATA Explorer"),
+    (
+        "https://www.fao.org/infoods/infoods/tables-and-databases/faoinfoods-databases/en/",
+        "FAO/INFOODS Food Composition Databases",
+    ),
+    ("https://www.fao.org/fishery/en/fishstat", "Fisheries and Aquaculture (FishStat)"),
+    (
+        "https://www.fao.org/giews/food-prices/tool/public/",
+        "Food Price Monitoring and Analysis (FPMA) Tool",
+    ),
+    ("https://empres-i.apps.fao.org/", "Global Animal Disease Information System (EMPRES-i +)"),
+    ("https://fra-data.fao.org/assessments/fra/2020/", "Global Forest Resources Assessments (FRA)"),
+    (
+        "https://www.fao.org/gift-individual-food-consumption/en",
+        "Global Individual Food Consumption (FAO/WHO GIFT)",
+    ),
+    (
+        "https://www.fao.org/nr/water/aquastat/data/query/index.html?lang=en",
+        "Global Information System on Water and Agriculture (AQUASTAT)",
+    ),
+    ("https://www.fao.org/hih-geospatial-platform/en", "Hand-in-Hand (HiH) Geospatial Platform"),
+    ("https://data.apps.fao.org/wapor/?lang=en", "WaPOR"),
+    (
+        "https://www.fao.org/wiews/data/domains/monitoring-framework/en/",
+        "World Information and Early Warning System on Plant Genetic Resources for Food and "
+        "Agriculture (WIEWS)",
+    ),
 )
-"""Upstream behaviour the document does not state, with the date it was observed."""
+"""The databases that Annex 1 of the terms links beside FAOSTAT, whose portal has its row,
+each URL as linked and its name as the annex prints it."""
+
+NOT_FETCHED: tuple[NotFetched, ...] = (
+    NotFetched(
+        REUSE_URL,
+        "FAO's Terms and Conditions regarding the Reuse of Web content, which the terms page "
+        "links and incorporates by reference: terms of the website, no API documentation; "
+        "cited under Attribution",
+    ),
+    NotFetched(
+        "https://creativecommons.org/licenses/by/4.0/legalcode.en",
+        "the CC BY 4.0 licence, which the terms page links: a third-party licence, cited, "
+        "not snapshotted; the terms quote its name",
+    ),
+    NotFetched(
+        DEV_SERVER["url"],
+        "the development server that the ReDoc page's copy of the document lists before the "
+        "document's one, \N{LEFT DOUBLE QUOTATION MARK}available for testing purposes only on "
+        "FAO network\N{RIGHT DOUBLE QUOTATION MARK}: an API server, no documentation",
+    ),
+    NotFetched(
+        f"{BULK_BASE}/",
+        "the folder of the ZIPs that the catalogue's `FileLocation` names, one per dataset: "
+        "data, no documentation; `download_dataset` fetches one on a caller's request",
+    ),
+    *(
+        NotFetched(url, f"{name}, a database that Annex 1 of the terms lists: no API documentation")
+        for url, name in ANNEX_1
+    ),
+)
+"""Every page the documentation links that the snapshot deliberately does not request."""
 
 
 def _iso_http_date(value: str | None) -> str:
@@ -1298,19 +1353,17 @@ def render_fetched(rows: Sequence[Row], fetched: str, *, observed: bool = False)
         ),
         "## How this is captured",
         "",
-        *[line for paragraph in CAPTURE for line in _paragraph(paragraph)][:-1],
-        "",
-        *[line for item in OBSERVED for line in _bullet(item)],
-        "",
+        *[line for paragraph in CAPTURE for line in _paragraph(paragraph)],
         *_paragraph(
             "Fetched is the UTC time the run started, in ISO 8601 with an explicit Z, the",
             "same for every row. Bytes and sha256 are those of the body as fetched: a",
             "converted page's row holds the HTML page's. Last-Modified is the HTTP header in",
             "UTC, ETag as sent. A page recorded without a file is `(no file)`. Requests go",
             f"one at a time, {PAUSE:g} s apart, identified as `{USER_AGENT}`; a keyless one is",
-            "retried at most once, a keyed one never. No API key exists. The four samples are",
-            "fetched with the account's bearer token after one login; no other request sends",
-            "a credential, and neither the credentials nor the token is written.",
+            "retried at most once, a keyed one never. The API takes no API key but a FAO",
+            "account: the four samples are fetched with the account's bearer token after one",
+            "login; no other request sends a credential, and neither the credentials nor the",
+            "token is written.",
         ),
         "## Files and pages",
         "",
@@ -1326,7 +1379,7 @@ def render_fetched(rows: Sequence[Row], fetched: str, *, observed: bool = False)
             str(response.status),
             str(len(response.body)) if kept else "-",
             hashlib.sha256(response.body).hexdigest() if kept else "-",
-            (response.etag or "-") if kept else "-",
+            f"`{response.etag}`" if kept and response.etag else "-",
             _iso_http_date(response.last_modified) if kept else "-",
             _note(row),
         ]
@@ -1334,6 +1387,12 @@ def render_fetched(rows: Sequence[Row], fetched: str, *, observed: bool = False)
     if observed:
         hand = "written by hand: what upstream does but never documents; not fetched or checked"
         lines.append("| " + " | ".join([OBSERVED_FILE, *["-"] * 7, hand]) + " |")
+    if NOT_FETCHED:
+        lines += ["", "## Not fetched", "", "| URL | HTTP | Redirects to | Reason |"]
+        lines.append("| --- | --- | --- | --- |")
+        for page in NOT_FETCHED:
+            cells = [page.url, "(not requested)", "-", page.reason]
+            lines.append("| " + " | ".join(_cell(cell) for cell in cells) + " |")
     lines += ["", f"Regenerate, with `{USERNAME_ENV}` and `{SECRET_ENV}` set: `{COMMAND}`"]
     return "\n".join(lines) + "\n"
 
