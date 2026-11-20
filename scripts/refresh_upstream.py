@@ -1164,17 +1164,59 @@ CAPTURE = (
 
 @dataclass(frozen=True)
 class NotFetched:
-    """A page the snapshot cites that it deliberately does not request (conventions §3).
+    """A page the documentation links that the snapshot deliberately does not request.
 
     Attributes:
         url: The page.
-        reason: Why: terms of the website, a third-party licence, a server on FAO's own
-            network.
+        reason: Why: a feed, a third-party specification (cited, not snapshotted), an API
+            answer, a page that is no API documentation.
     """
 
     url: str
     reason: str
 
+
+ANNEX_1 = (
+    (
+        "https://app.amis-outlook.org/#/market-database/supply-and-demand-overview",
+        "Agricultural Market Information Systems (AMIS)",
+    ),
+    ("https://www.fao.org/aid-monitor/en/", "AIDmonitor"),
+    ("https://data-in-emergencies.fao.org/", "Data in Emergencies Hub (DIEM)"),
+    (
+        "https://www.fao.org/dad-is/data/en/",
+        "Domestic Animal Diversity Information System (DAD-IS)",
+    ),
+    ("https://dataexplorer.fao.org/", "FAODATA Explorer"),
+    (
+        "https://www.fao.org/infoods/infoods/tables-and-databases/faoinfoods-databases/en/",
+        "FAO/INFOODS Food Composition Databases",
+    ),
+    ("https://www.fao.org/fishery/en/fishstat", "Fisheries and Aquaculture (FishStat)"),
+    (
+        "https://www.fao.org/giews/food-prices/tool/public/",
+        "Food Price Monitoring and Analysis (FPMA) Tool",
+    ),
+    ("https://empres-i.apps.fao.org/", "Global Animal Disease Information System (EMPRES-i +)"),
+    ("https://fra-data.fao.org/assessments/fra/2020/", "Global Forest Resources Assessments (FRA)"),
+    (
+        "https://www.fao.org/gift-individual-food-consumption/en",
+        "Global Individual Food Consumption (FAO/WHO GIFT)",
+    ),
+    (
+        "https://www.fao.org/nr/water/aquastat/data/query/index.html?lang=en",
+        "Global Information System on Water and Agriculture (AQUASTAT)",
+    ),
+    ("https://www.fao.org/hih-geospatial-platform/en", "Hand-in-Hand (HiH) Geospatial Platform"),
+    ("https://data.apps.fao.org/wapor/?lang=en", "WaPOR"),
+    (
+        "https://www.fao.org/wiews/data/domains/monitoring-framework/en/",
+        "World Information and Early Warning System on Plant Genetic Resources for Food and "
+        "Agriculture (WIEWS)",
+    ),
+)
+"""The databases that Annex 1 of the terms links beside FAOSTAT, whose portal has its row,
+each URL as linked and its name as the annex prints it."""
 
 NOT_FETCHED: tuple[NotFetched, ...] = (
     NotFetched(
@@ -1194,9 +1236,17 @@ NOT_FETCHED: tuple[NotFetched, ...] = (
         "document's one, \N{LEFT DOUBLE QUOTATION MARK}available for testing purposes only on "
         "FAO network\N{RIGHT DOUBLE QUOTATION MARK}: an API server, no documentation",
     ),
+    NotFetched(
+        f"{BULK_BASE}/",
+        "the folder of the ZIPs that the catalogue's `FileLocation` names, one per dataset: "
+        "data, no documentation; `download_dataset` fetches one on a caller's request",
+    ),
+    *(
+        NotFetched(url, f"{name}, a database that Annex 1 of the terms lists: no API documentation")
+        for url, name in ANNEX_1
+    ),
 )
-"""Every page the snapshot cites that it deliberately does not request, in ``FETCHED.md``'s
-table ``Not fetched`` with its reason."""
+"""Every page the documentation links that the snapshot deliberately does not request."""
 
 
 def _iso_http_date(value: str | None) -> str:
