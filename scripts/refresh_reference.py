@@ -53,8 +53,8 @@ through ``direnv exec`` from the family workspace's root (``CLAUDE.md``)::
 
 One login and fifteen requests, paced by the package's client at 30 a minute; the login
 is not paced, since it runs inside the client's auth flow. A request refused with HTTP 401
-or 403 logs in once more and is sent again once, so a run sends at most 32 requests, 16
-of them logins.
+or 403 logs in once more and is sent again once, so a run sends at most 46 requests, 16
+of them logins, all to the API's host under the account.
 """
 
 import argparse
