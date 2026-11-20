@@ -332,8 +332,8 @@ one a `zip` of `csv`, `DateUpdate` a time without a zone (`2026-10-02T00:00:00`)
 own: RL's header is `Area Code, Area Code (M49), Area, Item Code, Item, Element Code,
 Element, Year Code, Year, Unit, Value, Flag, Note`, the M49 code printed with a leading
 apostrophe (`'004`), `Value` with six decimals; MDDW's prints no area, item or year
-(`models.BulkRecord` keeps such columns in `columns`). The catalogue's `FileRows` counts
-RL's table (421,850) but not MDDW's (2,035, where the table holds 1,223 rows). `Item
+(`models.BulkRecord` keeps such columns in `columns`). The catalogue's `FileRows` is its
+own count, recounted without a new release (`docs/upstream/OBSERVED.md`). `Item
 Code (CPC)`, which the OpenAPI document's `DataResponse` names, is expected in QCL's and
 TCL's tables, whose ZIPs (33 MB, 267 MB) were not fetched.
 
