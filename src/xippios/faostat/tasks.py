@@ -274,7 +274,7 @@ def _check_codes(dimension: str, codes: str | None, domain: str) -> None:
 async def _date_update(domain: str) -> str | None:
     """The domain's ``date_update`` as ``get_groupsanddomains`` prints it, else ``None``."""
     answer = await api.get_groupsanddomains.get_groupsanddomains(LANG)
-    for row in answer.response.data:
+    for row in answer.payload.data:
         if row.domain_code == domain:
             return row.date_update
     return None
@@ -384,7 +384,7 @@ async def get_data_async(
         request={"lang": LANG, "domain_code": domain, **sent},
         total=None,
     )
-    return Result(data=answer.response.data, meta=meta)
+    return Result(data=answer.payload.data, meta=meta)
 
 
 get_data = sync(get_data_async)
@@ -494,7 +494,7 @@ async def list_domains_async(*, search: str | None = None) -> Result[list[Domain
     answer = await api.get_groupsanddomains.get_groupsanddomains(LANG)
     rows = [
         row
-        for row in answer.response.data
+        for row in answer.payload.data
         if matches(search, row.domain_code, row.domain_name, row.group_name)
     ]
     meta = ResultMeta(
@@ -677,7 +677,7 @@ async def list_bulk_datasets_async(*, search: str | None = None) -> Result[list[
     answer = await api.datasets_e.datasets_e()
     rows = [
         dataset
-        for dataset in answer.response.datasets.dataset
+        for dataset in answer.payload.datasets.dataset
         if matches(search, dataset.dataset_code, dataset.dataset_name)
     ]
     meta = ResultMeta(
@@ -730,7 +730,7 @@ async def download_dataset_async(domain: str, dest: str | os.PathLike[str]) -> R
     """
     target = _target(dest)
     answer = await api.datasets_e.datasets_e()
-    listed = {dataset.dataset_code: dataset for dataset in answer.response.datasets.dataset}
+    listed = {dataset.dataset_code: dataset for dataset in answer.payload.datasets.dataset}
     dataset = listed.get(domain)
     if dataset is None:
         near = closest(domain, {code: entry.dataset_name for code, entry in listed.items()})

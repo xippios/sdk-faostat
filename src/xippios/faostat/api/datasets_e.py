@@ -15,15 +15,14 @@ on 2026-10-29, is cached in the client's ``MemoryCache`` for five minutes, under
 8 MiB bound, shared with the keyed requests' cache.
 """
 
-from datetime import datetime
-from typing import Final, NamedTuple
+from typing import Final
 
-from xippios.core import parse
+from xippios.core import Answer
 
-from xippios.faostat._client import SOURCE, client
+from xippios.faostat._client import client
 from xippios.faostat.models import DatasetsCatalogue
 
-__all__ = ["BULK_URL", "ENDPOINT", "URL", "DatasetsCatalogueAnswer", "datasets_e"]
+__all__ = ["BULK_URL", "ENDPOINT", "URL", "datasets_e"]
 
 BULK_URL: Final = "https://bulks-faostat.fao.org/production"
 """Where the bulk files live: the catalogue and every dataset's ZIP (``FileLocation``)."""
@@ -35,25 +34,12 @@ URL: Final = f"{BULK_URL}/datasets_E.json"
 """The catalogue's URL, absolute: it is not under the client's base URL."""
 
 
-class DatasetsCatalogueAnswer(NamedTuple):
-    """What ``datasets_e`` returns: the catalogue and when it was retrieved.
-
-    Attributes:
-        response: The catalogue, parsed.
-        retrieved_at: Timezone-aware UTC: on a cache hit the time the entry was stored,
-            else the time the answer arrived (``AsyncClient.get_answer``).
-    """
-
-    response: DatasetsCatalogue
-    retrieved_at: datetime
-
-
-async def datasets_e() -> DatasetsCatalogueAnswer:
+async def datasets_e() -> Answer[DatasetsCatalogue]:
     """Fetch ``production/datasets_E.json``, the bulk catalogue, without the account.
 
     Returns:
-        The catalogue and when it was retrieved.
+        Core's ``Answer``: the catalogue, parsed, as ``payload``, and ``retrieved_at``,
+        timezone-aware UTC, on a cache hit the time the entry was stored, else the time
+        the answer arrived. An answer that does not parse is not cached.
     """
-    answer = await client.get_answer(URL, auth=None)
-    response = parse(DatasetsCatalogue, answer.payload, source=SOURCE, endpoint=ENDPOINT)
-    return DatasetsCatalogueAnswer(response=response, retrieved_at=answer.retrieved_at)
+    return await client.get_answer(URL, auth=None, parse=DatasetsCatalogue, endpoint=ENDPOINT)

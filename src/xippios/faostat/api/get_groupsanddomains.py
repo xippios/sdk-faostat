@@ -10,35 +10,20 @@ mirrors. The document's optional ``datasource`` and ``section`` are not wrapped:
 sends them.
 """
 
-from datetime import datetime
-from typing import NamedTuple
 from urllib.parse import quote
 
-from xippios.core import parse
+from xippios.core import Answer
 
-from xippios.faostat._client import SOURCE, client
+from xippios.faostat._client import client
 from xippios.faostat.models import GroupsAndDomainsResponse
 
-__all__ = ["ENDPOINT", "GroupsAndDomainsAnswer", "get_groupsanddomains"]
+__all__ = ["ENDPOINT", "get_groupsanddomains"]
 
 ENDPOINT = "get_groupsanddomains"
 """The operation's ``operationId``."""
 
 
-class GroupsAndDomainsAnswer(NamedTuple):
-    """What ``get_groupsanddomains`` returns: the answer and when it was retrieved.
-
-    Attributes:
-        response: The answer, parsed.
-        retrieved_at: Timezone-aware UTC: on a cache hit the time the entry was stored,
-            else the time the answer arrived (``AsyncClient.get_answer``).
-    """
-
-    response: GroupsAndDomainsResponse
-    retrieved_at: datetime
-
-
-async def get_groupsanddomains(lang: str) -> GroupsAndDomainsAnswer:
+async def get_groupsanddomains(lang: str) -> Answer[GroupsAndDomainsResponse]:
     """Call ``get_groupsanddomains``: every domain and subgroup with its group and release dates.
 
     Args:
@@ -46,8 +31,12 @@ async def get_groupsanddomains(lang: str) -> GroupsAndDomainsAnswer:
             ``es``).
 
     Returns:
-        The answer and when it was retrieved.
+        Core's ``Answer``: the answer, parsed, as ``payload``, and ``retrieved_at``,
+        timezone-aware UTC, on a cache hit the time the entry was stored, else the time
+        the answer arrived. An answer that does not parse is not cached.
     """
-    answer = await client.get_answer(f"/{quote(lang, safe='')}/groupsanddomains")
-    response = parse(GroupsAndDomainsResponse, answer.payload, source=SOURCE, endpoint=ENDPOINT)
-    return GroupsAndDomainsAnswer(response=response, retrieved_at=answer.retrieved_at)
+    return await client.get_answer(
+        f"/{quote(lang, safe='')}/groupsanddomains",
+        parse=GroupsAndDomainsResponse,
+        endpoint=ENDPOINT,
+    )

@@ -137,7 +137,7 @@ class Table(NamedTuple):
 async def fetch_codes(dimension: str, domain: str) -> list[CodeItem]:
     """The codes of ``dimension`` in ``domain`` through ``api.get_code_list``: one request."""
     answer = await api.get_code_list.get_code_list(LANG, dimension, domain)
-    return answer.response.data
+    return answer.payload.data
 
 
 def code_table(dimension: str, domain: str) -> Table:
