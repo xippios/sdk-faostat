@@ -11,14 +11,24 @@ an enum. Then ``enums.py`` is regenerated from the packaged files by one
 and an ``IntEnum`` per list of integer ids and names in ``ID_LISTS`` (``id_name_pairs``),
 so that a member compares equal to the id in upstream's data, each class naming the day
 its list was fetched; and formatted with ``ruff format`` and ``ruff check --fix``, as it
-is committed (ADR-0008). Where a member name derives to nothing, or two collide, name it
-by hand in ``render``'s call: ``render_enums(member_names=...)``, per list and value (an
-id for an ``IntEnum``).
+is committed (sdk-core ADR-0031). Where a member name derives to nothing, or two collide,
+name it by hand in ``render``'s call: ``render_enums(member_names=...)``, per list and
+value (an id for an ``IntEnum``); a class takes core's default name, from its list or its
+id field, unless ``render_enums(class_names=...)`` names it.
 
 Only lists that are the same for every caller are packaged; a multi-tenant source
-packages no tenant data (ADR-0014). Run from the repository root, with whatever the list
-endpoints need in the environment: FAOSTAT's take the account, as the last paragraph
-says.
+packages no tenant data (sdk-core ADR-0036). Run from the repository root, with whatever
+the list endpoints need in the environment: FAOSTAT's take the account, as the last
+paragraph says.
+
+The package's client sends each request once, ``RetryPolicy(max_attempts=1)``, so a 5xx
+or a 429 spends no second keyed call: a run that fails writes nothing and is run again.
+After the fetches it prints the requests it sent, the logins among them, and the quota
+left that upstream reported, a failed run's too; FAOSTAT reports none (``QUOTA_HEADER``).
+``--only <list> [<list> ...]`` fetches the named tables alone, writes their files and
+keeps every other table's file as it is, as a change that packages a new table does; the
+provenance rows and ``enums.py`` are then written from all of them, so every table it
+keeps must be packaged already, which is checked before the first request.
 
 ``--render-only`` regenerates ``enums.py`` from the packaged ``reference/*.json`` alone,
 without a request and without a key: after a core release changes the renderer
@@ -41,21 +51,28 @@ through ``direnv exec`` from the family workspace's root (``CLAUDE.md``)::
 
     direnv exec <workspace root> uv run python scripts/refresh_reference.py
 
-One login and fifteen requests, paced by the package's client at 30 a minute.
+One login and fifteen requests, paced by the package's client at 30 a minute; the login
+is not paced, since it runs inside the client's auth flow. A request refused with HTTP 401
+or 403 logs in once more and is sent again once, so a run sends at most 32 requests, 16
+of them logins.
 """
 
 import argparse
 import subprocess
 import sys
-from collections.abc import Callable, Coroutine, Sequence
+from collections.abc import Callable, Coroutine, Iterator, Sequence
+from contextlib import contextmanager
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, NamedTuple
 
-from xippios.core import PackagedList, UpstreamModel, sync
+import httpx
+from xippios.core import AsyncClient, PackagedList, RetryPolicy, UpstreamModel, sync
 from xippios.core.reference import id_name_pairs, render_enums
 
 from xippios.faostat import api
+from xippios.faostat._client import auth, client
 from xippios.faostat.models import CodeItem
 from xippios.faostat.params import DIMENSIONS, DOMAINS, PACKAGED_LISTS, table_name
 
@@ -69,6 +86,10 @@ LANG = "en"
 """The language the tables are fetched in, the tasks' ``lang``."""
 PROVENANCE_HEADER = "| File | Origin | Fetched |"
 """The header of ``reference/README.md``'s provenance table, whose rows the refresh writes."""
+QUOTA_HEADER: str | None = None
+"""The response header in which upstream reports the requests left in its quota: none,
+since FAOSTAT documents no quota and no answer carried an ``X-RateLimit-*``,
+``RateLimit-*`` or ``Retry-After`` header (``docs/upstream/FETCHED.md``)."""
 
 Values = Callable[[], Coroutine[Any, Any, Sequence[str]]]
 """An async fetcher of a list's values through ``api/``."""
@@ -142,6 +163,62 @@ TABLES: dict[str, Table] = {
 list tasks answer with, ``reference/<dimension>_<domain>.json``, fifteen of them."""
 
 
+class Meter:
+    """What a run spent: the requests it sent, the logins among them, and the quota left.
+
+    The client's ``observe`` hook, which core calls with every response from the wire. It
+    calls the hook the client had first, a quota policy's say (sdk-core ADR-0037), and keeps
+    the last count that upstream sent in ``QUOTA_HEADER``. A request is counted by its
+    response: with no retry each has one, but for one that fails in transport, whose error
+    ends the run. The login runs inside the client's auth flow, below the hook, so it is
+    counted from the response's ``history``, where httpx keeps the exchanges of the flow
+    that came before it: a login, and a refused request with the login after it.
+    """
+
+    def __init__(self, observe: Callable[[httpx.Response], None] | None) -> None:
+        self.sent = 0
+        self.logins = 0
+        self.left: int | None = None
+        self._observe = observe
+
+    def __call__(self, response: httpx.Response) -> None:
+        """Count ``response`` and the flow's before it, keep the quota it reports."""
+        if self._observe is not None:
+            self._observe(response)
+        self.sent += 1 + len(response.history)
+        self.logins += sum(
+            1
+            for earlier in response.history
+            if earlier.request.method == "POST" and earlier.request.url == auth.login_url
+        )
+        value = response.headers.get(QUOTA_HEADER) if QUOTA_HEADER else None
+        if value is not None and value.isascii() and value.isdigit():
+            self.left = int(value)
+
+    def report(self) -> str:
+        """The requests sent, the logins among them and the quota left, one line."""
+        left = "not reported" if self.left is None else f"{self.left} ({QUOTA_HEADER})"
+        return f"requests sent: {self.sent}, logins among them: {self.logins}; quota left: {left}"
+
+
+@contextmanager
+def metered(target: AsyncClient) -> Iterator[Meter]:
+    """``target`` for the block: one attempt per request, each counted, then the report.
+
+    ``RetryPolicy(max_attempts=1)`` keeps a 5xx or a 429 from spending a second keyed
+    call. ``target``'s configuration is restored after the block, and the report is
+    printed, a failed run's too.
+    """
+    configured = target.config
+    meter = Meter(configured.observe)
+    target.config = replace(configured, retry=RetryPolicy(max_attempts=1), observe=meter)
+    try:
+        yield meter
+    finally:
+        target.config = configured
+        print(meter.report())  # noqa: T201
+
+
 def packaged(
     name: str, endpoint: str, records: Sequence[dict[str, Any]], *, param: str | None = None
 ) -> PackagedList:
@@ -166,7 +243,6 @@ def render() -> None:
     """Regenerate ``enums.py`` from the packaged files and format it as it is committed."""
     lists: dict[str, Sequence[str] | Sequence[tuple[int, str]]] = {}
     fetched: dict[str, str] = {}
-    class_names: dict[str, str] = {}
     keys = [*LISTS, *(id_field for _, _, id_field, _ in ID_LISTS.values())]
     if len(set(keys)) < len(keys):
         raise SystemExit("an id field of ID_LISTS names a list of LISTS: one enum each")
@@ -178,8 +254,7 @@ def render() -> None:
         ids = read(name)
         lists[id_field] = id_name_pairs(ids.records, id_field=id_field, name_field=name_field)
         fetched[id_field] = f"{ids.fetched:%Y-%m-%d}"
-        class_names[id_field] = id_field[:1].upper() + id_field[1:]
-    module = render_enums(lists, fetched=fetched, class_names=class_names, generator=GENERATOR)
+    module = render_enums(lists, fetched=fetched, generator=GENERATOR)
     ENUMS.write_text(module, encoding="utf-8")
     sys.stdout.flush()
     for command in (["format"], ["check", "--fix"]):
@@ -220,31 +295,54 @@ def with_provenance(readme: str, rows: Sequence[str]) -> str:
     return "\n".join([*lines[:start], *rows, *lines[end:]]) + "\n"
 
 
-def refresh() -> None:
-    """Fetch every list, then write its file, then regenerate ``enums.py`` from the files."""
-    if sorted([*LISTS, *ID_LISTS, *TABLES]) != sorted(PACKAGED_LISTS):
+def refresh(only: Sequence[str] = ()) -> None:
+    """Fetch every table, then write its file, the provenance rows and ``enums.py``.
+
+    ``only``, the tables ``--only`` names, fetches those alone and keeps every other
+    table's file, which must be packaged already, since the provenance rows and the render
+    read every file. Both are checked before the first request, and every table is fetched
+    before the first file is written, each request sent once and counted.
+    """
+    names = [*LISTS, *ID_LISTS, *TABLES]
+    if sorted(names) != sorted(PACKAGED_LISTS):
         raise SystemExit("LISTS, ID_LISTS and TABLES name other lists than params.PACKAGED_LISTS")
-    lists = [
-        *(
-            packaged(name, endpoint, [{name: value} for value in sync(fetch)()])
-            for name, (endpoint, fetch) in LISTS.items()
-        ),
-        *(
-            packaged(name, endpoint, [record.dump_upstream() for record in sync(fetch)()])
-            for name, (endpoint, fetch, _, _) in ID_LISTS.items()
-        ),
-        *(
-            packaged(
-                name,
-                table.endpoint,
-                [record.dump_upstream() for record in sync(table.fetch)()],
-                param=table.param,
-            )
-            for name, table in TABLES.items()
-        ),
-    ]
+    if unknown := [name for name in only if name not in names]:
+        raise SystemExit(f"--only: no list {', '.join(unknown)} in {', '.join(names)}")
+    chosen = set(only or names)
+    kept = [name for name in names if name not in chosen]
+    if missing := [name for name in kept if not (REFERENCE / f"{name}.json").is_file()]:
+        raise SystemExit(f"{', '.join(missing)} is not packaged yet: run without --only")
+    with metered(client):
+        lists = [
+            *(
+                (name, packaged(name, endpoint, [{name: value} for value in sync(fetch)()]))
+                for name, (endpoint, fetch) in LISTS.items()
+                if name in chosen
+            ),
+            *(
+                (
+                    name,
+                    packaged(name, endpoint, [record.dump_upstream() for record in sync(fetch)()]),
+                )
+                for name, (endpoint, fetch, _, _) in ID_LISTS.items()
+                if name in chosen
+            ),
+            *(
+                (
+                    name,
+                    packaged(
+                        name,
+                        table.endpoint,
+                        [record.dump_upstream() for record in sync(table.fetch)()],
+                        param=table.param,
+                    ),
+                )
+                for name, table in TABLES.items()
+                if name in chosen
+            ),
+        ]
     REFERENCE.mkdir(exist_ok=True)
-    for name, fetched in zip([*LISTS, *ID_LISTS, *TABLES], lists, strict=True):
+    for name, fetched in lists:
         path = REFERENCE / f"{name}.json"
         fetched.write(path)
         print(f"{path.name}: {len(fetched.records)} records from {fetched.endpoint}")  # noqa: T201
@@ -255,19 +353,27 @@ def refresh() -> None:
     render()
 
 
-def main() -> None:
-    """Refresh from upstream, or with ``--render-only`` regenerate ``enums.py`` alone."""
+def main(argv: Sequence[str] | None = None) -> None:
+    """Refresh from upstream, some tables with ``--only``, or ``enums.py`` alone."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0] if __doc__ else None)
-    parser.add_argument(
+    choice = parser.add_mutually_exclusive_group()
+    choice.add_argument(
         "--render-only",
         action="store_true",
         help="regenerate enums.py from the packaged reference/*.json, without a request or a key",
     )
-    args = parser.parse_args()
+    choice.add_argument(
+        "--only",
+        nargs="+",
+        default=[],
+        metavar="LIST",
+        help="fetch these tables alone, e.g. element_QCL, and keep every other table's file",
+    )
+    args = parser.parse_args(argv)
     if args.render_only:
         render()
     else:
-        refresh()
+        refresh(args.only)
 
 
 if __name__ == "__main__":
