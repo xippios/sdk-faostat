@@ -41,13 +41,13 @@ def load_script() -> ModuleType:
 script = load_script()
 
 
-def a_row() -> object:
+def a_row(etag: str | None = None) -> object:
     """A row of a page kept byte for byte, as a capture run makes one."""
     response = script.Response(
         url="https://www.fao.org/faostat/en/docs/faostat_openapi.yaml",
         status=200,
         body=b"openapi: 3.0.0\n",
-        etag=None,
+        etag=etag,
         last_modified=None,
         redirects=(),
     )
@@ -163,3 +163,28 @@ def test_every_file_a_note_cites_exists() -> None:
     cited = set(CITED.findall(OBSERVED.read_text(encoding="utf-8")))
     assert cited
     assert sorted(path for path in cited if not (ROOT / path).is_file()) == []
+
+
+def etag_cell(etag: str | None) -> str:
+    """The ETag cell the renderer writes for a row whose response sent ``etag``."""
+    for line in script.render_fetched([a_row(etag)], FETCHED).splitlines():
+        cells = script._cells(line)
+        if cells:
+            return str(cells[6])
+    raise AssertionError("render_fetched wrote no row")
+
+
+def test_a_rows_etag_stands_in_a_code_span() -> None:
+    """An ETag is no commit: its cell holds it as sent, quotes included, in a code span,
+    and a row without one keeps ``-``."""
+    assert etag_cell('"abc123"') == '`"abc123"`'
+    assert etag_cell(None) == "-"
+
+
+def test_the_committed_etags_are_the_renderers_cells() -> None:
+    """Each ETag cell of the committed table is what the renderer writes for its ETag."""
+    text = (UPSTREAM / "FETCHED.md").read_text(encoding="utf-8")
+    cells = [row[6] for row in map(script._cells, text.splitlines()) if row]
+    assert any(cell != "-" for cell in cells)
+    for cell in cells:
+        assert cell == etag_cell(None if cell == "-" else cell.strip("`"))
