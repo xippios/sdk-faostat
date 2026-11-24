@@ -53,6 +53,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 import respx
 from fastapi import FastAPI
@@ -91,7 +92,7 @@ from xippios.faostat import (
     params,
     tasks,
 )
-from xippios.faostat._client import FILTER_REFUSAL, SOURCE, auth
+from xippios.faostat._client import BASE_URL, FILTER_REFUSAL, SOURCE, auth
 from xippios.faostat.http import router
 from xippios.faostat.mcp import server
 from xippios.faostat.models import (
@@ -1307,3 +1308,47 @@ def test_the_packaged_dimensions_are_the_ones_faostat_documents() -> None:
     spec = (snapshot / "openapi" / "faostat_openapi.yaml").read_text()
     for dimension in params.DIMENSIONS:
         assert f"Alias for {dimension} dimension codes." in spec, dimension
+
+
+@pytest.mark.parametrize(
+    ("domain_code", "arguments", "name", "listed"),
+    [
+        ("QCL", {"area": "231,79"}, "area", ["231", "79"]),
+        ("QV", {"area": "231,79"}, "area", ["231", "79"]),
+        ("QCL", {"area": "231", "year": "2019,2020"}, "year", ["2019", "2020"]),
+        ("QV", {"area": ["231", "79,4"]}, "area", ["79", "4"]),
+    ],
+)
+def test_a_comma_text_is_refused_for_every_domain_naming_the_list(
+    respx_mock: respx.MockRouter,
+    domain_code: str,
+    arguments: dict[str, Any],
+    name: str,
+    listed: list[str],
+) -> None:
+    """Several codes are a list, whatever the domain and the filter (conventions §2)."""
+    with pytest.raises(InvalidRequestError) as raised:
+        get_data(domain_code, **arguments)
+    assert not isinstance(raised.value, UnknownCode)
+    assert str(raised.value).startswith(
+        f"{name} takes several codes as a list, {json.dumps(listed)}"
+    )
+    assert str(raised.value).endswith(NOTHING_SENT)
+    assert not respx_mock.calls, "nothing sent, not even the login"
+
+
+def test_get_data_vintage_is_the_date_update_as_faostat_sends_it(
+    replay_fixture: ReplayFixture, respx_mock: respx.MockRouter
+) -> None:
+    """NOT RECORDED: the recorded list of domains with QCL's ``date_update`` changed in memory
+    to a time, a form FAOSTAT was not seen to send (conventions §10, kind 4)."""
+    replay_fixture(GET_DATA, QCL)
+    body = json.loads(recorded(DOMAINS, "all").response.body)
+    for row in body["data"]:
+        if row["domain_code"] == "QCL":
+            row["date_update"] = "2025-12-31T00:00:00"
+    respx_mock.get(f"{BASE_URL}/en/groupsanddomains").mock(
+        return_value=httpx.Response(200, json=body)
+    )
+    result = get_data("QCL", **QCL_ARGUMENTS)
+    assert result.meta.vintage == "2025-12-31T00:00:00", "the text as sent, not re-printed"
