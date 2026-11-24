@@ -711,7 +711,9 @@ async def download_dataset_async(
     the dataset as printed (``"2026-10-02T00:00:00"``) and ``meta.published_at`` that
     time, which the catalogue prints without a zone (``meta.published_at_naive``): a time,
     unlike ``get_data``'s ``meta.vintage``, the API's ``date_update``, a date, which stays
-    out of ``published_at``. ``meta.endpoint`` is ``"All_Data_(Normalized).csv"``, the
+    out of ``published_at``. ``meta.retrieved_at`` is the older of the two reads' times,
+    the kept catalogue's where the cache served it, and ``result.data.retrieved_at`` the
+    file's. ``meta.endpoint`` is ``"All_Data_(Normalized).csv"``, the
     file kind as upstream names its member; ``meta.request`` the dataset's code and the
     file's URL. A code the catalogue does not list raises ``NotFoundError`` naming the
     closest, once the catalogue is read and before the file is requested; ``dest`` must
@@ -745,7 +747,7 @@ async def download_dataset_async(
     meta = ResultMeta(
         source=SOURCE,
         endpoint=NORMALIZED_TABLE,
-        retrieved_at=downloaded.retrieved_at,
+        retrieved_at=min(answer.retrieved_at, downloaded.retrieved_at),
         published_at=released,
         published_at_naive=released.tzinfo is None,
         vintage=answer.payload.printed[dataset_code],
