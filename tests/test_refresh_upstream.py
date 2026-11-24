@@ -365,3 +365,9 @@ def test_sections_stops_where_a_row_it_compares_is_missing(missing: str) -> None
     rows = [row for row in read_rows(redoc_page({})) if row.page.url != getattr(script, missing)]
     with pytest.raises(SystemExit, match="Nothing was written"):
         script.sections(rows)
+
+
+def test_sections_stops_where_the_redoc_copy_names_an_operation_the_document_lacks() -> None:
+    copy = {"/x": {"get": {"operationId": "not_in_the_document"}}}
+    with pytest.raises(SystemExit, match=r"operations are not the document's|the document lacks"):
+        script.sections(read_rows(redoc_page(copy)))
