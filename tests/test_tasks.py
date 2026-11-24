@@ -149,8 +149,11 @@ def date_update(domain: str) -> str | None:
     The recorded text itself, read from the answer's JSON, so the test holds that the date
     the model reads gives the text back as printed.
     """
-    printed = json.loads(recorded(DOMAINS, "all").response.body)["data"]
-    return next(row.get("date_update") for row in printed if row["domain_code"] == domain)
+    printed: list[dict[str, Any]] = json.loads(recorded(DOMAINS, "all").response.body)["data"]
+    found: str | None = next(
+        row.get("date_update") for row in printed if row["domain_code"] == domain
+    )
+    return found
 
 
 def packaged_labels(name: str) -> dict[str, str]:
@@ -1196,7 +1199,7 @@ def test_download_dataset_refuses_a_dest_it_cannot_write(
 def test_download_dataset_takes_its_dest_by_keyword(tmp_path: Path) -> None:
     """The dataset's code identifies the file; ``dest`` is the package's own argument."""
     with pytest.raises(TypeError):
-        download_dataset("MDDW", tmp_path / "MDDW.zip")  # type: ignore[misc]
+        download_dataset("MDDW", tmp_path / "MDDW.zip")  # type: ignore[call-arg]
 
 
 @pytest.mark.anyio
@@ -1235,7 +1238,7 @@ def test_download_dataset_takes_the_catalogues_dataset_code() -> None:
 
 def test_get_series_takes_its_codes_by_keyword(respx_mock: respx.MockRouter) -> None:
     with pytest.raises(TypeError):
-        get_series("QCL", "231", "15", "2510")  # type: ignore[misc]
+        get_series("QCL", "231", "15", "2510")  # type: ignore[call-arg]
     assert not respx_mock.calls
 
 
