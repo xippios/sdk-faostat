@@ -9,8 +9,8 @@ Authorization Header``; ``get_data/forbidden_403``, the same with ``Bearer inval
 HTTP 403 ``Authentication Failed``; ``get_data/no_filter_500`` and
 ``get_data/XXX_unknown_domain_500``, the two refusals ``classify`` maps.
 
-In every test the account's variables hold core's placeholder (``pyproject.toml``,
-``xippios_placeholder_key_envs``), the replayed login answers it with the scrubbed token
+In every test the account's variables hold core's placeholder, which core's plugin sets for
+each secret variable of ``_client.ENV_VARS``, the replayed login answers it with the scrubbed token
 ``REDACTED``, and the process's one ``LoginAuth`` forgets its token before and after the
 test. No assertion names a credential: the values compared are the placeholder and the
 scrubbed token, read through helpers that keep no request in a test's frame.
@@ -51,6 +51,7 @@ from xippios.core.testing.plugin import PLACEHOLDER_KEY
 from xippios.faostat import api, tasks
 from xippios.faostat._client import (
     BASE_URL,
+    CREDENTIAL_REFUSALS,
     PASSWORD_ENV,
     SOURCE,
     USERNAME_ENV,
@@ -440,3 +441,14 @@ def test_the_recorded_401_and_403_are_core_auth_error(case: str, status: int) ->
 )
 def test_classify_lets_every_other_answer_through(endpoint: str, case: str) -> None:
     assert classify(response_from_fixture(recorded(endpoint, case))) is None
+
+
+def test_the_credential_refusals_hold_the_recorded_cognito_type() -> None:
+    """``CREDENTIAL_REFUSALS``, written by hand, against the recorded refusal of an unknown user.
+
+    ``NotAuthorizedException``, Cognito's answer to a wrong password, stands in no document
+    under ``docs/upstream/`` and was not recorded, so the test holds the set's size alone for it.
+    """
+    refused = json.loads(recorded("auth_login", "user_not_found").response.body)["__type"]
+    assert refused in CREDENTIAL_REFUSALS
+    assert frozenset({refused, "NotAuthorizedException"}) == CREDENTIAL_REFUSALS

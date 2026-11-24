@@ -100,10 +100,10 @@ def test_samples_are_the_recorded_body_and_a_real_cut() -> None:
     catalogue = DatasetsCatalogue.model_validate_json(load_fixture(CATALOGUE).response.body)
     listed = {dataset.dataset_code: dataset for dataset in catalogue.datasets.dataset}
     assert fixture.request.url == listed["MDDW"].file_location
-    assert f"| `{listed['MDDW'].date_update}` (DateUpdate) |" in line
+    assert f"| `{listed['MDDW'].date_update.isoformat()}` (DateUpdate) |" in line
     line = provenance(readme, RL)
     assert f"| {listed['RL'].file_location} |" in line, "the full file's URL"
-    assert f"| `{listed['RL'].date_update}` (DateUpdate) |" in line
+    assert f"| `{listed['RL'].date_update.isoformat()}` (DateUpdate) |" in line
     assert f"first {len(table_of(RL)[1])} rows" in line, "the rows kept"
     assert list(members_of(RL)) == [table_name(RL)], "one member of the archive"
     for sample in (MDDW, RL):
@@ -122,8 +122,9 @@ def test_parse_bulk_csv_reads_every_row_as_printed(sample: Path) -> None:
         assert isinstance(row, BulkRecord)
         for column, text in record.items():
             if column == "Value":
-                assert isinstance(row.value, Decimal)
-                assert str(row.value) == text, "the number as printed, its decimals kept"
+                assert row.value == text, "the text as printed"
+                assert isinstance(row.value_number, Decimal)
+                assert str(row.value_number) == text, "its reading keeps the decimals printed"
             elif column in NAMED:
                 assert getattr(row, NAMED[column]) == text, column
         assert list(row.columns) == others, "the other columns, in the header's order"
@@ -174,7 +175,7 @@ def test_parse_bulk_csv_is_a_generator(tmp_path: Path) -> None:
     assert list(parse_bulk_csv(empty)) == [], "an empty table yields nothing"
 
 
-def test_parse_bulk_csv_reads_an_empty_value_as_none(tmp_path: Path) -> None:
+def test_parse_bulk_csv_reads_an_empty_value_as_printed_and_no_number(tmp_path: Path) -> None:
     """NOT RECORDED: RL's first row with its ``Value`` cell emptied in memory, as RL prints
     the values it flags ``L``, missing (85 rows on 2026-10-29)."""
     lines = rl_lines()
@@ -183,7 +184,8 @@ def test_parse_bulk_csv_reads_an_empty_value_as_none(tmp_path: Path) -> None:
     cells[header.index("Value")] = b""
     lines[1] = b",".join(cells)
     first = next(parse_bulk_csv(rl_with(tmp_path / "missing.zip", lines)))
-    assert first.value is None
+    assert first.value == "", "the empty cell as printed"
+    assert first.value_number is None
     assert first.flag == cells[header.index("Flag")].decode().strip('"')
 
 
