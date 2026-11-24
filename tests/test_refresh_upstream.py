@@ -160,6 +160,20 @@ def page_of(url: str) -> str:
     return url.split("#", 1)[0].rstrip("/")
 
 
+AMENDMENT = re.compile(r"amendment \d{4}-\d{2}-\d{2}")
+"""An ADR's amendment cited by its date, which dates a record, not an observation."""
+
+
+def test_claude_md_dates_no_note_of_what_upstream_answered() -> None:
+    """What FAOSTAT was seen to do stands in ``OBSERVED.md`` alone, each note with its probe.
+
+    That no dated note of what upstream answered stands outside the file is the source's own
+    test (conventions §3), so ``CLAUDE.md`` points to the notes and dates none.
+    """
+    text = AMENDMENT.sub("", (ROOT / "CLAUDE.md").read_text(encoding="utf-8"))
+    assert re.findall(r"\d{4}-\d{2}-\d{2}", text) == []
+
+
 def test_every_page_the_documentation_links_is_fetched_or_not_fetched() -> None:
     """The pages the documentation links, the terms' and the ReDoc copy's server among them,
     and the folder of the ZIPs the catalogue names: each is a page of the snapshot or a row
