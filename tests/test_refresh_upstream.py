@@ -160,18 +160,36 @@ def page_of(url: str) -> str:
     return url.split("#", 1)[0].rstrip("/")
 
 
+FENCE = re.compile(r"^```.*?^```", re.MULTILINE | re.DOTALL)
+"""A fenced block of Markdown, an example whose values are data, not notes."""
+CODE_SPAN = re.compile(r"``[^`]*``|`[^`\n]*`")
+"""A code span, a value as upstream prints it, ``"2025-12-31"`` say, which dates nothing."""
 AMENDMENT = re.compile(r"amendment \d{4}-\d{2}-\d{2}")
 """An ADR's amendment cited by its date, which dates a record, not an observation."""
+DATE = re.compile(r".{0,40}\d{4}-\d{2}-\d{2}.{0,20}")
+"""A date in running text, with the words around it for the failure's message."""
+PACKAGE_TEXT = sorted(
+    [*(ROOT / "src").rglob("*.py"), ROOT / "README.md", ROOT / "CLAUDE.md"],
+    key=lambda path: path.relative_to(ROOT).as_posix(),
+)
+"""The package's own text: its code's docstrings and comments, the README and CLAUDE.md."""
 
 
-def test_claude_md_dates_no_note_of_what_upstream_answered() -> None:
+@pytest.mark.parametrize(
+    "path", PACKAGE_TEXT, ids=[path.relative_to(ROOT).as_posix() for path in PACKAGE_TEXT]
+)
+def test_no_dated_note_of_what_faostat_answered_stands_outside_observed_md(path: Path) -> None:
     """What FAOSTAT was seen to do stands in ``OBSERVED.md`` alone, each note with its probe.
 
     That no dated note of what upstream answered stands outside the file is the source's own
-    test (conventions §3), so ``CLAUDE.md`` points to the notes and dates none.
+    test (conventions §3), so the package's text points to the notes and dates none. A date
+    in a code span or a fenced example is a value as printed, and an amendment's date cites
+    a record. ``src/xippios/faostat/reference/README.md`` is the packaged tables' provenance,
+    which the reference refresh writes.
     """
-    text = AMENDMENT.sub("", (ROOT / "CLAUDE.md").read_text(encoding="utf-8"))
-    assert re.findall(r"\d{4}-\d{2}-\d{2}", text) == []
+    text = FENCE.sub("", path.read_text(encoding="utf-8"))
+    running = AMENDMENT.sub("", " ".join(CODE_SPAN.sub("", text).split()))
+    assert DATE.findall(running) == []
 
 
 def test_every_page_the_documentation_links_is_fetched_or_not_fetched() -> None:
