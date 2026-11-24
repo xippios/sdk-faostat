@@ -29,9 +29,10 @@ variables in the environment, ``FAOSTAT_USERNAME`` and ``FAOSTAT_PASSWORD``::
 One login and fifteen requests, paced by the package's client at 30 a minute; the login
 is not paced, since it runs inside the client's auth flow. A request refused with HTTP 401
 or 403 logs in once more and is sent again once, so a run sends at most 46 requests, 16
-of them logins, all to the API's host under the account. Core's count of the run sees the
-answer that each request ends with alone, so the script counts beside it the logins and
-the requests sent again inside the auth flow (``counted_logins``).
+of them logins, all to the API's host under the account. Core's count of the run holds
+every request the client hands its transport, the logins and the resends after a refused
+token among them, and the script names the logins among it (``counted_logins``, sdk-core
+ADR-0062).
 """
 
 import sys
@@ -79,34 +80,22 @@ answer with; no enum."""
 
 
 class Logins:
-    """The requests sent inside the client's auth flow, which core's count leaves out.
+    """The logins among the requests that core's count of the run holds.
 
     Attributes:
-        logins: The logins the flow built, a refused one too.
-        resent: The requests refused with a token and sent again after a new login.
+        logins: The logins the client's auth flow built, a refused one too.
     """
 
     def __init__(self) -> None:
         self.logins = 0
-        self.resent = 0
 
     def built(self, request: httpx.Request) -> None:
-        """Count a login built ahead of ``request``, and ``request`` where it is sent again.
-
-        ``request`` carries a bearer only where the flow renews the token it was refused
-        with; the first login of a run precedes an unsigned request.
-        """
+        """Count a login built ahead of ``request``."""
         self.logins += 1
-        if "authorization" in request.headers:
-            self.resent += 1
 
     def report(self) -> str:
-        """The logins and the requests sent again, one line beside core's count."""
-        logins = "1 login" if self.logins == 1 else f"{self.logins} logins"
-        return (
-            f"beside them, sent inside the client's auth flow: {logins}, "
-            f"{self.resent} requests sent again"
-        )
+        """The logins, one line after core's count."""
+        return f"of them, logins: {self.logins}"
 
 
 @contextmanager
@@ -115,7 +104,7 @@ def counted_logins(login: LoginAuth) -> Iterator[Logins]:
 
     The flow builds each login through the instance, so a wrapper of ``token_request`` sees
     every one, a refused one too; the method is restored after the block, a failed run's
-    too. The script's requests go one at a time, so no other request's login renews a token.
+    too.
     """
     counted = Logins()
     build = login.token_request
@@ -134,7 +123,7 @@ def counted_logins(login: LoginAuth) -> Iterator[Logins]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run core's frame on ``LISTS``, the logins it does not count counted beside it."""
+    """Run core's frame on ``LISTS`` and name the logins among the requests it counts."""
     with counted_logins(auth):
         return run(LISTS, sys.argv[1:] if argv is None else argv)
 

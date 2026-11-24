@@ -21,12 +21,15 @@ Its ``LoginAuth`` holds the FAO account's credentials, read from ``FAOSTAT_USERN
 its base URL alone: the frame sends the four keyed samples with the client's auth, every
 other page without it. The login runs once, before the first sample, inside the client's
 auth flow; a sample refused with HTTP 401 or 403 logs in once more and is sent again, once.
+The frame counts each of them among the requests it prints, a failed run's too.
 Neither the credentials nor the token is printed, logged or written.
 
 The script's own code is its hooks. ``reduce`` converts the terms page to Markdown. ``note``
 checks every page the script recognises, the OpenAPI document's YAML ``info`` among them,
 which the frame does not read, and writes each row's note; a page that changed in a way the
-script does not know stops the run before anything is written. ``canonical`` reads a sample
+script does not know stops the run before anything is written. ``sections`` checks the ReDoc
+page's copy of the OpenAPI document against the document, with every row read, and
+writes no section of its own. ``canonical`` reads a sample
 without its ``metadata.processing_time``, which changes on every request, so ``--check``
 disregards it. The frame stops, too, on a copyright, a licence or terms of use that
 ``ATTRIBUTION`` does not record, on every page it reads but the samples. Run from the
@@ -60,10 +63,12 @@ from xippios.core.refresh import (
     Page,
     Response,
     Row,
+    Section,
     Snapshot,
     Statement,
     changed,
     decode,
+    parse_json,
     run,
 )
 from xippios.core.refresh.upstream import INFO_TERMS
@@ -282,18 +287,6 @@ def _no_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     if duplicates:
         raise ValueError(f"duplicate keys {duplicates}")
     return dict(pairs)
-
-
-def load_json(response: Response) -> Any:
-    """The JSON document of a file kept byte for byte; a duplicate key or a parse error stops.
-
-    The frame's ``read_json`` reads a document that ``json.dumps(indent=2)`` reproduces, and
-    the catalogue and the samples are served in another form, kept as served.
-    """
-    try:
-        return json.loads(decode(response), object_pairs_hook=_no_duplicates)
-    except ValueError as error:
-        raise changed(response.url, f"not usable JSON ({error})") from None
 
 
 def _endings(body: bytes) -> str:
@@ -677,12 +670,11 @@ def _strings(value: Any) -> Iterator[str]:
         yield value
 
 
-def redoc_note(response: Response, document: str) -> str:
-    """Check the ReDoc page against ``document``, the OpenAPI document's text, and write its note.
+def _redoc_copy(response: Response) -> tuple[str, str, dict[str, Any]]:
+    """The ReDoc page's text, its ReDoc version and the copy of the document it embeds.
 
-    The page is ReDoc's rendering of a copy of the document, embedded in its ``__redoc_state``:
-    the copy holds no text the document lacks but its servers, it names the document's
-    operations, and the page's text is the copy's and ReDoc's labels.
+    Raises ``changed`` where the page is not one ReDoc hydrating one ``__redoc_state``, or the
+    copy's servers are not as recorded.
     """
     url = response.url
     text = decode(response)
@@ -691,6 +683,7 @@ def redoc_note(response: Response, document: str) -> str:
         raise changed(url, "not one redoc.standalone.js and one __redoc_state")
     start = text.index(_REDOC_STATE) + len(_REDOC_STATE)
     try:
+        # A JSON value embedded in a page: core's parse_json reads a whole answer alone.
         state, end = json.JSONDecoder(object_pairs_hook=_no_duplicates).raw_decode(text, start)
     except ValueError as error:
         raise changed(url, f"__redoc_state is not JSON ({error})") from None
@@ -700,20 +693,28 @@ def redoc_note(response: Response, document: str) -> str:
     if not isinstance(spec, dict) or spec.get("servers") != [DEV_SERVER, PROD_SERVER]:
         servers = spec.get("servers") if isinstance(spec, dict) else None
         raise changed(url, f"the embedded copy's servers are {servers}, not as recorded")
-    flat = _squash(document)
-    rest = {key: value for key, value in spec.items() if key != "servers"}
-    foreign = sorted({item for item in _strings(rest) if _squash(item) not in flat})
-    if foreign:
-        raise changed(url, f"the embedded copy holds text the document lacks: {foreign[:5]}")
+    return text, versions[0], spec
+
+
+def _operations(spec: dict[str, Any]) -> list[str]:
+    """The ``operationId`` of each operation of the embedded copy, in its order."""
     paths = spec.get("paths")
-    copied = [
+    return [
         operation["operationId"]
         for methods in (paths.values() if isinstance(paths, dict) else [])
         for operation in (methods.values() if isinstance(methods, dict) else [])
         if isinstance(operation, dict) and "operationId" in operation
     ]
-    if sorted(copied) != sorted(_OPERATION_ID.findall(document)):
-        raise changed(url, "the embedded copy's operations are not the document's")
+
+
+def redoc_note(response: Response) -> str:
+    """Check the ReDoc page alone and write its note.
+
+    The page is ReDoc's rendering of a copy of the document, embedded in its
+    ``__redoc_state``: its text is the copy's and ReDoc's labels. ``sections`` checks the copy
+    against the document, a check of one page against another.
+    """
+    text, version, spec = _redoc_copy(response)
     known = "\n".join(_squash(item) for item in _strings(spec))
     unknown = sorted(
         {
@@ -723,16 +724,35 @@ def redoc_note(response: Response, document: str) -> str:
         }
     )
     if unknown:
-        raise changed(url, f"text that is neither the copy's nor ReDoc's: {unknown[:5]}")
+        raise changed(response.url, f"text that is neither the copy's nor ReDoc's: {unknown[:5]}")
     return (
-        f"no documentation text of its own, so no file: ReDoc {versions[0]} "
+        f"no documentation text of its own, so no file: ReDoc {version} "
         "(`redoc.standalone.js` from cdn.redocly.com) hydrating a copy of the OpenAPI "
         "document embedded in the page's `__redoc_state`, every key and string of which the "
         "document holds but those of `servers`, which list before the document's server a "
         f"development server, {DEV_SERVER['url']}, \N{LEFT DOUBLE QUOTATION MARK}"
-        f"{DEV_SERVER['description']}\N{RIGHT DOUBLE QUOTATION MARK}; {len(copied)} "
-        "operations, the document's; the page's text is the copy's and ReDoc's labels"
+        f"{DEV_SERVER['description']}\N{RIGHT DOUBLE QUOTATION MARK}; "
+        f"{len(_operations(spec))} operations, the document's; the page's text is the copy's "
+        "and ReDoc's labels"
     )
+
+
+def redoc_against(response: Response, document: str) -> None:
+    """Check the ReDoc page's copy against ``document``, the OpenAPI document's text.
+
+    The copy holds no text the document lacks but its servers, and names the document's
+    operations; a difference stops the run with ``changed``.
+    """
+    _, _, spec = _redoc_copy(response)
+    flat = _squash(document)
+    rest = {key: value for key, value in spec.items() if key != "servers"}
+    foreign = sorted({item for item in _strings(rest) if _squash(item) not in flat})
+    if foreign:
+        raise changed(
+            response.url, f"the embedded copy holds text the document lacks: {foreign[:5]}"
+        )
+    if sorted(_operations(spec)) != sorted(_OPERATION_ID.findall(document)):
+        raise changed(response.url, "the embedded copy's operations are not the document's")
 
 
 def portal_note(response: Response) -> str:
@@ -772,7 +792,7 @@ def terms_note(content: bytes) -> str:
 def catalogue_note(response: Response) -> str:
     """Check the bulk downloads' catalogue, kept byte for byte, and write its row's note."""
     url = response.url
-    document = load_json(response)
+    document = parse_json(response)
     datasets = document.get("Datasets", {}).get("Dataset") if isinstance(document, dict) else None
     if not isinstance(datasets, list) or not datasets:
         raise changed(url, "no list under Datasets.Dataset")
@@ -796,7 +816,7 @@ def catalogue_note(response: Response) -> str:
 
 def sample_note(sample: Sample, response: Response) -> str:
     """Check one sample's answer and write its row's note; a strange answer stops the run."""
-    document = load_json(response)
+    document = parse_json(response)
     metadata = document.get("metadata") if isinstance(document, dict) else None
     data = document.get("data") if isinstance(document, dict) else None
     if (
@@ -839,10 +859,6 @@ def sample_note(sample: Sample, response: Response) -> str:
 
 # --- the hooks -------------------------------------------------------------------------
 
-_READ: dict[str, str] = {}
-"""The OpenAPI document's text as this run read it, kept by the document's row for the ReDoc
-page's, which compares its copy with it: a hook is handed one page's answer alone."""
-
 
 def reduce(page: Page, response: Response) -> bytes:
     """The content of a page's file: the terms page as Markdown, every other file as fetched."""
@@ -855,21 +871,13 @@ def note(row: Row) -> str:
     """Check the page a row was read from and write the row's note.
 
     A page that changed in a way the script does not know stops the run with ``changed``,
-    before anything is written. The OpenAPI document is read before the ReDoc page, whose
-    copy of it is compared with the text this run read.
+    before anything is written.
     """
     url, response = row.page.url, row.response
     if url == SPEC_URL:
-        written = document_note(response)
-        _READ[SPEC_URL] = decode(response)
-        return written
+        return document_note(response)
     if url == DOCS_URL:
-        if SPEC_URL not in _READ:
-            raise SystemExit(
-                f"{DOCS_URL} is read against the OpenAPI document, {SPEC_URL}, which this run "
-                "has not read: declare the document first. Nothing was written."
-            )
-        return redoc_note(response, _READ[SPEC_URL])
+        return redoc_note(response)
     if url == PORTAL_URL:
         return portal_note(response)
     if url == TERMS_URL:
@@ -879,6 +887,18 @@ def note(row: Row) -> str:
     if row.page.file in _SAMPLE_FILES:
         return sample_note(_SAMPLE_FILES[row.page.file], response)
     return row.note
+
+
+def sections(rows: Sequence[Row]) -> Sequence[Section]:
+    """Check the ReDoc page's copy against the OpenAPI document, with every row read.
+
+    The one check of one page against another (sdk-core ADR-0062): it writes no section of
+    its own, ``()``, and stops the run with ``changed`` before anything is written.
+    """
+    read = {row.page.url: row.response for row in rows}
+    if SPEC_URL in read and DOCS_URL in read:
+        redoc_against(read[DOCS_URL], decode(read[SPEC_URL]))
+    return ()
 
 
 def canonical(page: Page, content: bytes) -> bytes:
@@ -918,8 +938,8 @@ CAPTURE = "\n\n".join(
         "`auth_login` (`POST /auth/login`, the form fields `username` and `password`), runs "
         "once, inside the client's auth flow, before the first sample. A sample refused with "
         "HTTP 401 or 403 logs in once more and is sent again, once, inside that flow: no retry "
-        "of the capture's own, which sends each sample once, and not in its count of "
-        "requests, as the login is not. Their "
+        "of the capture's own, which sends each sample once, and counted among its "
+        "requests, as the login is. Their "
         "`metadata.processing_time` changes on every request, which `--check` disregards. "
         "They are structural samples; test fixtures are recorded separately.",
     )
@@ -1020,6 +1040,7 @@ SNAPSHOT = Snapshot(
     reduce=reduce,
     canonical=canonical,
     note=note,
+    sections=sections,
     client=client,
     variables=(USERNAME_ENV, PASSWORD_ENV),
 )
