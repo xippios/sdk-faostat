@@ -1190,6 +1190,26 @@ def test_download_dataset_mddw(
     assert rows == list(parse_bulk_csv(Path(__file__).parent / "fixtures/files/bulk-csv/MDDW.zip"))
 
 
+def test_download_dataset_dates_its_answer_by_the_older_of_its_two_reads(
+    replay_fixture: ReplayFixture, tmp_path: Path
+) -> None:
+    """``meta.retrieved_at`` is the time of the older read, here the kept catalogue.
+
+    ``list_bulk_datasets`` keeps the catalogue in the client's cache first, so the ZIP that
+    ``download_dataset`` streams after it is the newer read, and the envelope, whose
+    vintage the catalogue gives, states the kept catalogue's time (conventions §4).
+    """
+    catalogue = replay_fixture(CATALOGUE, "all")
+    replay_fixture(DOWNLOAD, "MDDW")
+    kept = list_bulk_datasets()
+    between = datetime.now(UTC)
+    result = download_dataset("MDDW", dest=tmp_path / "MDDW.zip")
+    assert catalogue.call_count == 1, "the catalogue is read from the kept answer"
+    assert_time_between(result.data.retrieved_at, between, datetime.now(UTC))
+    assert result.meta.retrieved_at == kept.meta.retrieved_at, "the older read's time"
+    assert result.meta.retrieved_at <= between, "older than the download"
+
+
 def test_download_dataset_refuses_a_domain_the_catalogue_lacks(
     replay_fixture: ReplayFixture, tmp_path: Path
 ) -> None:
