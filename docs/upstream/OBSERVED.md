@@ -117,6 +117,15 @@ Probe: 2026-10-29, `get_groupsanddomains` and `get_data`; samples
 `tests/fixtures/get_groupsanddomains/all.json` and
 `tests/fixtures/get_data/QCL_231_2510_15_2015_2021.json`.
 
+### The columns differ by domain
+
+A data answer's rows carry their domain's columns: QCL's carry 15, from `Domain Code` to
+`Note`, and PP's carry `Months Code` and `Months` after `Year` and no `Note`.
+
+Probe: 2026-10-29, `get_data`; samples
+`tests/fixtures/get_data/QCL_231_2510_15_2015_2021.json` and
+`tests/fixtures/get_data/PP_231_2020_page_size_2.json`.
+
 ## Access
 
 ### The portal's guest token
@@ -130,11 +139,36 @@ token, as a plain client; the request kept no answer.
 
 ## The bulk downloads
 
+### The catalogue and its files are open
+
+The bulk host, which the OpenAPI document does not name, serves its catalogue,
+`production/datasets_E.json`, and the ZIPs that its `FileLocation` names to a client
+without the account. The catalogue listed 69 datasets, each code a domain that
+`get_groupsanddomains` lists, every one a `zip` of `csv`, its `DateUpdate` a time without
+a zone (`2026-10-02T00:00:00` for RL) and its `FileSize` text in kilobytes (`2902KB`).
+
+Probe: 2026-10-29, `GET production/datasets_E.json` without the account, and
+`get_groupsanddomains`; samples `tests/fixtures/datasets_e/all.json` and
+`tests/fixtures/get_groupsanddomains/all.json`.
+
+### A ZIP holds one normalized table and its code lists
+
+A dataset's ZIP holds one table whose name ends in `_E_All_Data_(Normalized).csv` and
+small code lists beside it, RL's `_AreaCodes.csv`, `_Elements.csv`, `_Flags.csv` and
+`_ItemCodes.csv`, and MDDW's `_Elements.csv`, `_Flags.csv`, `_Indicators.csv` and
+`_Surveys.csv`. The table is UTF-8 without a byte order mark, and its lines end in CRLF.
+
+Probe: 2026-10-29, the ZIPs that the catalogue's `FileLocation` names for RL and MDDW;
+samples `tests/fixtures/files/bulk-csv/MDDW.zip`, whole, and
+`tests/fixtures/files/bulk-csv/RL_first_rows.zip`, RL's table cut to its first rows, each
+with its URL, bytes and sha256 in `tests/fixtures/files/README.md`.
+
 ### The tables' columns are the dataset's own
 
 A ZIP's normalized table prints the dataset's own columns: RL's header is `Area Code`,
 `Area Code (M49)`, `Area`, `Item Code`, `Item`, `Element Code`, `Element`, `Year Code`,
-`Year`, `Unit`, `Value`, `Flag` and `Note`, and MDDW's prints no area, item or year.
+`Year`, `Unit`, `Value`, `Flag` and `Note`, its M49 code printed with a leading apostrophe
+(`'004`) and its `Value` with six decimals, and MDDW's prints no area, item or year.
 `Item Code (CPC)`, which the OpenAPI document's `DataResponse` names, is expected in QCL's
 and TCL's tables, whose ZIPs (33 MB and 267 MB) were not fetched.
 

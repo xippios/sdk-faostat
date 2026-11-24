@@ -15,9 +15,9 @@ records ``models.CodeItem``'s fields under upstream's names, in upstream's order
 them, and ``get_data`` checks the codes of a packaged domain against them before it
 sends, by core's ``check`` on each table's declaration, ``table(name)``.
 
-The element tables hold the codes a query filters by (``2510`` Production Quantity in
-QCL), which are not the ``Element Code`` the data rows print (``5510`` Production);
-nothing is translated between the two (sdk-core ADR-0028).
+The element tables hold the codes a query filters by, which the data rows do not print:
+``docs/upstream/OBSERVED.md`` notes the two element code systems, and nothing is
+translated between them (sdk-core ADR-0028).
 No enum is generated from the tables, so the package has no ``enums.py``. ``reference/README.md``
 carries the provenance of every file.
 """

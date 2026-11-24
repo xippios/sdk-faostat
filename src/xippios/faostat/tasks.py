@@ -46,9 +46,9 @@ and item codes of those five domains before it sends, since FAOSTAT answers an u
 code with no rows: a code the domain's table lacks is refused with core's
 ``UnknownCode`` by one ``check`` of the codes given on the table's declaration,
 ``params.table``, naming the table, its fetch date and the closest codes (conventions §5;
-sdk-core ADR-0045). The element tables hold the filter codes, not the codes
-the rows print, and nothing is translated between the two (sdk-core ADR-0028;
-https://github.com/xippios/sdk-faostat/pull/3).
+sdk-core ADR-0045). The element tables hold the filter codes, and nothing is translated
+into the codes the rows print, which ``docs/upstream/OBSERVED.md`` notes as the two element
+code systems (sdk-core ADR-0028; https://github.com/xippios/sdk-faostat/pull/3).
 
 ``list_bulk_datasets`` answers from the bulk downloads' catalogue, ``datasets_E.json`` on
 ``bulks-faostat.fao.org`` (``api.datasets_e``), fetched without the account and cached for
