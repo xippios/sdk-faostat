@@ -170,3 +170,21 @@ def test_the_logins_among_cores_count_are_named(
     assert counted.logins == 1
     assert not hasattr(counted, "resent"), "a resend is core's to count"
     assert capsys.readouterr().out.splitlines() == ["of them, logins: 1"]
+
+
+def test_render_only_prints_no_count_of_logins(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``--render-only`` sends nothing, so no count of the frame's stands for the line to name."""
+    handed: list[list[str]] = []
+
+    def frame(lists: object, argv: list[str]) -> int:
+        handed.append(list(argv))
+        return 0
+
+    monkeypatch.setattr(script, "run", frame)
+    assert script.main(["--render-only"]) == 0
+    assert capsys.readouterr().out == ""
+    assert script.main(["--only", "element_QCL"]) == 0
+    assert capsys.readouterr().out.splitlines() == ["of them, logins: 0"]
+    assert handed == [["--render-only"], ["--only", "element_QCL"]]

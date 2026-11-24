@@ -327,6 +327,38 @@ def test_the_portal_is_an_empty_shell_that_requirejs_draws() -> None:
 def test_the_redoc_page_is_checked_against_the_document_in_sections() -> None:
     """The check of one page against another runs in ``sections``, which sees every row."""
     assert script.SNAPSHOT.sections is script.sections
-    assert script.sections([]) == ()
     assert not hasattr(script, "_READ"), "no page kept between two hooks"
     assert not hasattr(script, "load_json"), "core's parse_json reads a JSON answer"
+
+
+def redoc_page(paths: dict[str, Any]) -> bytes:
+    """A ReDoc page of the recorded shape embedding a copy of the document with ``paths``.
+
+    The page is an input of the test, not an answer from FAOSTAT: the snapshot keeps no file
+    of the ReDoc page, so its shape is written from the script's own constants.
+    """
+    spec = {"servers": [script.DEV_SERVER, script.PROD_SERVER], "paths": paths}
+    state = json.dumps({"spec": {"data": spec}})
+    return (
+        '<script src="https://cdn.redocly.com/redoc/v2.1.5/bundles/redoc.standalone.js">'
+        f"</script><script>const __redoc_state = {state};\n"
+        "Redoc.hydrate(__redoc_state, container);</script>"
+    ).encode()
+
+
+def read_rows(redoc: bytes) -> list[Row]:
+    """The document's row as kept and the ReDoc page's row with ``redoc``, for ``sections``."""
+    document = declared(script.SPEC_URL)
+    docs = declared(script.DOCS_URL)
+    return [
+        Row(document, kept(document), kept(document).body),
+        Row(docs, answer(script.DOCS_URL, redoc), None),
+    ]
+
+
+@pytest.mark.parametrize("missing", ["SPEC_URL", "DOCS_URL"])
+def test_sections_stops_where_a_row_it_compares_is_missing(missing: str) -> None:
+    """A check that cannot run does not read as one that passed."""
+    rows = [row for row in read_rows(redoc_page({})) if row.page.url != getattr(script, missing)]
+    with pytest.raises(SystemExit, match="Nothing was written"):
+        script.sections(rows)
