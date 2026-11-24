@@ -7,7 +7,7 @@ given and returns the answer's rows; every request of the package to the API car
 FAO account's bearer token, ``_client.LoginAuth``'s. It sends ``lang=en`` and the output
 options the portal sends, fixed (``OUTPUT_OPTIONS``: ``show_codes``, ``show_unit``,
 ``show_flags`` and ``show_notes`` true, ``null_values`` false, ``output_type`` objects;
-not in the OpenAPI document, observed on 2026-10-29, ``docs/upstream/OBSERVED.md``),
+not in the OpenAPI document, as ``docs/upstream/OBSERVED.md`` notes),
 and ``page_size`` and ``page_number`` only when given: the default is one
 request for every row the query matches. Release metadata: the data answer carries no
 date, so ``meta.vintage`` is the domain's ``date_update`` as ``get_groupsanddomains``
@@ -180,19 +180,19 @@ its filters; a row of the recorded answers is served as 380 (QCL) to 407 (PP) by
 compact JSON, ``value_number`` among them, so the bytes cut a page at about 160 rows.
 ``get_series`` keeps the same cap, its note naming ``since`` and ``until`` and one code
 per dimension, since it does not page.
-``list_domains`` keeps the family's cap too: its 78 rows of 2026-10-29 fit; the note
+``list_domains`` keeps the family's cap too: the 78 rows of its recording fit; the note
 names ``search``.
 
 The three code lists take up to 1,000 rows within the family's 64 KB (sdk-core ADR-0038,
 decision 4), as sdk-eurostat's ``list_codes`` does, so a table an agent needs whole
 comes whole up to the byte bound: a code is about 85 to 110 bytes as compact JSON, and
-of the fifteen tables packaged on 2026-10-29 fourteen fit, the largest QCL's 338 items
+of the fifteen packaged tables fourteen fit, the largest QCL's 338 items
 at 32,872 bytes; TCL's 674 items, 66,970 bytes, are cut by the bytes at 657 rows, with
 the note naming ``search``.
 
 ``list_bulk_datasets`` takes a cap of its own, 100 rows and 160 KiB (163,840 bytes), so
 the whole catalogue, which an agent needs to choose a dataset, comes uncut (sdk-core
-ADR-0038): on 2026-10-29 it measured 69 datasets and 107,481 bytes as compact JSON, a
+ADR-0038): its recording measures 69 datasets and 107,481 bytes as compact JSON, a
 dataset 399 to 4,104 bytes, its description the most of it, where the family's 64 KB
 would cut it at 39 rows. The note names ``search`` for a catalogue grown past the bound.
 
@@ -219,9 +219,9 @@ OUTPUT_OPTIONS: Mapping[str, bool | str] = {
     "null_values": False,
     "output_type": "objects",
 }
-"""The output options ``get_data`` sends, those the portal sends (observed 2026-10-29,
-``docs/upstream/OBSERVED.md``; not in the OpenAPI document): an answer without them
-carried the same 15 columns."""
+"""The output options ``get_data`` sends, those the portal sends, which
+``docs/upstream/OBSERVED.md`` notes beside the same 15 columns of an answer without them;
+not in the OpenAPI document."""
 
 Codes = str | int | Sequence[str | int]
 """One code or several: ``"231"``, ``2020`` or ``["15", "27"]``."""
@@ -364,7 +364,7 @@ async def get_data_async(
             codes, which the rows print under ``area_code``. Given, the rows print the
             codes under a header naming the system (``Area Code (FAO)``), kept in
             ``columns``, and ``area_code`` is ``None``. ``area="840"`` with
-            ``area_cs="M49"`` answered no rows on 2026-10-29; the bulk files print M49
+            ``area_cs="M49"`` answered no rows when observed; the bulk files print M49
             codes with a leading apostrophe (``'004``), and whether the M49 filter wants
             that form is not established.
         item_cs: The coding system of ``item``, ``"CPC"`` or ``"FAO"`` in QCL; ``None``
@@ -482,8 +482,8 @@ async def get_series_async(
         since: The first year, included, e.g. ``2015``; with ``until``. ``None`` with
             ``until`` ``None`` asks for every year the domain holds.
         until: The last year, included, e.g. ``2021``; with ``since``. ``list_domains``
-            prints each domain's latest year as ``year_current`` (``"2024"`` for QCL on
-            2026-10-29).
+            prints each domain's latest year as ``year_current`` (``"2024"`` for QCL in
+            its recording).
     """
     years = _series_years(since, until)
     answer = await get_data_async(domain_code, area=area, item=item, element=element, year=years)
@@ -655,7 +655,7 @@ async def list_bulk_datasets_async(*, search: str | None = None) -> Result[list[
 
     One request, without the account, to the bulk downloads' catalogue
     (``https://bulks-faostat.fao.org/production/datasets_E.json``), cached for five
-    minutes: every dataset FAOSTAT publishes as a file, 69 on 2026-10-29, each with its
+    minutes: every dataset FAOSTAT publishes as a file, each with its
     code (``dataset_code``, the domain code ``get_data`` takes), name, topic and
     description, contact, last update as printed (``date_update``,
     ``"2026-10-02T00:00:00"``), the ZIP's size as printed (``file_size``, ``"2902KB"``),

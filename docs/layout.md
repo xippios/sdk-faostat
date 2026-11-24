@@ -41,7 +41,8 @@ tests/
                    lists, and the committed tables and provenance rows against each other
   test_refresh_upstream.py   the snapshot script's declaration and hooks, offline: its
                    pages, the keyed samples, the attribution, the terms page's converter
-                   and the pages' notes; and that CLAUDE.md dates no observation
+                   and the pages' notes; and that no docstring of src/, README.md or
+                   CLAUDE.md dates an observation, which OBSERVED.md alone holds
 docs/
   upstream/        also OBSERVED.md, the notes by hand on what FAOSTAT does but never
                    documents; openapi/, the OpenAPI document; pages/, the terms of use in

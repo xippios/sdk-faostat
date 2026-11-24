@@ -96,8 +96,8 @@ first.area, first.area_code_m49, first.item, first.year  # ("Afghanistan", "'004
 first.value, first.value_number  # ("65286.000000", Decimal("65286.000000"))
 ```
 
-`list_bulk_datasets(*, search)` lists the datasets FAOSTAT publishes as files, 69 on
-2026-10-29, from the bulk downloads' catalogue (`production/datasets_E.json` on
+`list_bulk_datasets(*, search)` lists the datasets FAOSTAT publishes as files, from the
+bulk downloads' catalogue (`production/datasets_E.json` on
 `bulks-faostat.fao.org`), fetched without the account: each with its code, the domain
 code `get_data` takes, its name, last update, the ZIP's size and URL and the rows of its
 table; `search` keeps the datasets whose code or name contains the text.
@@ -181,8 +181,9 @@ the wrapped operations: `lang` on every operation, which the package sends as `e
 (https://github.com/xippios/sdk-faostat/issues/64); `datasource` and `List1Codes` to
 `List9Codes` on `get_data` (https://github.com/xippios/sdk-faostat/issues/22) and the
 value `csv` of its `output_type` (https://github.com/xippios/sdk-faostat/issues/41);
-`datasource` and `section` on `get_groupsanddomains`; and `show_lists` on `getCodeList`,
-which the packaged tables leave at upstream's default.
+and `datasource` and `section` on `get_groupsanddomains` and `show_lists` on
+`getCodeList`, which the packaged tables leave at upstream's default
+(https://github.com/xippios/sdk-faostat/issues/72).
 
 ## Upstream terms and attribution
 

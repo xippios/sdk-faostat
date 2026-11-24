@@ -169,10 +169,10 @@ class DataRecord(_KeepsColumns):
     The columns as the answers print them, each a field snake_cased: ``Domain Code``,
     ``Domain``, ``Area Code``, ``Area``, ``Element Code``, ``Element``, ``Item Code``,
     ``Item``, ``Year Code``, ``Year``, ``Unit``, ``Value``, ``Flag``, ``Flag Description``,
-    ``Note`` (QCL, recorded 2026-10-29). A domain may print other columns: PP prints
-    ``Months Code`` and ``Months`` and no ``Note`` (recorded 2026-10-29,
-    ``tests/fixtures/get_data/PP_231_2020_page_size_2.json``), so ``months_code`` and
-    ``months`` are ``None`` in a domain without them and ``note`` in one without it. Every
+    ``Note`` (QCL). A domain may print other columns: PP prints ``Months Code`` and
+    ``Months`` and no ``Note``, as ``docs/upstream/OBSERVED.md`` notes, so
+    ``months_code`` and ``months`` are ``None`` in a domain without them and ``note`` in
+    one without it. Every
     column the row prints beyond the named ones is kept in ``columns`` under upstream's
     header, so nothing is dropped (sdk-core ADR-0028); a named column is never there
     too. A query with ``area_cs`` or ``item_cs`` renames the code column: the recorded
@@ -337,7 +337,7 @@ class GroupsAndDomainsResponse(UpstreamModel):
 
     Attributes:
         metadata: Processing time, datasource and output type.
-        data: The rows, group by group, e.g. 78 on 2026-10-29.
+        data: The rows, group by group, e.g. 78 in the recorded answer.
     """
 
     metadata: Metadata
@@ -355,8 +355,9 @@ class CodeItem(_KeepsColumns):
     (Production), and nothing is translated between the two (sdk-core ADR-0028). The
     document's schema names ``code``, ``label`` and ``aggregate_type``; QCL's and TCL's
     item lists, RL's on 51 of its 57 records, and TCL's and RL's element lists carry
-    ``parent`` as well (2026-10-29), which this model names, and every other field a
-    list carries is kept in ``columns`` under upstream's name, so nothing is dropped. A
+    ``parent`` as well (``docs/upstream/OBSERVED.md``), which this model names, and
+    every other field a list carries is kept in ``columns`` under upstream's name, so
+    nothing is dropped. A
     list may name a code twice (QCL's item list its five top groups, ``QC>`` among
     them), as upstream sends it.
 
@@ -368,7 +369,8 @@ class CodeItem(_KeepsColumns):
         parent: The code above it in the list's tree as printed, e.g. ``"QC>"`` (Crops,
             primary > (List)) or ``"#"`` at the top; ``None`` for a record without the
             field (every area list, the element lists of QCL, FBS and PP, the item lists
-            of FBS and PP, and six records of RL's, on 2026-10-29).
+            of FBS and PP, and six records of RL's, as ``docs/upstream/OBSERVED.md``
+            notes).
         aggregate_type: As printed: ``"0"`` in the recorded lists for a single code,
             ``"+"`` for a code whose label ends ``+ (Total)`` and ``">"`` for one whose
             code and label end ``>`` and ``> (List)``; ``None`` where the field is absent.
@@ -407,8 +409,8 @@ class CodeResponse(UpstreamModel):
 
     Attributes:
         metadata: Processing time, datasource and output type.
-        data: The codes in upstream's order, e.g. 5 for ``codes/element/QCL`` on
-            2026-10-29.
+        data: The codes in upstream's order, e.g. 5 for ``codes/element/QCL`` in its
+            recording.
     """
 
     metadata: Metadata
@@ -419,7 +421,7 @@ class BulkDataset(UpstreamModel):
     """One dataset of FAOSTAT's bulk downloads, as the catalogue ``datasets_E.json`` lists it.
 
     A dataset is one ZIP file under ``https://bulks-faostat.fao.org/production/``: every
-    one of the 69 the catalogue listed on 2026-10-29 a ``zip`` of ``csv``, whose
+    one a ``zip`` of ``csv`` (``docs/upstream/OBSERVED.md``), whose
     normalized table is one member ``<Name>_E_All_Data_(Normalized).csv`` beside small
     code lists (``docs/upstream/bulk/datasets_E.json``). ``dataset_code`` is the code the
     API takes as its domain (``"QCL"``, ``"RL"``). The fields as the catalogue prints them,
@@ -434,7 +436,7 @@ class BulkDataset(UpstreamModel):
             products"``; upstream's ``DatasetName``.
         topic: What the dataset covers, as printed, e.g. ``"Women of reproductive age
             (15-49 years) from 30 countries, ..."`` (MDDW); ``None`` where the catalogue
-            prints ``null`` (12 datasets on 2026-10-29). Upstream's ``Topic``.
+            prints ``null`` (12 datasets in the recorded catalogue). Upstream's ``Topic``.
         dataset_description: The dataset's description as printed; ``None`` where the
             catalogue prints ``null`` (3 datasets). Upstream's ``DatasetDescription``.
         contact: The team responsible, e.g. ``"Food and Agriculture Organization of the
@@ -446,9 +448,9 @@ class BulkDataset(UpstreamModel):
         date_update: The dataset's last update, a time without a zone, since the catalogue
             prints none, e.g. ``datetime(2026, 10, 2)`` for ``2026-10-02T00:00:00``;
             upstream's ``DateUpdate``.
-        compression_format: The file's compression, ``"zip"`` for every dataset on
-            2026-10-29; upstream's ``CompressionFormat``.
-        file_type: The format inside it, ``"csv"`` for every dataset on 2026-10-29;
+        compression_format: The file's compression, ``"zip"`` for every dataset
+            (``docs/upstream/OBSERVED.md``); upstream's ``CompressionFormat``.
+        file_type: The format inside it, ``"csv"`` for every dataset;
             upstream's ``FileType``.
         file_size: The ZIP's size as printed, in kilobytes, e.g. ``"2902KB"`` (RL),
             ``"12KB"`` (MDDW) or ``"267104KB"`` (TCL); upstream's ``FileSize``.
@@ -481,7 +483,7 @@ class Datasets(UpstreamModel):
     names no dataset and is not kept.
 
     Attributes:
-        dataset: The datasets in the catalogue's order, by code, e.g. 69 on 2026-10-29;
+        dataset: The datasets in the catalogue's order, by code, e.g. 69 in its recording;
             upstream's ``Dataset``.
     """
 
@@ -504,12 +506,13 @@ class BulkRecord(_KeepsColumns):
     The file is the member ``<Name>_E_All_Data_(Normalized).csv`` of the dataset's ZIP:
     one header row, then one row per value, comma-separated, every cell quoted text but
     an empty one, lines ending in CRLF (sdk-core ADR-0020, decision 2: the model mirrors
-    the file). The named fields are the columns of RL's header (2026-10-29), ``Area
-    Code``, ``Area Code (M49)``, ``Area``, ``Item Code``, ``Item``, ``Element Code``,
-    ``Element``, ``Year Code``, ``Year``, ``Unit``, ``Value``, ``Flag``, ``Note``, and
-    ``Item Code (CPC)``, which the OpenAPI document's ``DataResponse`` names beside
-    ``Area Code (M49)`` and the production and trade files are expected to print; each
-    header snake_cased, the parenthesised system a suffix. Each is ``None`` in a dataset
+    the file). The named fields are the columns of RL's header
+    (``docs/upstream/OBSERVED.md``), ``Area Code``, ``Area Code (M49)``, ``Area``,
+    ``Item Code``, ``Item``, ``Element Code``, ``Element``, ``Year Code``, ``Year``,
+    ``Unit``, ``Value``, ``Flag``, ``Note``, and ``Item Code (CPC)``, which the OpenAPI
+    document's ``DataResponse`` names beside ``Area Code (M49)`` and the production and
+    trade files are expected to print; each header snake_cased, the parenthesised system a
+    suffix. Each is ``None`` in a dataset
     that does not print the column: the normalized table is the dataset's own, not one
     table. MDDW's prints ``Survey Code``, ``Survey``, ``Food Group Code``, ``Food
     Group``, ``Indicator Code``, ``Indicator``, ``Geographic Level Code``, ``Geographic
@@ -541,12 +544,12 @@ class BulkRecord(_KeepsColumns):
         year: The year, e.g. ``"1961"``.
         unit: The value's unit as printed, e.g. ``"1000 ha"`` or ``"%"``.
         value: The value as printed, e.g. ``"65286.000000"``, ``""`` for an empty cell
-            (RL's 85 values flagged ``L``, "Missing value", on 2026-10-29). Upstream's
-            ``Value``.
+            (RL's 85 values flagged ``L``, "Missing value",
+            ``docs/upstream/OBSERVED.md``). Upstream's ``Value``.
         flag: The value's flag, e.g. ``"A"`` (Official value) or ``"E"`` (Estimated
             value); the ZIP's ``..._Flags.csv`` lists them.
-        note: The value's note as printed, ``""`` when it has none (every row of RL on
-            2026-10-29); ``None`` in a dataset without the column (MDDW).
+        note: The value's note as printed, ``""`` when it has none (every row of RL);
+            ``None`` in a dataset without the column (MDDW).
         columns: The row's other columns, under upstream's headers, as printed, in the
             row's order, e.g. ``{"Survey Code": "076_2014", "Survey": "Brazil - 2014",
             ...}`` in MDDW; ``{}`` in RL, whose columns are all named.

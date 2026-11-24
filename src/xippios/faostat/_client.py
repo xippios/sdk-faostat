@@ -269,8 +269,8 @@ def classify(response: httpx.Response) -> XippiosError | None:
     ``__type``, never a credential; ``api.auth_login`` raises it, and ``LoginAuth``, whose
     login runs below this hook, raises the same for it and for a login's 401 or 403, and
     core's ``token_refused`` for any other status. ``GET /{lang}/data/{domain_code}`` answers two
-    refusals with HTTP 500 and a plain text body (``Content-Type: text/plain``), recorded
-    on 2026-10-29:
+    refusals with HTTP 500 and a plain text body (``Content-Type: text/plain``), which
+    ``docs/upstream/OBSERVED.md`` notes:
 
     - ``Please add at least one filter.``, a query without ``area``, ``item``,
       ``element`` or ``year``, is ``InvalidRequestError``, upstream's refusal of the

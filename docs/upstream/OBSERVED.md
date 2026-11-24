@@ -117,6 +117,19 @@ Probe: 2026-10-29, `get_groupsanddomains` and `get_data`; samples
 `tests/fixtures/get_groupsanddomains/all.json` and
 `tests/fixtures/get_data/QCL_231_2510_15_2015_2021.json`.
 
+### The code lists carry `parent` beyond the document's schema
+
+The document's `CodeItem` names `code`, `label` and `aggregate_type`. QCL's and TCL's item
+lists, RL's on 51 of its 57 records, and TCL's and RL's element lists carry `parent` as
+well, the code above a record in the list's tree; every area list, the element lists of
+QCL, FBS and PP and the item lists of FBS and PP carry none.
+
+Probe: 2026-10-29, `getCodeList` for the dimensions `area`, `element` and `item` of QCL,
+TCL, FBS, PP and RL; samples `tests/fixtures/get_code_list/item_QCL.json` and
+`tests/fixtures/get_code_list/area_QCL.json`, and the packaged tables
+`src/xippios/faostat/reference/item_RL.json` and
+`src/xippios/faostat/reference/element_TCL.json`.
+
 ### The columns differ by domain
 
 A data answer's rows carry their domain's columns: QCL's carry 15, from `Domain Code` to
@@ -146,6 +159,7 @@ The bulk host, which the OpenAPI document does not name, serves its catalogue,
 without the account. The catalogue listed 69 datasets, each code a domain that
 `get_groupsanddomains` lists, every one a `zip` of `csv`, its `DateUpdate` a time without
 a zone (`2026-10-02T00:00:00` for RL) and its `FileSize` text in kilobytes (`2902KB`).
+Its `Topic` was `null` for 12 datasets and its `DatasetDescription` for 3.
 
 Probe: 2026-10-29, `GET production/datasets_E.json` without the account, and
 `get_groupsanddomains`; samples `tests/fixtures/datasets_e/all.json` and
@@ -169,12 +183,14 @@ A ZIP's normalized table prints the dataset's own columns: RL's header is `Area 
 `Area Code (M49)`, `Area`, `Item Code`, `Item`, `Element Code`, `Element`, `Year Code`,
 `Year`, `Unit`, `Value`, `Flag` and `Note`, its M49 code printed with a leading apostrophe
 (`'004`) and its `Value` with six decimals, and MDDW's prints no area, item or year.
-`Item Code (CPC)`, which the OpenAPI document's `DataResponse` names, is expected in QCL's
-and TCL's tables, whose ZIPs (33 MB and 267 MB) were not fetched.
+RL's `Value` was empty for its 85 values flagged `L`, "Missing value", and its `Note`
+empty on every row. `Item Code (CPC)`, which the OpenAPI document's `DataResponse` names,
+is expected in QCL's and TCL's tables, whose ZIPs (33 MB and 267 MB) were not fetched.
 
 Probe: 2026-10-29, `GET production/datasets_E.json` and the ZIPs its `FileLocation` names
-for RL and MDDW; samples `tests/fixtures/files/bulk-csv/RL_first_rows.zip` and
-`tests/fixtures/files/bulk-csv/MDDW.zip`.
+for RL and MDDW, RL's whole table read at the recording; samples
+`tests/fixtures/files/bulk-csv/RL_first_rows.zip`, that table cut to its first 20 rows,
+and `tests/fixtures/files/bulk-csv/MDDW.zip`.
 
 ### `FileRows` is recounted without a new release
 

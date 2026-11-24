@@ -5,7 +5,7 @@ catalogue ``datasets_E.json``, whose ``FileLocation`` names it
 (``<Name>_E_All_Data_(Normalized).zip``). It holds the dataset's normalized table, the
 member ``<Name>_E_All_Data_(Normalized).csv``, beside small code lists
 (``<Name>_E_AreaCodes.csv``, ``_Elements.csv``, ``_Flags.csv``, ``_ItemCodes.csv``; MDDW's
-``_Indicators.csv`` and ``_Surveys.csv``), recorded on 2026-10-29
+``_Indicators.csv`` and ``_Surveys.csv``), as ``docs/upstream/OBSERVED.md`` notes
 (``tests/fixtures/files/bulk-csv/``). The table is UTF-8 without a byte order mark,
 comma-separated, every cell quoted but an empty one, lines ending in CRLF, a header row
 and one row per value; its columns are the dataset's own. RL's, its first row cut short

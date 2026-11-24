@@ -10,9 +10,10 @@ and ``datasets_E.json`` without ``.json``, snake-cased. ``ENDPOINT`` keeps the p
 as upstream writes it, for ``meta.endpoint``.
 
 The request is sent with ``auth=None``: the client's ``LoginAuth`` does not log in for
-it and no token goes to ``bulks-faostat.fao.org`` (conventions §6). The answer, 107 KB
-on 2026-10-29, is cached in the client's ``MemoryCache`` for five minutes, under its
-8 MiB bound, shared with the keyed requests' cache.
+it and no token goes to ``bulks-faostat.fao.org`` (conventions §6). The answer, about
+107 KB in its recording (``tests/fixtures/datasets_e/all.json``), is cached in the
+client's ``MemoryCache`` for five minutes, under its 8 MiB bound, shared with the keyed
+requests' cache.
 """
 
 from typing import Final, NamedTuple
