@@ -13,7 +13,8 @@ request for every row the query matches. Release metadata: the data answer carri
 date, so ``meta.vintage`` is the domain's ``date_update`` as ``get_groupsanddomains``
 prints it (``"2025-12-31"``), read after the data answer through the cache (one request
 per process per five minutes), ``None`` for a domain the list lacks; ``meta.published_at``
-stays ``None``, since a date is no release time (conventions §4).
+stays ``None``, since a date is no release time (conventions §4). ``meta.retrieved_at`` is
+the older of the two reads' times, the kept release date's where the cache served it.
 ``meta.total`` is ``None``: the answer counts no rows (sdk-core ADR-0034).
 
 ``get_series`` is one ``get_data`` request for an area, item and element over a year
@@ -75,6 +76,7 @@ names the member it holds, ``All_Data_(Normalized).csv`` (sdk-core ADR-0020, dec
 import json
 import os
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any, Final
 
 from xippios.core import (
@@ -303,14 +305,16 @@ def _check(dimension: str, codes: Codes | None, domain_code: str) -> None:
     )
 
 
-async def _date_update(domain_code: str) -> str | None:
-    """The domain's ``date_update`` as ``get_groupsanddomains`` prints it, else ``None``.
+async def _date_update(domain_code: str) -> tuple[str | None, datetime]:
+    """The domain's ``date_update`` as ``get_groupsanddomains`` prints it, and the read's time.
 
     The text as FAOSTAT sent it, which the wrapper hands beside the parsed answer, since
-    the model reads the date into a ``date`` (conventions §4).
+    the model reads the date into a ``date``; ``None`` for a domain the list lacks. The
+    time is the answer's ``retrieved_at``, a kept answer's where the cache served it, so
+    that the task can give the older of its two reads (conventions §4).
     """
     answer = await api.get_groupsanddomains.get_groupsanddomains(LANG)
-    return answer.payload.printed.get(domain_code)
+    return answer.payload.printed.get(domain_code), answer.retrieved_at
 
 
 async def get_data_async(
@@ -398,11 +402,11 @@ async def get_data_async(
         **OUTPUT_OPTIONS,
     }
     answer = await api.get_data.get_data(LANG, domain_code, **sent)
-    vintage = await _date_update(domain_code)
+    vintage, dated_at = await _date_update(domain_code)
     meta = ResultMeta(
         source=SOURCE,
         endpoint=api.get_data.ENDPOINT,
-        retrieved_at=answer.retrieved_at,
+        retrieved_at=min(answer.retrieved_at, dated_at),
         published_at=None,
         vintage=vintage,
         request={"lang": LANG, "domain_code": domain_code, **sent},
