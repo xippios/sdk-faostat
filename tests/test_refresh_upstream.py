@@ -144,7 +144,10 @@ def test_the_kept_document_and_catalogue_pass_the_frames_attribution_check() -> 
 def test_the_script_keeps_no_observed_notes() -> None:
     """The notes moved to ``OBSERVED.md``: neither the script nor its declaration holds them."""
     assert not hasattr(script, "OBSERVED")
-    text = " ".join(render_fetched(script.SNAPSHOT, [], FETCHED, observed=True).split())
+    # No row is read here, so the check of the ReDoc page against the document, which stops
+    # a run without its two rows, gives way to none.
+    rowless = replace(script.SNAPSHOT, sections=lambda rows: ())
+    text = " ".join(render_fetched(rowless, [], FETCHED, observed=True).split())
     source = SCRIPT.read_text(encoding="utf-8")
     for note in ("observed in probes", "no_records"):
         assert note not in text

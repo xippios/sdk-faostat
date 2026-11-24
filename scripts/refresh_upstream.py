@@ -893,11 +893,18 @@ def sections(rows: Sequence[Row]) -> Sequence[Section]:
     """Check the ReDoc page's copy against the OpenAPI document, with every row read.
 
     The one check of one page against another (sdk-core ADR-0062): it writes no section of
-    its own, ``()``, and stops the run with ``changed`` before anything is written.
+    its own, ``()``, and stops the run with ``changed`` before anything is written. A run
+    without either row stops too, since a check that cannot run must not read as one that
+    passed.
     """
     read = {row.page.url: row.response for row in rows}
-    if SPEC_URL in read and DOCS_URL in read:
-        redoc_against(read[DOCS_URL], decode(read[SPEC_URL]))
+    missing = [url for url in (SPEC_URL, DOCS_URL) if url not in read]
+    if missing:
+        raise SystemExit(
+            f"{DOCS_URL} is read against the OpenAPI document, {SPEC_URL}, and this run read "
+            f"no row of {', '.join(missing)}: declare both. Nothing was written."
+        )
+    redoc_against(read[DOCS_URL], decode(read[SPEC_URL]))
     return ()
 
 

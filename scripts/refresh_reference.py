@@ -123,9 +123,16 @@ def counted_logins(login: LoginAuth) -> Iterator[Logins]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run core's frame on ``LISTS`` and name the logins among the requests it counts."""
+    """Run core's frame on ``LISTS`` and name the logins among the requests it counts.
+
+    ``--render-only`` sends nothing and the frame prints no count for it, so the line of
+    logins belongs to a run that fetches alone.
+    """
+    given = list(sys.argv[1:] if argv is None else argv)
+    if "--render-only" in given:
+        return run(LISTS, given)
     with counted_logins(auth):
-        return run(LISTS, sys.argv[1:] if argv is None else argv)
+        return run(LISTS, given)
 
 
 if __name__ == "__main__":
