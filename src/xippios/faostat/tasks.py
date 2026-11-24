@@ -236,12 +236,13 @@ def _joined(codes: Codes | None, name: str) -> str | None:
     if codes is None:
         return None
     given = [codes] if isinstance(codes, str | int) else list(codes)
-    for code in given:
-        if "," in str(code):
-            listed = json.dumps([part.strip() for part in str(code).split(",")])
+    if any("," in str(code) for code in given):
+        listed = [part.strip() for code in given for part in str(code).split(",") if part.strip()]
+        given = [] if not listed else given  # commas alone: no code, refused below
+        if listed:
             raise InvalidRequestError(
-                f"{name} takes several codes as a list, {listed}, not a text with commas, "
-                f"{str(code)!r}. {NOTHING_SENT}",
+                f"{name} takes several codes as a list, {json.dumps(listed)}, not a text with "
+                f"commas, {codes!r}. {NOTHING_SENT}",
                 source=SOURCE,
             )
     text = ",".join(str(code) for code in given)

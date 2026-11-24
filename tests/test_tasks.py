@@ -505,7 +505,7 @@ def test_get_data_without_a_filter_is_refused_before_sending(
     assert not respx_mock.calls, "nothing sent, not even the login"
 
 
-@pytest.mark.parametrize("empty", [[], ""])
+@pytest.mark.parametrize("empty", [[], "", ",", [" , "]])
 def test_get_data_an_empty_filter_is_refused_before_sending(
     respx_mock: respx.MockRouter, empty: Any
 ) -> None:
