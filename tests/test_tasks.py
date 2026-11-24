@@ -224,6 +224,26 @@ def test_get_data_qcl(replay_fixture: ReplayFixture) -> None:
     }
 
 
+def test_get_data_dates_its_answer_by_the_older_of_its_two_reads(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """``meta.retrieved_at`` is the time of the older read, here the kept release date.
+
+    ``list_domains`` keeps the ``groupsanddomains`` answer in the client's cache first, so
+    the data answer that ``get_data`` reads after it is the newer of the two, and the
+    envelope states the time of the kept one (conventions §4).
+    """
+    replay_fixture(GET_DATA, QCL)
+    domains = replay_fixture(DOMAINS, "all")
+    kept = list_domains()
+    between = datetime.now(UTC)
+    result = get_data("QCL", **QCL_ARGUMENTS)
+    assert domains.call_count == 1, "the release date is read from the kept answer"
+    assert result.meta.vintage == date_update("QCL")
+    assert result.meta.retrieved_at == kept.meta.retrieved_at, "the older read's time"
+    assert result.meta.retrieved_at <= between, "older than the data request"
+
+
 def test_get_data_page(replay_fixture: ReplayFixture) -> None:
     case = "QCL_page_2"
     route = replay_fixture(GET_DATA, case)
