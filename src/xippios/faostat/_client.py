@@ -50,12 +50,13 @@ mapping: the 401 ``Missing Authorization Header`` and the 403 ``Authentication F
 (recorded under ``tests/fixtures/get_data/``) are ``AuthError`` there.
 
 Answers of HTTP 200 are cached in core's ``MemoryCache`` with its default lifetime of
-five minutes, up to core's ``cache_max_bytes`` of 8 MiB a body (sdk-core ADR-0040,
-decision 3), once ``get_answer`` has decoded them: ``tasks.get_data``'s look-up of a
-domain's release date in ``get_groupsanddomains`` costs one request per process per five
-minutes, as does the bulk catalogue (``datasets_E.json``, 107 KB), a larger data answer
-is returned and fetched again the next time, and an answer that is not JSON is asked
-again. A bulk file goes through ``download`` and is never cached.
+five minutes for every path, ``{"/": 300.0}``, up to core's ``cache_max_bytes`` of 8 MiB a
+body (sdk-core ADR-0040, decision 3), once ``get_answer`` has decoded them, and an entry
+whose five minutes have passed is dropped at the cache's next read or write:
+``tasks.get_data``'s look-up of a domain's release date in ``get_groupsanddomains`` costs
+one request per process per five minutes, as does the bulk catalogue (``datasets_E.json``,
+107 KB), a larger data answer is returned and fetched again the next time, and an answer
+that is not JSON is asked again. A bulk file goes through ``download`` and is never cached.
 """
 
 import re
@@ -72,23 +73,21 @@ from xippios.core import (
     ClientConfig,
     EnvVar,
     InvalidRequestError,
+    MemoryCache,
     NotFoundError,
     RateLimit,
     RenewingBearerAuth,
     ValidationError,
     XippiosError,
     request_description,
+    tool_name,
 )
-from xippios.core.client import MemoryCache
 
 from xippios.faostat._version import __version__
 from xippios.faostat.models import Auth
 
 SOURCE = "faostat"
 BASE_URL = "https://faostatservices.fao.org/api/v1"
-# No API key exists: FAOSTAT authenticates an account by its login (LoginAuth below), so
-# the template's key variable stays None and the account's two variables are named below.
-API_KEY_ENV: str | None = None
 USERNAME_ENV = "FAOSTAT_USERNAME"
 """The variable holding the FAO account's user name, its e-mail: ``auth_login``'s ``username``."""
 # The variable's name, not a value: detect-secrets reads the assignment as one.
@@ -310,7 +309,7 @@ def classify(response: httpx.Response) -> XippiosError | None:
         return NotFoundError(
             f"FAOSTAT has no domain {domain_code!r}: {request_description(response)} answered "
             f'HTTP 500, "{UNKNOWN_DOMAIN}"; list_domains names the domains (over MCP, the '
-            f"tool {SOURCE}_list_domains)",
+            f"tool {tool_name(SOURCE, 'list_domains')})",
             source=SOURCE,
         )
     return None
@@ -335,7 +334,6 @@ auth = LoginAuth(source=SOURCE)
 client = AsyncClient(config, auth=auth)
 
 __all__ = [
-    "API_KEY_ENV",
     "BASE_URL",
     "CREDENTIAL_REFUSALS",
     "ENV_VARS",

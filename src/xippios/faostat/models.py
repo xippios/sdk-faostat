@@ -25,11 +25,12 @@ in its ZIP, the fields the file's headers snake_cased (sdk-core ADR-0020, decisi
 """
 
 from collections.abc import Mapping
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import Field, SecretStr, field_validator, model_validator
-from xippios.core import UpstreamModel
+from pydantic import Field, SecretStr, computed_field, model_validator
+from xippios.core import NamedBy, UpstreamModel, parse_decimal
 
 __all__ = [
     "Auth",
@@ -182,7 +183,10 @@ class DataRecord(_KeepsColumns):
     ``area_code`` or ``item_code`` ``None`` and its coded column in ``columns``. The
     OpenAPI document's ``DataResponse`` spells the two columns ``Area Code (M49)`` and
     ``Item Code (CPC)``; a query without ``area_cs`` and ``item_cs`` prints ``Area Code`` and
-    ``Item Code`` (``docs/upstream/OBSERVED.md``). Every value is text as printed but ``value``.
+    ``Item Code`` (``docs/upstream/OBSERVED.md``). Every value is text as printed, ``value``
+    too, with its reading as a number beside it in ``value_number`` (conventions §3).
+    ``area_code`` is named by ``area``, the name FAOSTAT sends beside it
+    (``NamedBy("area")``, conventions §4).
 
     ``element_code`` is the code the answer prints, which is not the code a query filters
     by: a query with ``element=2510`` (Production Quantity in ``codes/element/QCL``)
@@ -210,8 +214,8 @@ class DataRecord(_KeepsColumns):
         months: The period, e.g. ``"Annual value"``; upstream's ``Months``, printed by
             PP; ``None`` in a domain without the column.
         unit: The value's unit as printed, e.g. ``"t"``.
-        value: The value, a number where its text is one, e.g. ``Decimal("49751180")``,
-            else the text as printed; ``None`` for ``null``. Upstream's ``Value``.
+        value: The value as printed, e.g. ``"49751180"`` or ``"3769.9"``; ``None`` for
+            ``null``. Upstream's ``Value``.
         flag: The value's flag, e.g. ``"A"``.
         flag_description: The flag's meaning, e.g. ``"Official value"``; upstream's
             ``Flag Description``.
@@ -225,7 +229,9 @@ class DataRecord(_KeepsColumns):
 
     domain_code: str = Field(validation_alias="Domain Code")
     domain: str = Field(validation_alias="Domain")
-    area_code: str | None = Field(default=None, validation_alias="Area Code")
+    area_code: Annotated[str | None, NamedBy("area")] = Field(
+        default=None, validation_alias="Area Code"
+    )
     area: str = Field(validation_alias="Area")
     element_code: str = Field(validation_alias="Element Code")
     element: str = Field(validation_alias="Element")
@@ -236,11 +242,20 @@ class DataRecord(_KeepsColumns):
     months_code: str | None = Field(default=None, validation_alias="Months Code")
     months: str | None = Field(default=None, validation_alias="Months")
     unit: str = Field(validation_alias="Unit")
-    value: Decimal | str | None = Field(validation_alias="Value", union_mode="left_to_right")
+    value: str | None = Field(validation_alias="Value")
     flag: str = Field(validation_alias="Flag")
     flag_description: str = Field(validation_alias="Flag Description")
     note: str | None = Field(default=None, validation_alias="Note")
     columns: Mapping[str, Any] = Field(default_factory=dict)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def value_number(self) -> Decimal | None:
+        """``value`` read as a number, e.g. ``Decimal("49751180")``; ``None`` where it is none.
+
+        A JSON integer over MCP and HTTP where it has no fraction, ``49751180``.
+        """
+        return None if self.value is None else parse_decimal(self.value)
 
 
 class DataResponse(UpstreamModel):
@@ -258,9 +273,10 @@ class DataResponse(UpstreamModel):
 class Domain(UpstreamModel):
     """One row of ``groupsanddomains``: a domain (a dataset) or a subgroup, with its group.
 
-    The fields as the answer prints them, in its order; the dates are text as printed,
-    since ``release_current`` and ``release_next`` hold more than a date
-    (``"2026-01-09 / 2026-10-09"``, ``"2026-12"``, ``""``). A subgroup's row
+    The fields as the answer prints them, in its order. ``date_update`` is a date, as FAOSTAT
+    prints it (``2025-12-31``), read into ``datetime.date``, which keeps all of it; the
+    other dates are text as printed, since ``release_current`` and ``release_next`` hold more
+    than a date (``"2026-01-09 / 2026-10-09"``, ``"2026-12"``, ``""``). A subgroup's row
     (``subgroup_flag`` ``"1"``, ``domain_level`` 1, ``"RN"`` Land) has no dates, no
     release fields and no focal point: those are ``None`` there.
 
@@ -271,7 +287,8 @@ class Domain(UpstreamModel):
         subgroup_name: The subgroup's name, e.g. ``"Land"``; ``None`` elsewhere.
         domain_code: The domain, e.g. ``"QCL"``: ``get_data``'s ``domain``.
         domain_name: The domain's name, e.g. ``"Crops and livestock products"``.
-        date_update: The domain's last update as printed, e.g. ``"2025-12-31"``.
+        date_update: The domain's last update, e.g. ``date(2025, 12, 31)`` for the
+            printed ``2025-12-31``.
         note_update: A note on the update, e.g. ``"minor revision"``, or ``""``.
         release_current: The current release as printed, e.g. ``"2025-12-31"`` or
             ``"2026-01-09 / 2026-10-09"``.
@@ -297,7 +314,7 @@ class Domain(UpstreamModel):
     subgroup_name: str | None = None
     domain_code: str
     domain_name: str
-    date_update: str | None = None
+    date_update: date | None = None
     note_update: str | None = None
     release_current: str | None = None
     state_current: str | None = None
@@ -406,8 +423,9 @@ class BulkDataset(UpstreamModel):
     normalized table is one member ``<Name>_E_All_Data_(Normalized).csv`` beside small
     code lists (``docs/upstream/bulk/datasets_E.json``). ``dataset_code`` is the code the
     API takes as its domain (``"QCL"``, ``"RL"``). The fields as the catalogue prints them,
-    in its order, upstream's PascalCase names snake_cased; ``date_update`` and
-    ``file_size`` are text as printed, ``file_rows`` a number.
+    in its order, upstream's PascalCase names snake_cased; ``date_update`` is a time without
+    a zone, as the catalogue prints it, ``file_size`` text as printed and ``file_rows`` a
+    number.
 
     Attributes:
         dataset_code: The dataset's code, e.g. ``"QCL"``, ``"RL"`` or ``"MDDW"``, the
@@ -425,8 +443,9 @@ class BulkDataset(UpstreamModel):
         email: The contact's address as printed, e.g. ``"faostat@fao.org"``, at times two
             separated by ``; ``; ``None`` where the catalogue prints ``null`` (3
             datasets). Upstream's ``Email``.
-        date_update: The dataset's last update as printed, a time without a zone, e.g.
-            ``"2026-10-02T00:00:00"``; upstream's ``DateUpdate``.
+        date_update: The dataset's last update, a time without a zone, since the catalogue
+            prints none, e.g. ``datetime(2026, 10, 2)`` for ``2026-10-02T00:00:00``;
+            upstream's ``DateUpdate``.
         compression_format: The file's compression, ``"zip"`` for every dataset on
             2026-10-29; upstream's ``CompressionFormat``.
         file_type: The format inside it, ``"csv"`` for every dataset on 2026-10-29;
@@ -446,7 +465,7 @@ class BulkDataset(UpstreamModel):
     dataset_description: str | None = Field(default=None, validation_alias="DatasetDescription")
     contact: str | None = Field(default=None, validation_alias="Contact")
     email: str | None = Field(default=None, validation_alias="Email")
-    date_update: str = Field(validation_alias="DateUpdate")
+    date_update: datetime = Field(validation_alias="DateUpdate")
     compression_format: str = Field(validation_alias="CompressionFormat")
     file_type: str = Field(validation_alias="FileType")
     file_size: str = Field(validation_alias="FileSize")
@@ -498,7 +517,9 @@ class BulkRecord(_KeepsColumns):
     have ``element_code``, ``element``, ``unit``, ``value`` and ``flag``, the rest under
     their headers in ``columns``. Every column the row prints beyond the named ones is
     kept there, so nothing is dropped (sdk-core ADR-0028). Every value is text as
-    printed, an empty cell ``""``, but ``value``. ``DataRecord`` stays the API's row:
+    printed, an empty cell ``""``, ``value`` too, with its reading beside it in
+    ``value_number``. ``area_code`` and ``area_code_m49`` are named by ``area``, the name
+    the file prints beside them (``NamedBy("area")``). ``DataRecord`` stays the API's row:
     the files print other columns (no ``Domain Code`` or ``Flag Description``) and other
     forms (``Value`` with six decimals).
 
@@ -519,10 +540,9 @@ class BulkRecord(_KeepsColumns):
         year_code: The year's code, e.g. ``"1961"``; upstream's ``Year Code``.
         year: The year, e.g. ``"1961"``.
         unit: The value's unit as printed, e.g. ``"1000 ha"`` or ``"%"``.
-        value: The value, a number where its text is one, e.g.
-            ``Decimal("65286.000000")``, the six decimals as printed, else the text as
-            printed; ``None`` for an empty cell (RL's 85 values flagged ``L``, "Missing
-            value", on 2026-10-29). Upstream's ``Value``.
+        value: The value as printed, e.g. ``"65286.000000"``, ``""`` for an empty cell
+            (RL's 85 values flagged ``L``, "Missing value", on 2026-10-29). Upstream's
+            ``Value``.
         flag: The value's flag, e.g. ``"A"`` (Official value) or ``"E"`` (Estimated
             value); the ZIP's ``..._Flags.csv`` lists them.
         note: The value's note as printed, ``""`` when it has none (every row of RL on
@@ -532,8 +552,12 @@ class BulkRecord(_KeepsColumns):
             ...}`` in MDDW; ``{}`` in RL, whose columns are all named.
     """
 
-    area_code: str | None = Field(default=None, validation_alias="Area Code")
-    area_code_m49: str | None = Field(default=None, validation_alias="Area Code (M49)")
+    area_code: Annotated[str | None, NamedBy("area")] = Field(
+        default=None, validation_alias="Area Code"
+    )
+    area_code_m49: Annotated[str | None, NamedBy("area")] = Field(
+        default=None, validation_alias="Area Code (M49)"
+    )
     area: str | None = Field(default=None, validation_alias="Area")
     item_code: str | None = Field(default=None, validation_alias="Item Code")
     item_code_cpc: str | None = Field(default=None, validation_alias="Item Code (CPC)")
@@ -543,15 +567,16 @@ class BulkRecord(_KeepsColumns):
     year_code: str | None = Field(default=None, validation_alias="Year Code")
     year: str | None = Field(default=None, validation_alias="Year")
     unit: str | None = Field(default=None, validation_alias="Unit")
-    value: Decimal | str | None = Field(
-        default=None, validation_alias="Value", union_mode="left_to_right"
-    )
+    value: str | None = Field(default=None, validation_alias="Value")
     flag: str | None = Field(default=None, validation_alias="Flag")
     note: str | None = Field(default=None, validation_alias="Note")
     columns: Mapping[str, str] = Field(default_factory=dict)
 
-    @field_validator("value", mode="before")
-    @classmethod
-    def _empty_value(cls, value: Any) -> Any:
-        """An empty cell, a value the file does not print, is ``None``."""
-        return None if value == "" else value
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def value_number(self) -> Decimal | None:
+        """``value`` read as a number, e.g. ``Decimal("65286.000000")``, its decimals kept.
+
+        ``None`` for an empty cell and where the dataset prints no ``Value``.
+        """
+        return None if self.value is None else parse_decimal(self.value)
