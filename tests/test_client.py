@@ -46,7 +46,6 @@ from xippios.core.testing import (
     load_fixture,
     response_from_fixture,
 )
-from xippios.core.testing.plugin import PLACEHOLDER_KEY
 
 from xippios.faostat import api, tasks
 from xippios.faostat._client import (
@@ -115,7 +114,9 @@ def fresh_login() -> Iterator[None]:
     auth.reset()
 
 
-def test_one_login_serves_every_request(replay_fixture: ReplayFixture) -> None:
+def test_one_login_serves_every_request(
+    replay_fixture: ReplayFixture, placeholder_api_key: str | None
+) -> None:
     # NOT RECORDED: the recorded answers serve other queries, and the test asserts the logins and
     # bearers sent (conventions §10, kind 3).
     login = replay_fixture("auth_login", "login")
@@ -128,7 +129,9 @@ def test_one_login_serves_every_request(replay_fixture: ReplayFixture) -> None:
     assert domains.call_count == 1, "the second look-up is a cache hit"
     assert bearers(data) == ["Bearer REDACTED", "Bearer REDACTED"]
     assert bearers(domains) == ["Bearer REDACTED"]
-    assert login_forms(login) == [{"username": [PLACEHOLDER_KEY], "password": [PLACEHOLDER_KEY]}]
+    assert login_forms(login) == [
+        {"username": [placeholder_api_key], "password": [placeholder_api_key]}
+    ]
     assert login_headers(login) == [("application/x-www-form-urlencoded", config.user_agent)]
     assert bearers(login) == [None], "the login sends no bearer"
 
@@ -259,7 +262,9 @@ def test_an_unset_variable_is_config_error_and_nothing_is_sent(
 
 
 def test_a_refused_login_is_auth_error_naming_upstream_type(
-    replay_fixture: ReplayFixture, respx_mock: respx.MockRouter
+    replay_fixture: ReplayFixture,
+    respx_mock: respx.MockRouter,
+    placeholder_api_key: str | None,
 ) -> None:
     # NOT RECORDED: the recorded refusal of an unknown user answers the placeholder's login, as
     # FAOSTAT refuses any unknown user alike (conventions §10, kind 3).
@@ -272,7 +277,8 @@ def test_a_refused_login_is_auth_error_naming_upstream_type(
         "FAOSTAT refused the login: POST /api/v1/auth/login answered HTTP 400 "
         f"(UserNotFoundException); check {USERNAME_ENV} and {PASSWORD_ENV}"
     )
-    assert PLACEHOLDER_KEY not in str(raised.value)
+    assert placeholder_api_key is not None
+    assert placeholder_api_key not in str(raised.value)
     assert login.call_count == 1
     assert data.call_count == 0
 

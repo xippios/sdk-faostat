@@ -322,3 +322,11 @@ def test_the_portal_is_an_empty_shell_that_requirejs_draws() -> None:
     drawn = SHELL.replace("<body></body>", "<body><p>Data</p></body>")
     with pytest.raises(SystemExit, match="the <body> is no longer empty"):
         noted(page, answer(page.url, drawn.encode()))
+
+
+def test_the_redoc_page_is_checked_against_the_document_in_sections() -> None:
+    """The check of one page against another runs in ``sections``, which sees every row."""
+    assert script.SNAPSHOT.sections is script.sections
+    assert script.sections([]) == ()
+    assert not hasattr(script, "_READ"), "no page kept between two hooks"
+    assert not hasattr(script, "load_json"), "core's parse_json reads a JSON answer"

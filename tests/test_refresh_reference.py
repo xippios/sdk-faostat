@@ -160,14 +160,13 @@ def test_the_committed_provenance_rows_are_the_declared_origins() -> None:
     assert "| File | Origin | Fetched |" in readme, "the one header core's frame knows"
 
 
-def test_the_logins_core_leaves_out_of_its_count_are_counted(
+def test_the_logins_among_cores_count_are_named(
     replay_fixture: ReplayFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The login runs inside the client's auth flow, which core's count of the run sees not."""
+    """Core's count of the run holds the logins among its requests; the script names them."""
     replay_fixture(CODES, "element_QCL")
     with script.counted_logins(auth) as counted:
         sync(LISTED["element_QCL"].fetch)()
-    assert (counted.logins, counted.resent) == (1, 0)
-    assert capsys.readouterr().out.splitlines() == [
-        "beside them, sent inside the client's auth flow: 1 login, 0 requests sent again"
-    ]
+    assert counted.logins == 1
+    assert not hasattr(counted, "resent"), "a resend is core's to count"
+    assert capsys.readouterr().out.splitlines() == ["of them, logins: 1"]
