@@ -160,6 +160,30 @@ Every request to the API logs in first where the process has no current token
 (`auth_login`, `POST /auth/login`); the login is the client's, no task's. The bulk
 downloads' catalogue and files are fetched without it.
 
+## Scope
+
+FAOSTAT's OpenAPI document holds 24 operations, and the package's scope is its data, its
+lists and its releases, sixteen of them: the login, `auth_login`; `get_data`, with
+`post_datasize` as its count; the code lists `getCodeList`, `get_codes` and
+`get_dimensions`; the domains and their groups, `get_groupsanddomains`, `get_domains` and
+`get_groups`; `get_bulkdownloads`, beside the bulk catalogue and its ZIPs; the history of
+updates, `get_updates`; the four definitions, `get_definitions_domain`,
+`get_definitions_domain_by_type`, `get_definitions_types` and `get_definitions_by_type`;
+and `get_metadata`. Four of them are wrapped today, the login, the data, the groups and
+domains, and the code list, the last for the packaged tables alone, as the status table
+above names them. Eight are left out: `post_rankings`, `post_reportdata` and
+`post_reportheaders`, since they are FAOSTAT's computed rankings and report tables of the
+data, and
+`get_search`, `get_suggestions`, `get_documents`, `get_metadata_print` and `get_ping`,
+since they serve FAOSTAT's portal: its search, its suggestions, its list of documents, its
+printable metadata and its ping. A caller cannot set yet these documented parameters of
+the wrapped operations: `lang` on every operation, which the package sends as `en`
+(https://github.com/xippios/sdk-faostat/issues/64); `datasource` and `List1Codes` to
+`List9Codes` on `get_data` (https://github.com/xippios/sdk-faostat/issues/22) and the
+value `csv` of its `output_type` (https://github.com/xippios/sdk-faostat/issues/41);
+`datasource` and `section` on `get_groupsanddomains`; and `show_lists` on `getCodeList`,
+which the packaged tables leave at upstream's default.
+
 ## Upstream terms and attribution
 
 Data comes from FAOSTAT (https://www.fao.org/faostat/) under the
