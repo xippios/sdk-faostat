@@ -320,7 +320,11 @@ def test_get_data_names_the_closest_codes_by_label(
 
 
 def test_get_data_sends_a_domain_without_a_table_unchecked(replay_fixture: ReplayFixture) -> None:
-    """QV has no packaged table: an area code no table holds is sent, as before."""
+    """QV has no packaged table: an area code no table holds is sent, as before.
+
+    NOT RECORDED: the recorded QCL answer served at QV's path, for a test that asserts what
+    was sent and that the rows are read (conventions §10, kind 3).
+    """
     domain = "QV"
     assert domain not in params.DOMAINS
     assert all("99999" not in packaged_labels(f"area_{packaged}") for packaged in params.DOMAINS)
@@ -346,6 +350,8 @@ def test_get_data_sends_a_domain_without_a_table_unchecked(replay_fixture: Repla
 def test_get_data_sends_another_coding_systems_codes_unchecked(
     replay_fixture: ReplayFixture, arguments: dict[str, Any], sent: dict[str, str]
 ) -> None:
+    # NOT RECORDED: the recorded QCL answer serves another query, and the test asserts what was sent
+    # (conventions §10, kind 3).
     """The tables list FAO's codes: an area or item code of another system is not checked."""
     for name, value in sent.items():
         if not name.endswith("_cs"):
@@ -468,7 +474,10 @@ def test_a_coded_column_is_kept_in_columns_and_its_field_is_none() -> None:
 
 
 def test_a_column_no_field_names_is_kept_in_columns() -> None:
-    """A row as an in-memory mapping (no fixture): QCL's first row and one column more."""
+    """A row as an in-memory mapping: QCL's first row and one column more.
+
+    The row is an input of the test, not an answer from FAOSTAT.
+    """
     printed = json.loads(recorded(GET_DATA, QCL).response.body)["data"][0]
     row = DataRecord.model_validate({**printed, "Extra Column": "x", "Other": None})
     assert row.columns == {"Extra Column": "x", "Other": None}
@@ -530,7 +539,11 @@ async def test_the_wrapper_maps_upstream_refusal_of_a_query_without_a_filter(
 def test_get_data_vintage_is_none_for_a_domain_the_list_lacks(
     replay_fixture: ReplayFixture,
 ) -> None:
-    """The QCL rows served at an unlisted domain's path: the release date look-up finds none."""
+    """The QCL rows served at an unlisted domain's path: the release date look-up finds none.
+
+    NOT RECORDED: the recorded QCL answer served at QCX's path, as FAOSTAT answers the data
+    of any domain alike, while the list of domains lacks QCX (conventions §10, kind 3).
+    """
     domain = "QCX"
     assert domain not in {row.domain_code for row in recorded_domains()}
     fixture = recorded(GET_DATA, QCL)
@@ -542,6 +555,8 @@ def test_get_data_vintage_is_none_for_a_domain_the_list_lacks(
 
 @pytest.mark.anyio
 async def test_get_data_tool_end_to_end(replay_fixture: ReplayFixture) -> None:
+    # NOT RECORDED: the recorded answer serves two years where it recorded seven, and the test
+    # asserts the years sent (conventions §10, kind 3).
     route = replay_fixture(GET_DATA, QCL)
     replay_fixture(DOMAINS, "all")
     payload = await mcp_call(
@@ -645,6 +660,8 @@ def test_get_series_qcl(replay_fixture: ReplayFixture) -> None:
 def test_get_series_without_since_and_until_sends_no_year_filter(
     replay_fixture: ReplayFixture,
 ) -> None:
+    # NOT RECORDED: the recorded answer serves the query without a year filter, and the test asserts
+    # what was sent (conventions §10, kind 3).
     """Every year the domain holds: no ``year`` filter; the recorded answer served at its path."""
     route = replay_fixture(GET_DATA, QCL)
     replay_fixture(DOMAINS, "all")
@@ -687,6 +704,8 @@ def test_get_series_refuses_since_after_until(respx_mock: respx.MockRouter) -> N
 
 
 def test_get_series_one_year(replay_fixture: ReplayFixture) -> None:
+    # NOT RECORDED: the recorded answer serves one year, and the test asserts what was sent
+    # (conventions §10, kind 3).
     """``since`` equal to ``until``: one year in the filter."""
     route = replay_fixture(GET_DATA, QCL)
     replay_fixture(DOMAINS, "all")

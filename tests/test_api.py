@@ -79,6 +79,8 @@ async def test_get_code_list(replay_fixture: ReplayFixture, dimension: str, case
 
 
 async def test_get_code_list_sends_show_lists_when_given(replay_fixture: ReplayFixture) -> None:
+    # NOT RECORDED: the recorded answer serves a query with show_lists, and the test asserts what
+    # was sent (conventions §10, kind 3).
     route = replay_fixture(CODES, "element_QCL")
     await api.get_code_list.get_code_list("en", "element", "QCL", show_lists=False)
     assert sent_query(route) == {"show_lists": "false"}

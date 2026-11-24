@@ -116,6 +116,8 @@ def fresh_login() -> Iterator[None]:
 
 
 def test_one_login_serves_every_request(replay_fixture: ReplayFixture) -> None:
+    # NOT RECORDED: the recorded answers serve other queries, and the test asserts the logins and
+    # bearers sent (conventions §10, kind 3).
     login = replay_fixture("auth_login", "login")
     data = replay_fixture("get_data", QCL)
     domains = replay_fixture("get_groupsanddomains", "all")
@@ -145,6 +147,8 @@ def test_the_token_is_kept_masked_and_alone(replay_fixture: ReplayFixture) -> No
 def test_a_refused_request_logs_in_once_more_and_is_sent_again(
     replay_fixture: ReplayFixture, respx_mock: respx.MockRouter, case: str
 ) -> None:
+    """NOT RECORDED: the recorded 401 or 403 of the data endpoint, served in memory to a
+    request with a bearer, as FAOSTAT refuses one alike (conventions §10, kind 3)."""
     login = replay_fixture("auth_login", "login")
     domains = replay_fixture("get_groupsanddomains", "all")
     data = data_route(respx_mock).mock(
@@ -162,6 +166,8 @@ def test_a_refused_request_logs_in_once_more_and_is_sent_again(
 def test_a_second_refusal_is_core_auth_error(
     replay_fixture: ReplayFixture, respx_mock: respx.MockRouter, case: str, status: int
 ) -> None:
+    """NOT RECORDED: the recorded 401 or 403 of the data endpoint, served in memory twice to
+    a request with a bearer, as FAOSTAT refuses one alike (conventions §10, kind 3)."""
     login = replay_fixture("auth_login", "login")
     domains = replay_fixture("get_groupsanddomains", "all")
     refused = answer(recorded("get_data", case))
@@ -210,7 +216,11 @@ def test_the_login_is_core_renewing_bearer_renewed_on_401_and_403() -> None:
 async def test_two_requests_that_start_together_log_in_once(
     replay_fixture: ReplayFixture, respx_mock: respx.MockRouter
 ) -> None:
-    """The login answers after a pause, so the second request starts while it is pending."""
+    """The login answers after a pause, so the second request starts while it is pending.
+
+    NOT RECORDED: the recorded login, served in memory after the pause (conventions §10,
+    kind 3).
+    """
     recorded_login = answer(recorded("auth_login", "login"))
 
     async def slow_login(request: httpx.Request) -> httpx.Response:
@@ -251,6 +261,8 @@ def test_an_unset_variable_is_config_error_and_nothing_is_sent(
 def test_a_refused_login_is_auth_error_naming_upstream_type(
     replay_fixture: ReplayFixture, respx_mock: respx.MockRouter
 ) -> None:
+    # NOT RECORDED: the recorded refusal of an unknown user answers the placeholder's login, as
+    # FAOSTAT refuses any unknown user alike (conventions §10, kind 3).
     login = replay_fixture("auth_login", "user_not_found")
     data = data_route(respx_mock)
     with pytest.raises(AuthError) as raised:
@@ -269,7 +281,8 @@ def test_a_refused_login_is_auth_error_naming_upstream_type(
 def test_a_login_refused_with_401_or_403_is_auth_error(
     respx_mock: respx.MockRouter, status: int
 ) -> None:
-    """A test double: the recorded refusals' statuses at the login, without a body."""
+    """NOT RECORDED: the recorded refusals' statuses served at the login, their bodies
+    removed, a form the login was not seen to send (conventions §10, kind 4)."""
     respx_mock.post(LOGIN_URL).mock(return_value=httpx.Response(status))
     with pytest.raises(AuthError) as raised:
         tasks.get_data("QCL", **QCL_ARGUMENTS)
@@ -278,7 +291,11 @@ def test_a_login_refused_with_401_or_403_is_auth_error(
 
 
 def test_a_login_answered_503_is_core_upstream_error(respx_mock: respx.MockRouter) -> None:
-    """Another answer of the login goes through core's mapping, without the variables' hint."""
+    """Another answer of the login goes through core's mapping, without the variables' hint.
+
+    NOT RECORDED: a 503 of no shape FAOSTAT sends, to show that the source leaves it to core
+    (conventions §10, kind 5).
+    """
     login = respx_mock.post(LOGIN_URL).mock(
         return_value=httpx.Response(503, text="Service Unavailable")
     )
@@ -293,6 +310,8 @@ def test_a_login_answered_503_is_core_upstream_error(respx_mock: respx.MockRoute
 
 
 def test_a_login_answered_429_is_core_rate_limit_error(respx_mock: respx.MockRouter) -> None:
+    """NOT RECORDED: a 429 of no shape FAOSTAT sends, to show that the source leaves it to
+    core (conventions §10, kind 5)."""
     respx_mock.post(LOGIN_URL).mock(return_value=httpx.Response(429, headers={"Retry-After": "7"}))
     with pytest.raises(RateLimitError) as raised:
         tasks.get_data("QCL", **QCL_ARGUMENTS)
@@ -313,7 +332,11 @@ class _Unread(httpx.AsyncByteStream):
 
 @pytest.mark.anyio
 async def test_the_flow_reads_the_login_answer_and_not_the_signed_requests() -> None:
-    """``async_auth_flow`` driven by hand, with the recorded answers as unread streams."""
+    """``async_auth_flow`` driven by hand, with the recorded answers as unread streams.
+
+    NOT RECORDED: the recorded login and data answers, served in memory as streams
+    (conventions §10, kind 3).
+    """
     flow = LoginAuth(source=SOURCE).async_auth_flow(
         httpx.Request("GET", f"{BASE_URL}/en/data/QCL", headers={"User-Agent": "test"})
     )
@@ -339,7 +362,11 @@ def test_the_sync_flow_is_not_served() -> None:
 def test_a_login_answer_not_auth_is_validation_error_quoting_nothing(
     respx_mock: respx.MockRouter,
 ) -> None:
-    """A 200 that is not ``Auth``: the recorded groupsanddomains answer, served at the login."""
+    """A 200 that is not ``Auth``: the recorded groupsanddomains answer, served at the login.
+
+    NOT RECORDED: a body of no shape the login sends, to show that the source refuses it
+    without quoting it (conventions §10, kind 5).
+    """
     respx_mock.post(LOGIN_URL).mock(return_value=answer(recorded("get_groupsanddomains", "all")))
     with pytest.raises(ValidationError) as raised:
         tasks.get_data("QCL", **QCL_ARGUMENTS)
@@ -387,7 +414,11 @@ def test_classify_maps_the_login_refusal_of_the_credentials() -> None:
 
 
 def test_classify_leaves_another_status_at_the_login_path_to_core() -> None:
-    """A 400 at another path, or another status at the login path, is not classify's."""
+    """A 400 at another path, or another status at the login path, is not classify's.
+
+    NOT RECORDED: the recorded refusal of an unknown user, its request replaced in memory by
+    one at another path (conventions §10, kind 4).
+    """
     refused = response_from_fixture(recorded("auth_login", "user_not_found"))
     elsewhere = httpx.Response(
         400,
