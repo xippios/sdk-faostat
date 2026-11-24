@@ -18,15 +18,16 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "xippios-core~=0.4.0",
+  "xippios-core~=0.5.0",
 ]
 
 [project.optional-dependencies]
-mcp = ["xippios-core[mcp]~=0.4.0"]
-http = ["xippios-core[http]~=0.4.0"]
-testing = ["xippios-core[testing]~=0.4.0"]
+mcp = ["xippios-core[mcp]~=0.5.0"]
+http = ["xippios-core[http]~=0.5.0"]
+testing = ["xippios-core[testing]~=0.5.0"]
 
 [project.scripts]
+# The servers' entry points, the template's; a script of the package's own goes after them.
 xippios-faostat-mcp = "xippios.faostat.mcp:run"
 
 [project.urls]
@@ -48,6 +49,17 @@ dev = [
   "detect-secrets>=1.5",
 ]
 
+[tool.uv.sources]
+# Development only: xippios-core from git, for a core change that is not released yet.
+# While the pin is set, uv takes core from it and ignores the version bound above.
+# Before a release, remove the pin and raise core_version to the release that carries
+# the pinned change: X.Y.Z with Z the patch that shipped it, or X.Y.0 when the minor
+# itself did; still one minor. Then uv lock:
+#   uvx --from 'copier>=9.19' copier update --defaults --vcs-ref=:current: -d core_git_ref= -d core_version=X.Y.Z
+# The removal is a PR of its own, merged before the release PR; /release-prep and
+# publish.yml refuse a pinned release.
+xippios-core = { git = "https://github.com/xippios/sdk-core.git", rev = "d2642353117ad27b3073e767a5a9e9a455d50174" }  # pragma: allowlist secret (a git ref, not a key)
+
 [build-system]
 requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
@@ -64,7 +76,15 @@ include = ["/src", "/docs", "/README.md", "/CHANGELOG.md", "/LICENSE"]
 line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
-extend-exclude = ["docs", ".claude"]
+# The ADR index script and the two release scripts are the organization's one version each,
+# carried byte for byte, so ruff leaves them alone; mypy still checks them.
+extend-exclude = [
+  "docs",
+  ".claude",
+  "scripts/adr_index.py",
+  "scripts/changelog_assemble.py",
+  "scripts/release_prepare.py",
+]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "UP", "B", "SIM", "RUF", "D", "ANN", "PTH", "PT", "T20", "C4"]
@@ -102,6 +122,3 @@ addopts = "-ra --strict-markers --import-mode=importlib"
 testpaths = ["tests"]
 # record_property, in a live test say, warns under xunit2 when a run writes --junitxml.
 junit_family = "xunit1"
-# The FAO account's two variables hold core's placeholder in every test not marked live
-# (sdk-core ADR-0035): the replayed login answers it with the recorded, scrubbed token.
-xippios_placeholder_key_envs = ["FAOSTAT_USERNAME", "FAOSTAT_PASSWORD"]
