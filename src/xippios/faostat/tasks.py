@@ -72,6 +72,7 @@ names the member it holds, ``All_Data_(Normalized).csv`` (sdk-core ADR-0020, dec
 5), ``meta.request`` the dataset's code and the file's URL.
 """
 
+import json
 import os
 from collections.abc import Mapping, Sequence
 from typing import Any, Final
@@ -110,9 +111,9 @@ __all__ = [
 
 BULK_TASKS: frozenset[str] = frozenset({"download_dataset"})
 """Tasks the adapters skip (sdk-core ADR-0040, decision 4): ``download_dataset``, which
-writes a file and is Python-only. Core's ``tool_functions`` and ``router_from_tasks`` read
-it from this module and leave its names out, so ``mcp.py`` passes ``tool_functions(tasks)``
-and ``http.py`` ``__all__`` whole."""
+writes a file and is Python-only. Core's ``tool_functions`` reads it from this module and
+leaves its names out, so ``mcp.py``'s ``ToolSet.from_tasks(SOURCE, tasks, ...)`` serves no
+tool of it and ``http.py``'s ``router_from_tasks(SOURCE, tool_functions(tasks))`` no route."""
 
 MCP_INSTRUCTIONS: Final = (
     "FAOSTAT via xippios. "
@@ -224,12 +225,26 @@ Codes = str | int | Sequence[str | int]
 def _joined(codes: Codes | None, name: str) -> str | None:
     """``codes`` as upstream's comma list, ``None`` when not given.
 
+    Several codes are a list, ``["231", "79"]``, for every domain and filter alike: a code
+    given as a text with a comma is refused, since a comma-separated text is no argument form
+    (conventions §2).
+
     Raises:
-        InvalidRequestError: ``codes`` is empty, a text or a list without a code.
+        InvalidRequestError: ``codes`` is empty, a text or a list without a code, or a code
+            holds a comma.
     """
     if codes is None:
         return None
-    text = str(codes) if isinstance(codes, str | int) else ",".join(str(code) for code in codes)
+    given = [codes] if isinstance(codes, str | int) else list(codes)
+    for code in given:
+        if "," in str(code):
+            listed = json.dumps([part.strip() for part in str(code).split(",")])
+            raise InvalidRequestError(
+                f"{name} takes several codes as a list, {listed}, not a text with commas, "
+                f"{str(code)!r}. {NOTHING_SENT}",
+                source=SOURCE,
+            )
+    text = ",".join(str(code) for code in given)
     if not text:
         raise InvalidRequestError(
             f"{name} lists no code: give one code or several, or leave {name} out. {NOTHING_SENT}",
@@ -287,14 +302,11 @@ def _check(dimension: str, codes: Codes | None, domain_code: str) -> None:
 async def _date_update(domain_code: str) -> str | None:
     """The domain's ``date_update`` as ``get_groupsanddomains`` prints it, else ``None``.
 
-    The model reads the printed date into a ``date``, whose ISO text is the date as printed,
-    ``2025-12-31``.
+    The text as FAOSTAT sent it, which the wrapper hands beside the parsed answer, since
+    the model reads the date into a ``date`` (conventions §4).
     """
     answer = await api.get_groupsanddomains.get_groupsanddomains(LANG)
-    for row in answer.payload.data:
-        if row.domain_code == domain_code:
-            return None if row.date_update is None else row.date_update.isoformat()
-    return None
+    return answer.payload.printed.get(domain_code)
 
 
 async def get_data_async(
@@ -492,7 +504,7 @@ async def list_domains_async(*, search: str | None = None) -> Result[list[Domain
     answer = await api.get_groupsanddomains.get_groupsanddomains(LANG)
     rows = [
         row
-        for row in answer.payload.data
+        for row in answer.payload.response.data
         if matches(search, row.domain_code, row.domain_name, row.group_name)
     ]
     meta = ResultMeta(
@@ -652,7 +664,7 @@ async def list_bulk_datasets_async(*, search: str | None = None) -> Result[list[
     answer = await api.datasets_e.datasets_e()
     rows = [
         dataset
-        for dataset in answer.payload.datasets.dataset
+        for dataset in answer.payload.catalogue.datasets.dataset
         if matches(search, dataset.dataset_code, dataset.dataset_name)
     ]
     meta = ResultMeta(
@@ -708,7 +720,8 @@ async def download_dataset_async(
     """
     target = check_dest(dest, source=SOURCE)
     answer = await api.datasets_e.datasets_e()
-    listed = {dataset.dataset_code: dataset for dataset in answer.payload.datasets.dataset}
+    datasets = answer.payload.catalogue.datasets.dataset
+    listed = {dataset.dataset_code: dataset for dataset in datasets}
     dataset = listed.get(dataset_code)
     if dataset is None:
         near = closest(dataset_code, {code: entry.dataset_name for code, entry in listed.items()})
@@ -726,7 +739,7 @@ async def download_dataset_async(
         retrieved_at=downloaded.retrieved_at,
         published_at=released,
         published_at_naive=released.tzinfo is None,
-        vintage=released.isoformat(),
+        vintage=answer.payload.printed[dataset_code],
         request={"dataset_code": dataset_code, "url": dataset.file_location},
         total=None,
     )

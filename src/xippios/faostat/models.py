@@ -285,7 +285,7 @@ class Domain(UpstreamModel):
         group_name: The group's name, e.g. ``"Production"``.
         subgroup_code: The subgroup of a domain at level 3, e.g. ``"RN"``; ``None`` elsewhere.
         subgroup_name: The subgroup's name, e.g. ``"Land"``; ``None`` elsewhere.
-        domain_code: The domain, e.g. ``"QCL"``: ``get_data``'s ``domain``.
+        domain_code: The domain, e.g. ``"QCL"``: ``get_data``'s ``domain_code``.
         domain_name: The domain's name, e.g. ``"Crops and livestock products"``.
         date_update: The domain's last update, e.g. ``date(2025, 12, 31)`` for the
             printed ``2025-12-31``.

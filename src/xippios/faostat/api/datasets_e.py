@@ -15,14 +15,14 @@ on 2026-10-29, is cached in the client's ``MemoryCache`` for five minutes, under
 8 MiB bound, shared with the keyed requests' cache.
 """
 
-from typing import Final
+from typing import Final, NamedTuple
 
-from xippios.core import Answer
+from xippios.core import Answer, parse
 
-from xippios.faostat._client import client
+from xippios.faostat._client import SOURCE, client
 from xippios.faostat.models import DatasetsCatalogue
 
-__all__ = ["BULK_URL", "ENDPOINT", "URL", "datasets_e"]
+__all__ = ["BULK_URL", "ENDPOINT", "URL", "Catalogue", "datasets_e"]
 
 BULK_URL: Final = "https://bulks-faostat.fao.org/production"
 """Where the bulk files live: the catalogue and every dataset's ZIP (``FileLocation``)."""
@@ -34,12 +34,43 @@ URL: Final = f"{BULK_URL}/datasets_E.json"
 """The catalogue's URL, absolute: it is not under the client's base URL."""
 
 
-async def datasets_e() -> Answer[DatasetsCatalogue]:
+class Catalogue(NamedTuple):
+    """The catalogue as read: its datasets, and each ``DateUpdate`` as FAOSTAT sent it.
+
+    ``models.BulkDataset`` reads ``DateUpdate`` into a ``datetime`` and keeps no text beside
+    it, while ``meta.vintage`` of ``download_dataset`` is the release as upstream states it
+    (conventions §4; https://github.com/xippios/sdk-usda-esr/issues/60, part 3), so the
+    wrapper hands the task the text apart from the models, read from the decoded answer.
+
+    Attributes:
+        catalogue: The catalogue parsed, one ``BulkDataset`` per dataset.
+        printed: Each dataset's ``DateUpdate`` exactly as sent, by its ``DatasetCode``, e.g.
+            ``{"RL": "2026-10-02T00:00:00", ...}``; the first dataset's where upstream sends
+            a code twice.
+    """
+
+    catalogue: DatasetsCatalogue
+    printed: dict[str, str]
+
+
+async def datasets_e() -> Answer[Catalogue]:
     """Fetch ``production/datasets_E.json``, the bulk catalogue, without the account.
 
+    Reads the decoded answer with ``get_answer`` and parses it itself, so that each
+    ``DateUpdate`` reaches the task as FAOSTAT sent it, and returns
+    ``Answer(value, answer.retrieved_at)``.
+
     Returns:
-        Core's ``Answer``: the catalogue, parsed, as ``payload``, and ``retrieved_at``,
+        Core's ``Answer``: the ``Catalogue`` as ``payload``, and ``retrieved_at``,
         timezone-aware UTC, on a cache hit the time the entry was stored, else the time
-        the answer arrived. An answer that does not parse is not cached.
+        the answer arrived. An answer that is not JSON is not cached.
+
+    Raises:
+        ValidationError: The answer is not the documented catalogue.
     """
-    return await client.get_answer(URL, auth=None, parse=DatasetsCatalogue, endpoint=ENDPOINT)
+    answer = await client.get_answer(URL, auth=None)
+    catalogue = parse(DatasetsCatalogue, answer.payload, source=SOURCE, endpoint=ENDPOINT)
+    printed: dict[str, str] = {}
+    for row in answer.payload["Datasets"]["Dataset"]:
+        printed.setdefault(row["DatasetCode"], row["DateUpdate"])
+    return Answer(Catalogue(catalogue, printed), answer.retrieved_at)
