@@ -1316,7 +1316,9 @@ def test_the_packaged_dimensions_are_the_ones_faostat_documents() -> None:
         ("QCL", {"area": "231,79"}, "area", ["231", "79"]),
         ("QV", {"area": "231,79"}, "area", ["231", "79"]),
         ("QCL", {"area": "231", "year": "2019,2020"}, "year", ["2019", "2020"]),
-        ("QV", {"area": ["231", "79,4"]}, "area", ["79", "4"]),
+        ("QV", {"area": ["231", "79,4"]}, "area", ["231", "79", "4"]),
+        ("QCL", {"area": "231,"}, "area", ["231"]),
+        ("QV", {"item": " 15 , 56 "}, "item", ["15", "56"]),
     ],
 )
 def test_a_comma_text_is_refused_for_every_domain_naming_the_list(
