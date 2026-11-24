@@ -38,10 +38,12 @@ tests/
   test_client.py   the login and classify on the recorded exchanges
   test_parse.py    parse_bulk_csv on the samples under tests/fixtures/files/bulk-csv/
   test_refresh_reference.py  the reference script's declaration on the recorded code
-                   lists, and the committed tables and provenance rows against each other
+                   lists, the logins it names among core's count, and the committed tables
+                   and provenance rows against each other
   test_refresh_upstream.py   the snapshot script's declaration and hooks, offline: its
-                   pages, the keyed samples, the attribution, the terms page's converter
-                   and the pages' notes; and that no docstring of src/, README.md or
+                   pages, the keyed samples, the attribution, the terms page's converter,
+                   the pages' notes and the ReDoc page's check against the document in
+                   sections; and that no docstring of src/, README.md or
                    CLAUDE.md dates an observation, which OBSERVED.md alone holds
 docs/
   upstream/        also OBSERVED.md, the notes by hand on what FAOSTAT does but never
