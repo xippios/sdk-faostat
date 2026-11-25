@@ -11,12 +11,16 @@ the other twelve domains' answers are packaged, not recorded. The tests replay Q
 through the declared fetches, check that a packaged record is upstream's record as sent, and
 check the committed files and the provenance rows against the declaration. They read the
 committed files' counts and fetch times, never pinning them. Core's count of a run holds
-every request the client sends, a login among them, and the script names the logins.
+every request the client sends, a login among them, and the script names the logins in a
+line after that count, where the frame fetched: the tests that run the script's ``main`` run
+core's frame on a copy of the packaged files, so that the repository's stay as committed.
 """
 
 import importlib.util
 import json
+import shutil
 from collections.abc import Iterator
+from dataclasses import replace
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -160,31 +164,85 @@ def test_the_committed_provenance_rows_are_the_declared_origins() -> None:
     assert "| File | Origin | Fetched |" in readme, "the one header core's frame knows"
 
 
-def test_the_logins_among_cores_count_are_named(
+@pytest.fixture
+def copied_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """The packaged tables and the folder's README in a package of the test's own.
+
+    Core's frame writes into the package's directory as imported, which must lie in the
+    directory the script runs in, so the declaration is pointed at a copy under
+    ``tmp_path`` and the run runs there: the repository's files stay as committed.
+
+    Returns:
+        The copy's ``reference/`` folder.
+    """
+    package = tmp_path / "copied_faostat"
+    shutil.copytree(REFERENCE, package / "reference")
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(script, "LISTS", replace(script.LISTS, package=package.name))
+    return package / "reference"
+
+
+def lines_naming_logins(out: str) -> list[str]:
+    return [line for line in out.splitlines() if "logins" in line]
+
+
+def test_the_logins_are_counted_and_named_after_the_frames_fetch_alone(
     replay_fixture: ReplayFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Core's count of the run holds the logins among its requests; the script names them."""
+    """The script counts each login the client's auth flow builds, and prints no line of
+    them where core's frame began no fetch: a fetch outside the frame has no count of its
+    to follow."""
     replay_fixture(CODES, "element_QCL")
     with script.counted_logins(auth) as counted:
         sync(LISTED["element_QCL"].fetch)()
     assert counted.logins == 1
     assert not hasattr(counted, "resent"), "a resend is core's to count"
-    assert capsys.readouterr().out.splitlines() == ["of them, logins: 1"]
-
-
-def test_render_only_prints_no_count_of_logins(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """``--render-only`` sends nothing, so no count of the frame's stands for the line to name."""
-    handed: list[list[str]] = []
-
-    def frame(lists: object, argv: list[str]) -> int:
-        handed.append(list(argv))
-        return 0
-
-    monkeypatch.setattr(script, "run", frame)
-    assert script.main(["--render-only"]) == 0
     assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize("option", ["--render-only", "--render"])
+def test_a_render_prints_no_count_of_logins(
+    copied_package: Path, option: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``--render`` is ``--render-only`` as the frame's parser reads an abbreviation: the frame
+    writes the provenance rows from the packaged files, sends nothing and counts nothing."""
+    assert script.main([option]) == 0
+    out = capsys.readouterr().out
+    assert "requests sent" not in out, "the frame printed no count"
+    assert lines_naming_logins(out) == []
+    assert (copied_package / "README.md").read_bytes() == (REFERENCE / "README.md").read_bytes()
+
+
+@pytest.mark.parametrize(
+    "argv", [["--help"], ["--only", "element_QV"]], ids=["help", "refused-only"]
+)
+def test_a_run_stopped_before_its_first_request_prints_no_count_of_logins(
+    copied_package: Path, argv: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``--help`` and a list that ``--only`` does not know end the run in the frame's parser
+    or its check, before a request."""
+    with pytest.raises(SystemExit):
+        script.main(argv)
+    out = capsys.readouterr().out
+    assert "requests sent" not in out, "the frame printed no count"
+    assert lines_naming_logins(out) == []
+
+
+def test_a_fetching_run_prints_its_logins_once_after_the_frames_count(
+    copied_package: Path, replay_fixture: ReplayFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``--only element_QCL`` on the recorded login and answer, through the package's client:
+    the frame counts the login and the request, and the script names the login among them,
+    once, after the count."""
+    route = replay_fixture(CODES, "element_QCL")
     assert script.main(["--only", "element_QCL"]) == 0
-    assert capsys.readouterr().out.splitlines() == ["of them, logins: 0"]
-    assert handed == [["--render-only"], ["--only", "element_QCL"]]
+    assert route.call_count == 1
+    out = capsys.readouterr().out.splitlines()
+    counts = [index for index, line in enumerate(out) if line.startswith("requests sent: 2")]
+    assert len(counts) == 1, "the frame's count, the login among its two requests"
+    assert lines_naming_logins("\n".join(out)) == ["of them, logins: 1"]
+    assert out.index("of them, logins: 1") > counts[0]
+    written = json.loads((copied_package / "element_QCL.json").read_text(encoding="utf-8"))
+    assert written["records"] == recorded_rows("element_QCL"), "the copy holds the answer"
