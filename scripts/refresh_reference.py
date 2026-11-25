@@ -2,11 +2,12 @@
 
 The script declares FAOSTAT's packaged lists in one ``Lists`` and hands it to core's
 ``run`` (sdk-core ADR-0062), which fetches every list through the declared fetch, then
-writes each to ``reference/<name>.json``, the provenance rows of ``reference/README.md``
-and ``enums.py``; ``--only <list> [<list> ...]`` fetches the named lists alone and keeps
-the others' files, and ``--render-only`` writes the rows and ``enums.py`` from the
-packaged files without a request. The frame sends each request once through the
-package's client and prints the requests it counted.
+writes each to ``reference/<name>.json`` and the provenance rows of
+``reference/README.md``, and no ``enums.py``, since no list declares an enum;
+``--only <list> [<list> ...]`` fetches the named lists alone and keeps the others' files,
+and ``--render-only`` writes the rows from the packaged files without a request. The
+frame sends each request once through the package's client and prints the requests it
+counted.
 
 FAOSTAT's packaged lists are fifteen tables and no enum, as
 https://github.com/xippios/sdk-faostat/pull/4 packaged them: the codes of the dimensions

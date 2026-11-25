@@ -174,9 +174,10 @@ MCP_CAPS: Mapping[str, ResultCap] = {
 """MCP result caps of their own, by task function name (conventions §8, sdk-core ADR-0038).
 
 ``get_data`` keeps the family's 200 rows and 64 KB and adds a note naming its paging and
-its filters; a row of the recorded answers is 356 (QCL) to 383 (PP) bytes as compact
-JSON, so the bytes cut a page at about 170 rows. ``get_series`` keeps the same cap, its
-note naming ``since`` and ``until`` and one code per dimension, since it does not page.
+its filters; a row of the recorded answers is served as 380 (QCL) to 407 (PP) bytes of
+compact JSON, ``value_number`` among them, so the bytes cut a page at about 160 rows.
+``get_series`` keeps the same cap, its note naming ``since`` and ``until`` and one code
+per dimension, since it does not page.
 ``list_domains`` keeps the family's cap too: its 78 rows of 2026-10-29 fit; the note
 names ``search``.
 

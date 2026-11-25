@@ -9,7 +9,8 @@ header (area with its M49 code, item, element, year, unit, value, flag, note).
 ``tests/fixtures/files/README.md`` gives their provenance (sdk-core ADR-0020, decision
 6). The tests assert the parser's shape against the samples' own text, read here with
 the standard library's ``zipfile`` and ``csv``, never values or sizes typed into a test
-(conventions §10). ``NOT RECORDED`` marks a sample changed in memory to show a refusal.
+(conventions §10). A sample changed in memory to show a refusal is an input of its test,
+which its docstring says in conventions §10's sentence.
 """
 
 import csv
