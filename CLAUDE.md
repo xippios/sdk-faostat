@@ -147,9 +147,8 @@ with the dimension as `param` and `getCodeList` as `endpoint`, upstream's record
 account by `scripts/refresh_reference.py` through `direnv exec .`, which also rewrites
 the provenance rows of `reference/README.md`; no enum is generated. They come from the
 dimension ids, which the data endpoint filters by, not from the subdimension ids the
-OpenAPI document's examples name: `codes/countries/QCL` answers QCL's 210 countries,
-`codes/area/QCL` those and the 68 regions and special groups beside them
-(`tests/fixtures/get_code_list/`, `reference/README.md`). `list_areas`, `list_elements`
+OpenAPI document's examples name; `docs/upstream/OBSERVED.md` notes what
+`codes/area/QCL` and `codes/countries/QCL` answer. `list_areas`, `list_elements`
 and `list_items` answer from them; `get_data` refuses an area, element or item code a
 packaged domain's table lacks with `UnknownCode` before sending, area codes only when
 `area_cs` is `None` or `FAO`, item codes likewise with `item_cs`, and sends any other

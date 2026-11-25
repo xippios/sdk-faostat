@@ -353,13 +353,11 @@ class CodeItem(_KeepsColumns):
     Wheat). An element code here is a filter code, which the data rows do not print: a
     query with ``element=2510`` answers rows whose ``element_code`` is ``"5510"``
     (Production), and nothing is translated between the two (sdk-core ADR-0028). The
-    document's schema names ``code``, ``label`` and ``aggregate_type``; QCL's and TCL's
-    item lists, RL's on 51 of its 57 records, and TCL's and RL's element lists carry
-    ``parent`` as well (``docs/upstream/OBSERVED.md``), which this model names, and
-    every other field a list carries is kept in ``columns`` under upstream's name, so
-    nothing is dropped. A
-    list may name a code twice (QCL's item list its five top groups, ``QC>`` among
-    them), as upstream sends it.
+    document's schema names ``code``, ``label`` and ``aggregate_type``; some lists carry
+    ``parent`` as well, which ``docs/upstream/OBSERVED.md`` names list by list and this
+    model names, and every other field a list carries is kept in ``columns`` under
+    upstream's name, so nothing is dropped. A list may name a code twice (QCL's item list
+    its five top groups, ``QC>`` among them), as upstream sends it.
 
     Attributes:
         code: The code, as a data query sends it, e.g. ``"231"``, ``"2510"``, ``"15"``,
@@ -368,9 +366,8 @@ class CodeItem(_KeepsColumns):
             ``"Production Quantity"``, ``"Wheat"`` or ``"World + (Total)"``.
         parent: The code above it in the list's tree as printed, e.g. ``"QC>"`` (Crops,
             primary > (List)) or ``"#"`` at the top; ``None`` for a record without the
-            field (every area list, the element lists of QCL, FBS and PP, the item lists
-            of FBS and PP, and six records of RL's, as ``docs/upstream/OBSERVED.md``
-            notes).
+            field, every record of an area list among them, as
+            ``docs/upstream/OBSERVED.md`` notes list by list.
         aggregate_type: As printed: ``"0"`` in the recorded lists for a single code,
             ``"+"`` for a code whose label ends ``+ (Total)`` and ``">"`` for one whose
             code and label end ``>`` and ``> (List)``; ``None`` where the field is absent.

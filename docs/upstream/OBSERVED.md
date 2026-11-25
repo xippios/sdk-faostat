@@ -122,13 +122,29 @@ Probe: 2026-10-29, `get_groupsanddomains` and `get_data`; samples
 The document's `CodeItem` names `code`, `label` and `aggregate_type`. QCL's and TCL's item
 lists, RL's on 51 of its 57 records, and TCL's and RL's element lists carry `parent` as
 well, the code above a record in the list's tree; every area list, the element lists of
-QCL, FBS and PP and the item lists of FBS and PP carry none.
+QCL, FBS and PP and the item lists of FBS and PP carry none. On 2026-11-25 FBS's element
+list, grown from 21 records to 28, carried `parent` on every one, and the other fourteen
+lists carried it as before.
 
-Probe: 2026-10-29, `getCodeList` for the dimensions `area`, `element` and `item` of QCL,
-TCL, FBS, PP and RL; samples `tests/fixtures/get_code_list/item_QCL.json` and
-`tests/fixtures/get_code_list/area_QCL.json`, and the packaged tables
+Probe: 2026-10-29 and 2026-11-25, `getCodeList` for the dimensions `area`, `element` and
+`item` of QCL, TCL, FBS, PP and RL; samples `tests/fixtures/get_code_list/item_QCL.json`
+and `tests/fixtures/get_code_list/area_QCL.json`, the packaged tables
 `src/xippios/faostat/reference/item_RL.json` and
-`src/xippios/faostat/reference/element_TCL.json`.
+`src/xippios/faostat/reference/element_TCL.json`, and the fifteen tables of the reference
+refresh of 2026-11-25 in https://github.com/xippios/sdk-faostat/pull/76.
+
+### The area list holds the countries and the aggregates
+
+`codes/area/QCL` lists 278 codes: the 210 countries that `codes/countries/QCL` lists,
+with the same labels, and 68 aggregates beside them, the totals and lists of regions and
+special groups, such as `5000` World + (Total) and `5000>` World > (List). The OpenAPI
+document's examples of `dimension_id` name the subdimension ids alone. On 2026-11-25 the
+area list still held 278 codes.
+
+Probe: 2026-10-29 and 2026-11-25, `getCodeList` for `codes/area/QCL` and
+`codes/countries/QCL`; samples `tests/fixtures/get_code_list/area_QCL.json` and
+`tests/fixtures/get_code_list/countries_QCL.json`, and the table of the reference
+refresh of 2026-11-25 in https://github.com/xippios/sdk-faostat/pull/76.
 
 ### The columns differ by domain
 
