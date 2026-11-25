@@ -31,7 +31,13 @@ from xippios.core.testing import (
 
 from xippios.faostat import api
 from xippios.faostat._client import auth
-from xippios.faostat.models import BulkDataset, CodeItem, CodeResponse, DatasetsCatalogue
+from xippios.faostat.models import (
+    BulkDataset,
+    CodeItem,
+    CodeResponse,
+    DatasetsCatalogue,
+    GroupsAndDomainsResponse,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 CODES = "get_code_list"
@@ -79,6 +85,8 @@ async def test_get_code_list(replay_fixture: ReplayFixture, dimension: str, case
 
 
 async def test_get_code_list_sends_show_lists_when_given(replay_fixture: ReplayFixture) -> None:
+    # NOT RECORDED: the recorded answer serves a query with show_lists, and the test asserts what
+    # was sent (conventions §10, kind 3).
     route = replay_fixture(CODES, "element_QCL")
     await api.get_code_list.get_code_list("en", "element", "QCL", show_lists=False)
     assert sent_query(route) == {"show_lists": "false"}
@@ -110,10 +118,11 @@ async def test_datasets_e(replay_fixture: ReplayFixture, respx_mock: respx.MockR
     assert {call.request.url.host for call in respx_mock.calls} == {"bulks-faostat.fao.org"}, (
         "no login"
     )
-    assert answer.payload == DatasetsCatalogue.model_validate_json(body)
+    assert answer.payload.catalogue == DatasetsCatalogue.model_validate_json(body)
     assert_time_between(answer.retrieved_at, before, after)
-    datasets = answer.payload.datasets.dataset
+    datasets = answer.payload.catalogue.datasets.dataset
     printed = json.loads(body)["Datasets"]["Dataset"]
+    assert answer.payload.printed == {row["DatasetCode"]: row["DateUpdate"] for row in printed}
     assert [dataset.dataset_code for dataset in datasets] == [row["DatasetCode"] for row in printed]
     assert all(isinstance(dataset, BulkDataset) for dataset in datasets)
     assert len({dataset.dataset_code for dataset in datasets}) == len(datasets), "one per code"
@@ -140,3 +149,17 @@ def test_no_wrapper_keeps_a_pair_of_its_own(module: object, pair: str) -> None:
     """Core's ``Answer[T]`` replaced the pairs (https://github.com/xippios/sdk-core/issues/123)."""
     assert pair not in vars(module)
     assert pair not in getattr(module, "__all__", ())
+
+
+@pytest.mark.anyio
+async def test_get_groupsanddomains_hands_each_date_update_as_sent(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """The domains as read, and each ``date_update`` as FAOSTAT sent it, for ``meta.vintage``."""
+    replay_fixture("get_groupsanddomains", "all")
+    body = load_fixture(FIXTURES / "get_groupsanddomains" / "all.json").response.body
+    answer = await api.get_groupsanddomains.get_groupsanddomains("en")
+    assert isinstance(answer, Answer)
+    assert answer.payload.response == GroupsAndDomainsResponse.model_validate_json(body)
+    printed = json.loads(body)["data"]
+    assert answer.payload.printed == {row["domain_code"]: row.get("date_update") for row in printed}

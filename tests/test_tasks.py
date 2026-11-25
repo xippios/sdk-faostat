@@ -45,20 +45,29 @@ to the API's host, so no login was sent either.
 """
 
 import dataclasses
+import importlib.util
+import inspect
 import json
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 import respx
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from xippios.core import Downloaded, InvalidRequestError, NotFoundError, UnknownCode, matches
-from xippios.core._loop import run
-from xippios.core.mcp import build_server
+from xippios.core import (
+    Downloaded,
+    InvalidRequestError,
+    NamedBy,
+    NotFoundError,
+    UnknownCode,
+    matches,
+)
+from xippios.core.mcp import ToolSet, build_server
 from xippios.core.testing import (
     Fixture,
     ReplayFixture,
@@ -84,11 +93,12 @@ from xippios.faostat import (
     params,
     tasks,
 )
-from xippios.faostat._client import FILTER_REFUSAL, SOURCE, auth
+from xippios.faostat._client import BASE_URL, FILTER_REFUSAL, SOURCE, auth
 from xippios.faostat.http import router
 from xippios.faostat.mcp import server
 from xippios.faostat.models import (
     BulkDataset,
+    BulkRecord,
     CodeItem,
     DataRecord,
     DataResponse,
@@ -136,8 +146,34 @@ def recorded_domains() -> list[Domain]:
 
 
 def date_update(domain: str) -> str | None:
-    """The domain's ``date_update`` in the recorded list, as ``meta.vintage`` must hold it."""
-    return next(row.date_update for row in recorded_domains() if row.domain_code == domain)
+    """The domain's ``date_update`` in the recorded list, as ``meta.vintage`` must hold it.
+
+    The recorded text itself, read from the answer's JSON, so the test holds that the date
+    the model reads gives the text back as printed.
+    """
+    printed: list[dict[str, Any]] = json.loads(recorded(DOMAINS, "all").response.body)["data"]
+    found: str | None = next(
+        row.get("date_update") for row in printed if row["domain_code"] == domain
+    )
+    return found
+
+
+def packaged_labels(name: str) -> dict[str, str]:
+    """The packaged table ``name``'s codes to their labels, the first record's for a code twice."""
+    named: dict[str, str] = {}
+    for code in params.codes(name):
+        named.setdefault(code.code, code.label)
+    return named
+
+
+def named_by(model: type[DataRecord] | type[BulkRecord], field: str) -> object:
+    """What the one ``NamedBy`` of ``model``'s ``field`` names its codes by."""
+    (mark,) = [mark for mark in model.model_fields[field].metadata if isinstance(mark, NamedBy)]
+    return mark.by
+
+
+NOTHING_SENT = "Nothing was sent."
+"""The sentence of every refusal before a request (conventions §5)."""
 
 
 @pytest.fixture(autouse=True)
@@ -160,7 +196,9 @@ def test_get_data_qcl(replay_fixture: ReplayFixture) -> None:
     assert result.data == recorded_rows(QCL)
     assert len(result.data) == 7
     assert all(isinstance(row, DataRecord) for row in result.data)
-    assert all(isinstance(row.value, Decimal) for row in result.data)
+    printed = json.loads(recorded(GET_DATA, QCL).response.body)["data"]
+    assert [row.value for row in result.data] == [row["Value"] for row in printed], "as printed"
+    assert [row.value_number for row in result.data] == [Decimal(row["Value"]) for row in printed]
     assert [row.year for row in result.data] == [str(year) for year in range(2015, 2022)]
     assert {row.element_code for row in result.data} == {"5510"}, "the answer's code, not 2510"
     assert {row.item_code for row in result.data} == {"15"}
@@ -215,14 +253,14 @@ def test_get_data_refuses_the_rows_element_code_before_sending(
     assert not respx_mock.calls, "nothing sent, not even the login"
     refusal = raised.value
     table = params.packaged("element_QCL")
-    labels = params.labels("element_QCL")
+    labels = packaged_labels("element_QCL")
     assert isinstance(refusal, InvalidRequestError)
     assert (refusal.param, refusal.value, refusal.list_name) == ("element", "5510", "element_QCL")
     assert refusal.fetched == table.fetched
     assert ("2510", labels["2510"]) in refusal.closest, "the filter code of the rows' 5510"
     message = str(refusal)
     assert f"in the packaged element_QCL list (fetched {table.fetched:%Y-%m-%d})" in message
-    assert f"2510 ({labels['2510']})" in message
+    assert f"{NOTHING_SENT} Did you mean 2510 ({labels['2510']})" in message
     assert (
         'list_elements("QCL") lists the codes a filter takes (over MCP, the tool '
         "faostat_list_elements)"
@@ -243,7 +281,7 @@ def test_get_data_refuses_a_code_the_domain_table_lacks(
     respx_mock: respx.MockRouter, arguments: dict[str, Any], dimension: str, code: str
 ) -> None:
     name = f"{dimension}_QCL"
-    assert code not in params.labels(name)
+    assert code not in packaged_labels(name)
     with pytest.raises(UnknownCode) as raised:
         get_data("QCL", **arguments)
     assert not respx_mock.calls
@@ -252,6 +290,21 @@ def test_get_data_refuses_a_code_the_domain_table_lacks(
     assert raised.value.fetched == params.packaged(name).fetched
     assert f'{tasks.LIST_TASKS[dimension]}("QCL") lists the codes' in str(raised.value)
     assert f"(over MCP, the tool faostat_{tasks.LIST_TASKS[dimension]})" in str(raised.value)
+    assert NOTHING_SENT in str(raised.value)
+
+
+@pytest.mark.parametrize(
+    ("arguments", "code"),
+    [({"area": 231, "element": [2510, 5510]}, "5510"), ({"area": ("231", 99999)}, "99999")],
+)
+def test_get_data_checks_a_list_of_codes_in_one_call_naming_the_first_refused(
+    respx_mock: respx.MockRouter, arguments: dict[str, Any], code: str
+) -> None:
+    """Codes given as integers are checked as the text they are sent as, a list in its order."""
+    with pytest.raises(UnknownCode) as raised:
+        get_data("QCL", **arguments)
+    assert raised.value.value == code
+    assert not respx_mock.calls
 
 
 @pytest.mark.parametrize(
@@ -262,7 +315,7 @@ def test_get_data_names_the_closest_codes_by_label(
     respx_mock: respx.MockRouter, arguments: dict[str, Any], dimension: str, label: str
 ) -> None:
     """A name given for a code: the refusal names the code whose label it is."""
-    labels = params.labels(f"{dimension}_QCL")
+    labels = packaged_labels(f"{dimension}_QCL")
     codes = [code for code, text in labels.items() if text.lower() == label]
     assert codes, f"the packaged {dimension}_QCL labels {label!r}"
     with pytest.raises(UnknownCode) as raised:
@@ -272,10 +325,14 @@ def test_get_data_names_the_closest_codes_by_label(
 
 
 def test_get_data_sends_a_domain_without_a_table_unchecked(replay_fixture: ReplayFixture) -> None:
-    """QV has no packaged table: an area code no table holds is sent, as before."""
+    """QV has no packaged table: an area code no table holds is sent, as before.
+
+    NOT RECORDED: the recorded QCL answer served at QV's path, for a test that asserts what
+    was sent and that the rows are read (conventions §10, kind 3).
+    """
     domain = "QV"
     assert domain not in params.DOMAINS
-    assert all("99999" not in params.labels(f"area_{packaged}") for packaged in params.DOMAINS)
+    assert all("99999" not in packaged_labels(f"area_{packaged}") for packaged in params.DOMAINS)
     fixture = recorded(GET_DATA, QCL)
     route = replay_fixture(
         GET_DATA, QCL, url=fixture.request.url.replace("/data/QCL?", f"/data/{domain}?")
@@ -298,10 +355,12 @@ def test_get_data_sends_a_domain_without_a_table_unchecked(replay_fixture: Repla
 def test_get_data_sends_another_coding_systems_codes_unchecked(
     replay_fixture: ReplayFixture, arguments: dict[str, Any], sent: dict[str, str]
 ) -> None:
+    # NOT RECORDED: the recorded QCL answer serves another query, and the test asserts what was sent
+    # (conventions §10, kind 3).
     """The tables list FAO's codes: an area or item code of another system is not checked."""
     for name, value in sent.items():
         if not name.endswith("_cs"):
-            assert value not in params.labels(f"{name}_QCL")
+            assert value not in packaged_labels(f"{name}_QCL")
     route = replay_fixture(GET_DATA, QCL)
     replay_fixture(DOMAINS, "all")
     get_data("QCL", **arguments)
@@ -318,7 +377,7 @@ def test_get_data_checks_an_fao_coding_systems_codes(respx_mock: respx.MockRoute
 @pytest.mark.anyio
 async def test_get_data_tool_answers_a_refusal_as_text(respx_mock: respx.MockRouter) -> None:
     text = await mcp_call_text(
-        server, "faostat_get_data", {"domain": "QCL", "area": "231", "element": "5510"}
+        server, "faostat_get_data", {"domain_code": "QCL", "area": "231", "element": "5510"}
     )
     assert text.startswith("error: UnknownCode: '5510' is not an element"), text
     assert "element_QCL" in text
@@ -329,7 +388,7 @@ def test_get_data_route_answers_a_refusal_with_422(respx_mock: respx.MockRouter)
     app = FastAPI()
     app.include_router(router)
     with TestClient(app) as http:
-        answered = http.post("/faostat/get_data", json={"domain": "QCL", "element": "5510"})
+        answered = http.post("/faostat/get_data", json={"domain_code": "QCL", "element": "5510"})
     assert answered.status_code == 422
     assert "element_QCL" in answered.json()["detail"]
     assert not respx_mock.calls
@@ -345,7 +404,7 @@ def test_get_data_pp_keeps_its_months_columns(replay_fixture: ReplayFixture) -> 
     assert len(result.data) == 2
     assert all(row.months_code is not None and row.months is not None for row in result.data)
     assert {row.note for row in result.data} == {None}, "PP prints no Note"
-    assert all(isinstance(row.value, Decimal) for row in result.data)
+    assert all(isinstance(row.value_number, Decimal) for row in result.data)
     assert result.meta.vintage == date_update("PP")
 
 
@@ -394,7 +453,8 @@ def test_get_data_with_fao_coding_systems_keeps_the_coded_columns(
         "Item Code (FAO)": recorded_row["Item Code (FAO)"],
     }
     assert row.area == recorded_row["Area"]
-    assert row.value == Decimal(recorded_row["Value"])
+    assert row.value == recorded_row["Value"]
+    assert row.value_number == Decimal(recorded_row["Value"])
     assert result.meta.request["area_cs"] == "FAO"
     assert result.meta.request["item_cs"] == "FAO"
 
@@ -419,7 +479,10 @@ def test_a_coded_column_is_kept_in_columns_and_its_field_is_none() -> None:
 
 
 def test_a_column_no_field_names_is_kept_in_columns() -> None:
-    """A row as an in-memory mapping (no fixture): QCL's first row and one column more."""
+    """A row as an in-memory mapping: QCL's first row and one column more.
+
+    The row is an input of the test, not an answer from FAOSTAT.
+    """
     printed = json.loads(recorded(GET_DATA, QCL).response.body)["data"][0]
     row = DataRecord.model_validate({**printed, "Extra Column": "x", "Other": None})
     assert row.columns == {"Extra Column": "x", "Other": None}
@@ -439,17 +502,19 @@ def test_get_data_without_a_filter_is_refused_before_sending(
     with pytest.raises(InvalidRequestError) as raised:
         get_data("QCL", **arguments)
     assert f'"{FILTER_REFUSAL}"' in str(raised.value)
-    assert "area, item, element or year" in str(raised.value)
+    assert str(raised.value).endswith(f"pass area, item, element or year. {NOTHING_SENT}")
     assert not respx_mock.calls, "nothing sent, not even the login"
 
 
-@pytest.mark.parametrize("empty", [[], ""])
+@pytest.mark.parametrize("empty", [[], "", ",", [" , "]])
 def test_get_data_an_empty_filter_is_refused_before_sending(
     respx_mock: respx.MockRouter, empty: Any
 ) -> None:
     with pytest.raises(InvalidRequestError) as raised:
         get_data("QCL", area="231", year=empty)
-    assert str(raised.value) == "year lists no code: give one code or several, or leave year out"
+    assert str(raised.value) == (
+        f"year lists no code: give one code or several, or leave year out. {NOTHING_SENT}"
+    )
     assert not respx_mock.calls
 
 
@@ -479,7 +544,11 @@ async def test_the_wrapper_maps_upstream_refusal_of_a_query_without_a_filter(
 def test_get_data_vintage_is_none_for_a_domain_the_list_lacks(
     replay_fixture: ReplayFixture,
 ) -> None:
-    """The QCL rows served at an unlisted domain's path: the release date look-up finds none."""
+    """The QCL rows served at an unlisted domain's path: the release date look-up finds none.
+
+    NOT RECORDED: the recorded QCL answer served at QCX's path, as FAOSTAT answers the data
+    of any domain alike, while the list of domains lacks QCX (conventions §10, kind 3).
+    """
     domain = "QCX"
     assert domain not in {row.domain_code for row in recorded_domains()}
     fixture = recorded(GET_DATA, QCL)
@@ -491,16 +560,26 @@ def test_get_data_vintage_is_none_for_a_domain_the_list_lacks(
 
 @pytest.mark.anyio
 async def test_get_data_tool_end_to_end(replay_fixture: ReplayFixture) -> None:
+    # NOT RECORDED: the recorded answer serves two years where it recorded seven, and the test
+    # asserts the years sent (conventions §10, kind 3).
     route = replay_fixture(GET_DATA, QCL)
     replay_fixture(DOMAINS, "all")
     payload = await mcp_call(
         server,
         "faostat_get_data",
-        {"domain": "QCL", "area": "231", "element": "2510", "item": "15", "year": [2015, 2021]},
+        {
+            "domain_code": "QCL",
+            "area": "231",
+            "element": "2510",
+            "item": "15",
+            "year": [2015, 2021],
+        },
     )
     assert sent_query(route)["year"] == "2015,2021"
     assert len(payload["data"]) == 7, "the recorded answer, served whatever the years"
-    assert payload["data"][0]["value"] == 55839540, "a Decimal is a JSON number"
+    assert payload["data"][0]["value"] == "55839540", "the text as FAOSTAT prints it"
+    number = payload["data"][0]["value_number"]
+    assert (number, type(number)) == (55839540, int), "a Decimal without a fraction is an integer"
     assert payload["data"][0]["element_code"] == "5510"
     assert payload["data"][0]["columns"] == {}
     assert "note" not in payload, "7 rows, under the cap"
@@ -517,13 +596,14 @@ async def test_get_data_tool_cap_note_names_paging(replay_fixture: ReplayFixture
     cap = tasks.MCP_CAPS["get_data"]
     assert cap.max_rows == 200
     narrow = build_server(
-        SOURCE, [tasks.get_data], caps={"get_data": dataclasses.replace(cap, max_rows=2)}
+        ToolSet(SOURCE, [tasks.get_data], caps={"get_data": dataclasses.replace(cap, max_rows=2)})
     )
-    payload = await mcp_call(narrow, "faostat_get_data", {"domain": "QCL", **QCL_ARGUMENTS})
+    payload = await mcp_call(narrow, "faostat_get_data", {"domain_code": "QCL", **QCL_ARGUMENTS})
     assert len(payload["data"]) == 2
     shown = f"showing 2 of 7 rows (cap: 2 rows or {cap.max_bytes} bytes)"
     assert payload["note"] == f"{shown}; {cap.note}"
     assert "page_size and page_number" in payload["note"]
+    assert "offset" not in payload["note"], "FAOSTAT's own paging, no offset of the adapter's"
 
 
 def test_get_data_route_takes_a_json_body(replay_fixture: ReplayFixture) -> None:
@@ -533,13 +613,13 @@ def test_get_data_route_takes_a_json_body(replay_fixture: ReplayFixture) -> None
     app = FastAPI()
     app.include_router(router)
     with TestClient(app) as http:
-        answered = http.post("/faostat/get_data", json={"domain": "QCL", **QCL_ARGUMENTS})
+        answered = http.post("/faostat/get_data", json={"domain_code": "QCL", **QCL_ARGUMENTS})
     assert answered.status_code == 200
     assert sent_query(route) == recorded_query(recorded(GET_DATA, QCL))
     assert len(answered.json()["data"]) == 7
 
 
-SERIES = ("QCL", "231", "15", "2510")
+SERIES: dict[str, Any] = {"domain_code": "QCL", "area": "231", "item": "15", "element": "2510"}
 """``get_series``'s domain, area, item and element: wheat production in the United States."""
 SERIES_FILTERS = ["area", "item", "element", "year"]
 """The recorded query parameters a ``get_series`` replay must send as recorded."""
@@ -549,7 +629,7 @@ def test_get_series_qcl(replay_fixture: ReplayFixture) -> None:
     route = replay_fixture(GET_DATA, QCL, match_params=SERIES_FILTERS)
     domains = replay_fixture(DOMAINS, "all")
     before = datetime.now(UTC)
-    result = get_series(*SERIES, since=2015, until=2021)
+    result = get_series(**SERIES, since=2015, until=2021)
     after = datetime.now(UTC)
     assert route.call_count == 1
     assert sent_query(route) == recorded_query(recorded(GET_DATA, QCL))
@@ -559,7 +639,8 @@ def test_get_series_qcl(replay_fixture: ReplayFixture) -> None:
     assert {(row.area_code, row.item_code, row.element_code) for row in result.data} == {
         ("231", "15", "5510")
     }, "the answer's element code, not the 2510 sent"
-    assert all(isinstance(row.value, Decimal) for row in result.data)
+    assert all(isinstance(row.value, str) for row in result.data), "the text as printed"
+    assert all(isinstance(row.value_number, Decimal) for row in result.data)
     meta = result.meta
     assert meta.source == SOURCE
     assert meta.endpoint == "get_data"
@@ -584,10 +665,12 @@ def test_get_series_qcl(replay_fixture: ReplayFixture) -> None:
 def test_get_series_without_since_and_until_sends_no_year_filter(
     replay_fixture: ReplayFixture,
 ) -> None:
+    # NOT RECORDED: the recorded answer serves the query without a year filter, and the test asserts
+    # what was sent (conventions §10, kind 3).
     """Every year the domain holds: no ``year`` filter; the recorded answer served at its path."""
     route = replay_fixture(GET_DATA, QCL)
     replay_fixture(DOMAINS, "all")
-    result = get_series(*SERIES)
+    result = get_series(**SERIES)
     recorded_filters = recorded_query(recorded(GET_DATA, QCL))
     assert "year" not in sent_query(route)
     assert sent_query(route) == {
@@ -607,28 +690,31 @@ def test_get_series_refuses_one_of_since_and_until(
     respx_mock: respx.MockRouter, since: int | None, until: int | None, alone: str
 ) -> None:
     with pytest.raises(InvalidRequestError) as raised:
-        get_series(*SERIES, since=since, until=until)
+        get_series(**SERIES, since=since, until=until)
     message = str(raised.value)
     assert message.startswith("since and until go together: give both"), message
-    assert message.endswith(f"{alone} came alone")
+    assert message.endswith(f"{alone} came alone. {NOTHING_SENT}")
     assert not isinstance(raised.value, UnknownCode)
     assert not respx_mock.calls, "nothing sent, not even the login"
 
 
 def test_get_series_refuses_since_after_until(respx_mock: respx.MockRouter) -> None:
     with pytest.raises(InvalidRequestError) as raised:
-        get_series(*SERIES, since=2021, until=2015)
+        get_series(**SERIES, since=2021, until=2015)
     assert str(raised.value) == (
-        "since 2021 is after until 2015: since is the first year of the series and until the last"
+        "since 2021 is after until 2015: since is the first year of the series and until the "
+        f"last. {NOTHING_SENT}"
     )
     assert not respx_mock.calls
 
 
 def test_get_series_one_year(replay_fixture: ReplayFixture) -> None:
+    # NOT RECORDED: the recorded answer serves one year, and the test asserts what was sent
+    # (conventions §10, kind 3).
     """``since`` equal to ``until``: one year in the filter."""
     route = replay_fixture(GET_DATA, QCL)
     replay_fixture(DOMAINS, "all")
-    result = get_series(*SERIES, since=2020, until=2020)
+    result = get_series(**SERIES, since=2020, until=2020)
     assert sent_query(route)["year"] == "2020"
     assert result.meta.request["year"] == "2020"
     assert (result.meta.request["since"], result.meta.request["until"]) == (2020, 2020)
@@ -637,13 +723,13 @@ def test_get_series_one_year(replay_fixture: ReplayFixture) -> None:
 def test_get_series_checks_codes_as_get_data_does(respx_mock: respx.MockRouter) -> None:
     """The rows' element code is refused before sending, by ``get_data``'s own check."""
     with pytest.raises(UnknownCode) as raised:
-        get_series("QCL", "231", "15", "5510", since=2015, until=2021)
+        get_series("QCL", area="231", item="15", element="5510", since=2015, until=2021)
     assert (raised.value.param, raised.value.value, raised.value.list_name) == (
         "element",
         "5510",
         "element_QCL",
     )
-    assert ("2510", params.labels("element_QCL")["2510"]) in raised.value.closest
+    assert ("2510", packaged_labels("element_QCL")["2510"]) in raised.value.closest
     assert not respx_mock.calls
 
 
@@ -651,11 +737,7 @@ def test_get_series_checks_codes_as_get_data_does(respx_mock: respx.MockRouter) 
 async def test_get_series_tool_end_to_end(replay_fixture: ReplayFixture) -> None:
     route = replay_fixture(GET_DATA, QCL, match_params=SERIES_FILTERS)
     replay_fixture(DOMAINS, "all")
-    domain, area, item, element = SERIES
-    arguments = {"domain": domain, "area": area, "item": item, "element": element}
-    payload = await mcp_call(
-        server, "faostat_get_series", {**arguments, "since": 2015, "until": 2021}
-    )
+    payload = await mcp_call(server, "faostat_get_series", {**SERIES, "since": 2015, "until": 2021})
     assert sent_query(route) == recorded_query(recorded(GET_DATA, QCL))
     assert [row["year"] for row in payload["data"]] == [str(year) for year in range(2015, 2022)]
     assert "note" not in payload, "7 rows, under the cap"
@@ -677,25 +759,16 @@ async def test_get_series_tool_cap_note_names_since_and_until(
     cap = tasks.MCP_CAPS["get_series"]
     assert cap.max_rows == 200
     narrow = build_server(
-        SOURCE, [tasks.get_series], caps={"get_series": dataclasses.replace(cap, max_rows=2)}
+        ToolSet(
+            SOURCE, [tasks.get_series], caps={"get_series": dataclasses.replace(cap, max_rows=2)}
+        )
     )
-    domain, area, item, element = SERIES
-    payload = await mcp_call(
-        narrow,
-        "faostat_get_series",
-        {
-            "domain": domain,
-            "area": area,
-            "item": item,
-            "element": element,
-            "since": 2015,
-            "until": 2021,
-        },
-    )
+    payload = await mcp_call(narrow, "faostat_get_series", {**SERIES, "since": 2015, "until": 2021})
     assert [row["year"] for row in payload["data"]] == ["2015", "2016"]
     shown = f"showing 2 of 7 rows (cap: 2 rows or {cap.max_bytes} bytes)"
     assert payload["note"] == f"{shown}; {cap.note}"
     assert "narrow since and until, or one code per dimension" in payload["note"]
+    assert "offset" not in payload["note"], "unpaged: its answer can pass the cache's bound"
 
 
 def test_list_domains(replay_fixture: ReplayFixture) -> None:
@@ -824,18 +897,22 @@ def test_list_task_refuses_a_domain_without_a_table(
         task("QV")
     message = str(raised.value)
     assert not isinstance(raised.value, UnknownCode)
-    assert "QCL, TCL, FBS, PP, RL, not 'QV'" in message
-    assert (
-        "get_data sends another domain's codes unchecked (over MCP, the tool faostat_get_data)"
-    ) in message
+    assert f"QCL, TCL, FBS, PP, RL, not 'QV'. {NOTHING_SENT} get_data sends" in message
+    assert message.endswith(
+        "get_data sends the codes of another domain unchecked (over MCP, the tool "
+        "faostat_get_data)."
+    )
+    assert "print" not in message, "the rows print another element code than a filter takes"
     assert not respx_mock.calls
-    with pytest.raises(InvalidRequestError, match=r"Did you mean QCL\?"):
+    with pytest.raises(
+        InvalidRequestError, match=rf"not 'qcl'\. {NOTHING_SENT} Did you mean QCL\?"
+    ):
         task("qcl")
 
 
 @pytest.mark.anyio
 async def test_list_elements_tool_end_to_end() -> None:
-    payload = await mcp_call(server, "faostat_list_elements", {"domain": "QCL"})
+    payload = await mcp_call(server, "faostat_list_elements", {"domain_code": "QCL"})
     assert [row["code"] for row in payload["data"]] == [
         code.code for code in packaged_codes("element", "QCL")
     ]
@@ -851,7 +928,9 @@ async def test_list_elements_tool_end_to_end() -> None:
 
 @pytest.mark.anyio
 async def test_list_items_tool_search(respx_mock: respx.MockRouter) -> None:
-    payload = await mcp_call(server, "faostat_list_items", {"domain": "QCL", "search": "wheat"})
+    payload = await mcp_call(
+        server, "faostat_list_items", {"domain_code": "QCL", "search": "wheat"}
+    )
     assert [row["code"] for row in payload["data"]] == [
         code.code
         for code in packaged_codes("item", "QCL")
@@ -870,15 +949,15 @@ async def test_list_task_tool_cap_note_names_search(name: str) -> None:
     assert cap.note is not None
     assert cap.note.startswith("pass search")
     narrow = build_server(
-        SOURCE, [getattr(tasks, name)], caps={name: dataclasses.replace(cap, max_rows=2)}
+        ToolSet(SOURCE, [getattr(tasks, name)], caps={name: dataclasses.replace(cap, max_rows=2)})
     )
-    payload = await mcp_call(narrow, f"faostat_{name}", {"domain": "QCL"})
+    payload = await mcp_call(narrow, f"faostat_{name}", {"domain_code": "QCL"})
     dimension = name.removeprefix("list_").removesuffix("s")
     total = len(params.packaged(f"{dimension}_QCL").records)
     assert len(payload["data"]) == 2
-    assert (
-        payload["note"]
-        == f"showing 2 of {total} rows (cap: 2 rows or {cap.max_bytes} bytes); {cap.note}"
+    assert payload["note"] == (
+        f"showing 2 of {total} rows (cap: 2 rows or {cap.max_bytes} bytes); {cap.note}; "
+        "continue with offset=2"
     )
 
 
@@ -887,7 +966,9 @@ def test_list_areas_route_is_a_get() -> None:
     app = FastAPI()
     app.include_router(router)
     with TestClient(app) as http:
-        answered = http.get("/faostat/list_areas", params={"domain": "QCL", "search": "united"})
+        answered = http.get(
+            "/faostat/list_areas", params={"domain_code": "QCL", "search": "united"}
+        )
     assert answered.status_code == 200
     expected = [
         code.code
@@ -1021,15 +1102,18 @@ async def test_list_bulk_datasets_tool_cap_note_names_search(
     replay_fixture(CATALOGUE, "all")
     cap = tasks.MCP_CAPS["list_bulk_datasets"]
     narrow = build_server(
-        SOURCE,
-        [tasks.list_bulk_datasets],
-        caps={"list_bulk_datasets": dataclasses.replace(cap, max_rows=2)},
+        ToolSet(
+            SOURCE,
+            [tasks.list_bulk_datasets],
+            caps={"list_bulk_datasets": dataclasses.replace(cap, max_rows=2)},
+        )
     )
     payload = await mcp_call(narrow, "faostat_list_bulk_datasets", {})
     total = len(recorded_catalogue())
     assert len(payload["data"]) == 2
     assert payload["note"] == (
-        f"showing 2 of {total} rows (cap: 2 rows or {cap.max_bytes} bytes); {cap.note}"
+        f"showing 2 of {total} rows (cap: 2 rows or {cap.max_bytes} bytes); {cap.note}; "
+        "continue with offset=2"
     )
 
 
@@ -1052,7 +1136,7 @@ def test_download_dataset_mddw(
     mddw = recorded_dataset("MDDW")
     dest = tmp_path / "MDDW.zip"
     before = datetime.now(UTC)
-    result = download_dataset("MDDW", dest)
+    result = download_dataset("MDDW", dest=dest)
     after = datetime.now(UTC)
     assert sent_urls(catalogue) == [api.datasets_e.URL]
     assert sent_urls(route) == [mddw.file_location] == [fixture.request.url]
@@ -1071,11 +1155,14 @@ def test_download_dataset_mddw(
     meta = result.meta
     assert meta.source == SOURCE
     assert meta.endpoint == "All_Data_(Normalized).csv"
-    assert meta.vintage == mddw.date_update
-    assert meta.published_at == datetime.fromisoformat(mddw.date_update)
+    printed = json.loads(recorded(CATALOGUE, "all").response.body)["Datasets"]["Dataset"]
+    assert meta.vintage == next(
+        row["DateUpdate"] for row in printed if row["DatasetCode"] == "MDDW"
+    )
+    assert meta.published_at == mddw.date_update
     assert meta.published_at.tzinfo is None, "a time printed without a zone"
     assert meta.published_at_naive is True
-    assert meta.request == {"domain": "MDDW", "url": mddw.file_location}
+    assert meta.request == {"dataset_code": "MDDW", "url": mddw.file_location}
     assert meta.total is None
     assert_time_between(meta.retrieved_at, before, after)
     rows = list(parse_bulk_csv(dest))
@@ -1089,11 +1176,11 @@ def test_download_dataset_refuses_a_domain_the_catalogue_lacks(
     replay_fixture(CATALOGUE, "all")
     route = replay_fixture(DOWNLOAD, "MDDW")
     with pytest.raises(NotFoundError) as raised:
-        download_dataset("mddw", tmp_path / "MDDW.zip")
+        download_dataset("mddw", dest=tmp_path / "MDDW.zip")
     assert route.call_count == 0, "no file requested"
     assert str(raised.value) == (
-        "FAOSTAT's bulk catalogue lists no dataset 'mddw'. Did you mean MDDW? "
-        "list_bulk_datasets lists them"
+        "FAOSTAT's bulk catalogue lists no dataset 'mddw'. The catalogue was requested and no "
+        "file was. Did you mean MDDW? list_bulk_datasets lists them."
     )
     assert list(tmp_path.iterdir()) == []
 
@@ -1103,18 +1190,197 @@ def test_download_dataset_refuses_a_dest_it_cannot_write(
     respx_mock: respx.MockRouter, tmp_path: Path, where: str
 ) -> None:
     dest = tmp_path if where == "directory" else tmp_path / "missing" / "MDDW.zip"
-    with pytest.raises(InvalidRequestError, match=r"^dest"):
-        download_dataset("MDDW", dest)
+    with pytest.raises(InvalidRequestError, match=rf"^dest.*\. {NOTHING_SENT}$"):
+        download_dataset("MDDW", dest=dest)
     assert not respx_mock.calls, "refused before any request"
 
 
-def test_download_dataset_is_served_by_no_adapter() -> None:
+def test_download_dataset_takes_its_dest_by_keyword(tmp_path: Path) -> None:
+    """The dataset's code identifies the file; ``dest`` is the package's own argument."""
+    with pytest.raises(TypeError):
+        download_dataset("MDDW", tmp_path / "MDDW.zip")  # type: ignore[call-arg]
+
+
+@pytest.mark.anyio
+async def test_download_dataset_is_served_by_no_adapter() -> None:
     """A bulk task: no tool, no route (sdk-core ADR-0040, decision 4); the catalogue has both."""
     assert {"download_dataset"} == tasks.BULK_TASKS
     assert "download_dataset" in tasks.__all__
-    tools = {tool.name for tool in run(server.list_tools())}
+    tools = {tool.name for tool in await server.list_tools()}
     assert "faostat_download_dataset" not in tools
     assert "faostat_list_bulk_datasets" in tools
     paths = {getattr(route, "path", None) for route in router.routes}
     assert "/faostat/download_dataset" not in paths
     assert "/faostat/list_bulk_datasets" in paths
+
+
+CODED_TASKS = ("get_data", "get_series", "list_areas", "list_elements", "list_items")
+"""The tasks that send FAOSTAT's path parameter ``domain_code``, under upstream's name."""
+
+
+@pytest.mark.parametrize("name", CODED_TASKS)
+def test_a_task_takes_the_domain_by_upstreams_name_first_and_positional(name: str) -> None:
+    """What identifies the record is positional; every other argument is keyword-only."""
+    parameters = list(inspect.signature(getattr(tasks, name)).parameters.values())
+    assert (parameters[0].name, parameters[0].kind) == (
+        "domain_code",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+    )
+    assert all(p.kind is inspect.Parameter.KEYWORD_ONLY for p in parameters[1:]), name
+
+
+def test_download_dataset_takes_the_catalogues_dataset_code() -> None:
+    parameters = inspect.signature(tasks.download_dataset).parameters
+    assert list(parameters) == ["dataset_code", "dest"]
+    assert parameters["dest"].kind is inspect.Parameter.KEYWORD_ONLY
+
+
+def test_get_series_takes_its_codes_by_keyword(respx_mock: respx.MockRouter) -> None:
+    with pytest.raises(TypeError):
+        get_series("QCL", "231", "15", "2510")  # type: ignore[call-arg]
+    assert not respx_mock.calls
+
+
+PAGED_TOOLS = (
+    "list_areas",
+    "list_bulk_datasets",
+    "list_domains",
+    "list_elements",
+    "list_items",
+)
+"""The tools whose next page runs the task again on a packaged table or a cached answer."""
+
+
+@pytest.mark.anyio
+async def test_a_tool_takes_offset_where_its_next_page_sends_nothing_new() -> None:
+    schemas = {tool.name: tool.input_schema for tool in await server.list_tools()}
+    takes = {name for name, schema in schemas.items() if "offset" in schema["properties"]}
+    assert takes == {f"faostat_{name}" for name in PAGED_TOOLS}
+    assert "offset" not in schemas["faostat_get_data"]["properties"], "FAOSTAT's paging"
+    assert all(tasks.MCP_CAPS[name].paged for name in PAGED_TOOLS)
+    for name in CODED_TASKS:
+        assert "domain_code" in schemas[f"faostat_{name}"]["properties"], name
+        assert "domain" not in schemas[f"faostat_{name}"]["properties"], name
+
+
+def test_a_domain_reads_its_date_update_as_a_date() -> None:
+    printed = json.loads(recorded(DOMAINS, "all").response.body)["data"]
+    for domain, row in zip(recorded_domains(), printed, strict=True):
+        if row.get("date_update") is None:
+            assert domain.date_update is None
+            continue
+        assert isinstance(domain.date_update, date)
+        assert domain.date_update.isoformat() == row["date_update"], "no text beside it"
+
+
+def test_a_bulk_dataset_reads_its_date_update_as_a_time_without_a_zone() -> None:
+    printed = json.loads(recorded(CATALOGUE, "all").response.body)["Datasets"]["Dataset"]
+    for dataset, row in zip(recorded_catalogue(), printed, strict=True):
+        assert isinstance(dataset.date_update, datetime)
+        assert dataset.date_update.tzinfo is None, "the catalogue states no zone"
+        assert dataset.date_update.isoformat() == row["DateUpdate"]
+
+
+def test_a_row_names_its_area_code_by_the_area_beside_it() -> None:
+    """The record's own label names its code (conventions §4); the answer's names stay empty."""
+    assert named_by(DataRecord, "area_code") == "area"
+    assert named_by(BulkRecord, "area_code") == "area"
+    assert named_by(BulkRecord, "area_code_m49") == "area"
+
+
+def test_get_data_names_no_code_in_meta_names(replay_fixture: ReplayFixture) -> None:
+    replay_fixture(GET_DATA, QCL)
+    replay_fixture(DOMAINS, "all")
+    result = get_data("QCL", **QCL_ARGUMENTS)
+    assert result.meta.names == {}, "the name stands on the row, as FAOSTAT sends it"
+    assert {row.area for row in result.data} == {"United States of America"}
+
+
+def test_the_packaged_dimensions_are_the_ones_faostat_documents() -> None:
+    """``params.DIMENSIONS``, written by hand, against QCL's dimensions and the data filters."""
+    snapshot = Path(__file__).parents[1] / "docs" / "upstream"
+    sample = json.loads((snapshot / "samples" / "dimensions_QCL.json").read_text())
+    documented = {dimension["id"] for dimension in sample["data"]}
+    assert set(params.DIMENSIONS) <= documented
+    spec = (snapshot / "openapi" / "faostat_openapi.yaml").read_text()
+    for dimension in params.DIMENSIONS:
+        assert f"Alias for {dimension} dimension codes." in spec, dimension
+
+
+@pytest.mark.parametrize(
+    ("domain_code", "arguments", "name", "listed"),
+    [
+        ("QCL", {"area": "231,79"}, "area", ["231", "79"]),
+        ("QV", {"area": "231,79"}, "area", ["231", "79"]),
+        ("QCL", {"area": "231", "year": "2019,2020"}, "year", ["2019", "2020"]),
+        ("QV", {"area": ["231", "79,4"]}, "area", ["231", "79", "4"]),
+        ("QCL", {"area": "231,"}, "area", ["231"]),
+        ("QV", {"item": " 15 , 56 "}, "item", ["15", "56"]),
+    ],
+)
+def test_a_comma_text_is_refused_for_every_domain_naming_the_list(
+    respx_mock: respx.MockRouter,
+    domain_code: str,
+    arguments: dict[str, Any],
+    name: str,
+    listed: list[str],
+) -> None:
+    """Several codes are a list, whatever the domain and the filter (conventions §2)."""
+    with pytest.raises(InvalidRequestError) as raised:
+        get_data(domain_code, **arguments)
+    assert not isinstance(raised.value, UnknownCode)
+    assert str(raised.value).startswith(
+        f"{name} takes several codes as a list, {json.dumps(listed)}"
+    )
+    assert str(raised.value).endswith(NOTHING_SENT)
+    assert not respx_mock.calls, "nothing sent, not even the login"
+
+
+def test_get_data_vintage_is_the_date_update_as_faostat_sends_it(
+    replay_fixture: ReplayFixture, respx_mock: respx.MockRouter
+) -> None:
+    """NOT RECORDED: the recorded list of domains with QCL's ``date_update`` changed in memory
+    to a time, a form FAOSTAT was not seen to send (conventions §10, kind 4)."""
+    replay_fixture(GET_DATA, QCL)
+    body = json.loads(recorded(DOMAINS, "all").response.body)
+    for row in body["data"]:
+        if row["domain_code"] == "QCL":
+            row["date_update"] = "2025-12-31T00:00:00"
+    respx_mock.get(f"{BASE_URL}/en/groupsanddomains").mock(
+        return_value=httpx.Response(200, json=body)
+    )
+    result = get_data("QCL", **QCL_ARGUMENTS)
+    assert result.meta.vintage == "2025-12-31T00:00:00", "the text as sent, not re-printed"
+
+
+def test_get_series_is_unpaged_since_one_answer_can_pass_the_caches_bound() -> None:
+    """A continuation reads the cache only under ``cache_max_bytes`` (conventions §8).
+
+    The task takes any number of codes and years, so one answer has no bound of its own: a
+    recorded row takes more than 300 bytes, and 50 areas of QCL by ten items over its 64
+    years already pass 8 MiB.
+    """
+    printed = json.loads(recorded(GET_DATA, QCL).response.body)["data"]
+    smallest_row = min(len(json.dumps(row, separators=(",", ":"))) for row in printed)
+    rows = 50 * 10 * 64
+    assert rows * smallest_row > 8 * 1024 * 1024
+    assert not tasks.MCP_CAPS["get_series"].paged
+
+
+@pytest.mark.parametrize("name", ["get_data", "get_series"])
+@pytest.mark.anyio
+async def test_the_description_states_the_most_a_call_sends_with_a_renewed_login(
+    name: str,
+) -> None:
+    """The description the package's server lists for the tool, as an endpoint shows it."""
+    tools = {tool.name: tool for tool in await server.list_tools()}
+    described = tools[f"faostat_{name}"].description
+    assert described is not None
+    assert "refuses with 401 or 403" in " ".join(described.split())
+    assert len(described) < 1000
+
+
+@pytest.mark.parametrize("module", ["errors", "enums"])
+def test_the_package_keeps_no_empty_stub_of_the_scaffold(module: str) -> None:
+    """A stub that the package never filled says nothing, and the update leaves it deleted."""
+    assert importlib.util.find_spec(f"xippios.faostat.{module}") is None

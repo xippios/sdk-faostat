@@ -28,6 +28,10 @@ the code checks, ``classify`` and the meta rules are ``get_data``'s; its ``meta`
 given. One request, so no ceiling in conventions §4's sense; the rows keep upstream's
 order, area, item, year ascending in every recorded answer.
 
+Every task takes the domain by FAOSTAT's name for it, ``domain_code``, positional, and
+``download_dataset`` the catalogue's ``dataset_code``; every other argument is keyword-only
+(conventions §2). Every refusal before a request says that nothing was sent (conventions §5).
+
 ``list_domains`` answers from ``get_groupsanddomains``, every domain and subgroup with its
 group and release dates, filtered by ``search`` in Python (``xippios.core.matches``).
 
@@ -39,8 +43,9 @@ group and release dates, filtered by ``search`` in Python (``xippios.core.matche
 ``total`` ``None``; sdk-core ADR-0041). With them ``get_data`` checks the area, element
 and item codes of those five domains before it sends, since FAOSTAT answers an unknown
 code with no rows: a code the domain's table lacks is refused with core's
-``UnknownCode``, naming the table, its fetch date and the closest codes (conventions §5;
-sdk-core ADR-0041, decision 8). The element tables hold the filter codes, not the codes
+``UnknownCode`` by one ``check`` of the codes given on the table's declaration,
+``params.table``, naming the table, its fetch date and the closest codes (conventions §5;
+sdk-core ADR-0045). The element tables hold the filter codes, not the codes
 the rows print, and nothing is translated between the two (sdk-core ADR-0028;
 https://github.com/xippios/sdk-faostat/pull/3).
 
@@ -53,23 +58,23 @@ version, and ``meta.total`` ``None``.
 
 ``download_dataset`` is the bulk task, named in ``BULK_TASKS`` and so Python-only: the
 adapters skip it, and no tool or route returns a file path (sdk-core ADR-0040, decision
-4). It looks the domain up in the catalogue and streams the ZIP its ``FileLocation``
-names to the file the caller gives, through core's ``download`` with ``auth=None``, so
-the account's token never goes to the bulk host (conventions §6);
+4). It checks ``dest`` by core's ``check_dest``, looks the dataset up in the catalogue
+and streams the ZIP its ``FileLocation`` names to the file the caller gives, through
+core's ``download`` with ``auth=None``, so the account's token never goes to the bulk host
+(conventions §6);
 ``parse.parse_bulk_csv`` reads the file. Its release metadata is the catalogue's:
 ``meta.vintage`` the dataset's ``DateUpdate`` as printed (``"2026-10-02T00:00:00"``) and
-``meta.published_at`` the same time, which the catalogue prints without a zone,
-``published_at_naive`` set (conventions §4, sdk-core ADR-0041, decision 2). That is a
+``meta.published_at`` that time, which the model reads without a zone, as the catalogue
+prints it, ``published_at_naive`` set (conventions §4, sdk-core ADR-0041, decision 2). That is a
 time, unlike the API's date-only ``date_update``, which ``get_data`` keeps in
 ``meta.vintage`` alone (conventions §4). ``meta.endpoint`` is the file kind as upstream
 names the member it holds, ``All_Data_(Normalized).csv`` (sdk-core ADR-0020, decision
-5), ``meta.request`` the domain and the file's URL.
+5), ``meta.request`` the dataset's code and the file's URL.
 """
 
+import json
 import os
 from collections.abc import Mapping, Sequence
-from datetime import datetime
-from pathlib import Path
 from typing import Any, Final
 
 from xippios.core import (
@@ -79,16 +84,19 @@ from xippios.core import (
     Result,
     ResultCap,
     ResultMeta,
-    UnknownCode,
-    ValidationError,
+    check_dest,
     closest,
     matches,
     sync,
+    tool_name,
 )
 
 from xippios.faostat import api, params
 from xippios.faostat._client import FILTER_REFUSAL, SOURCE, client
 from xippios.faostat.models import BulkDataset, CodeItem, DataRecord, Domain
+
+NOTHING_SENT: Final = "Nothing was sent."
+"""The sentence of every refusal before a request, after its first (conventions §5)."""
 
 __all__ = [
     "download_dataset",
@@ -103,9 +111,17 @@ __all__ = [
 
 BULK_TASKS: frozenset[str] = frozenset({"download_dataset"})
 """Tasks the adapters skip (sdk-core ADR-0040, decision 4): ``download_dataset``, which
-writes a file and is Python-only. Core's ``tool_functions`` and ``router_from_tasks`` read
-it from this module and leave its names out, so ``mcp.py`` passes ``tool_functions(tasks)``
-and ``http.py`` ``__all__`` whole."""
+writes a file and is Python-only. Core's ``tool_functions`` reads it from this module and
+leaves its names out, so ``mcp.py``'s ``ToolSet.from_tasks(SOURCE, tasks, ...)`` serves no
+tool of it and ``http.py``'s ``router_from_tasks(SOURCE, tool_functions(tasks))`` no route."""
+
+MCP_INSTRUCTIONS: Final = (
+    "FAOSTAT via xippios. "
+    "Tools are read-only. "
+    "Where list tools (faostat_list_*) exist, call them first to find valid values, "
+    "then query."
+)
+"""The server's instructions, which core's ``ToolSet.from_tasks`` reads (conventions §8)."""
 
 MCP_CAPS: Mapping[str, ResultCap] = {
     "get_data": ResultCap(
@@ -123,6 +139,7 @@ MCP_CAPS: Mapping[str, ResultCap] = {
         ),
     ),
     "list_domains": ResultCap(
+        paged=True,
         note=(
             "pass search, a part of a domain's code or name or of its group's name "
             "(QCL, crops, production), to see the rest"
@@ -130,20 +147,24 @@ MCP_CAPS: Mapping[str, ResultCap] = {
     ),
     "list_areas": ResultCap(
         max_rows=1000,
+        paged=True,
         note=(
             "pass search, a part of the code or of the label (231, united, africa), to see the rest"
         ),
     ),
     "list_elements": ResultCap(
         max_rows=1000,
+        paged=True,
         note="pass search, a part of the code or of the label (2510, production), to see the rest",
     ),
     "list_items": ResultCap(
         max_rows=1000,
+        paged=True,
         note="pass search, a part of the code or of the label (15, wheat, maize), to see the rest",
     ),
     "list_bulk_datasets": ResultCap(
         max_rows=100,
+        paged=True,
         max_bytes=160 * 1024,
         note=(
             "pass search, a part of a dataset's code or name (QCL, trade, prices), to see the rest"
@@ -153,9 +174,10 @@ MCP_CAPS: Mapping[str, ResultCap] = {
 """MCP result caps of their own, by task function name (conventions §8, sdk-core ADR-0038).
 
 ``get_data`` keeps the family's 200 rows and 64 KB and adds a note naming its paging and
-its filters; a row of the recorded answers is 356 (QCL) to 383 (PP) bytes as compact
-JSON, so the bytes cut a page at about 170 rows. ``get_series`` keeps the same cap, its
-note naming ``since`` and ``until`` and one code per dimension, since it does not page.
+its filters; a row of the recorded answers is served as 380 (QCL) to 407 (PP) bytes of
+compact JSON, ``value_number`` among them, so the bytes cut a page at about 160 rows.
+``get_series`` keeps the same cap, its note naming ``since`` and ``until`` and one code
+per dimension, since it does not page.
 ``list_domains`` keeps the family's cap too: its 78 rows of 2026-10-29 fit; the note
 names ``search``.
 
@@ -171,6 +193,17 @@ the whole catalogue, which an agent needs to choose a dataset, comes uncut (sdk-
 ADR-0038): on 2026-10-29 it measured 69 datasets and 107,481 bytes as compact JSON, a
 dataset 399 to 4,104 bytes, its description the most of it, where the family's 64 KB
 would cut it at 39 rows. The note names ``search`` for a catalogue grown past the bound.
+
+Five caps are paged, ``ResultCap(paged=True)``, so their tools take ``offset`` and a cut
+answer's note names the offset to continue with: the next page runs the task again and
+sends nothing new, since the three code lists read packaged tables, and ``list_domains``
+and ``list_bulk_datasets`` read answers that the client's cache keeps for five minutes,
+each far under its bound of 8 MiB (sdk-core ADR-0047, as amended). ``get_data`` takes
+none: it pages by FAOSTAT's own ``page_size`` and ``page_number``, which its note names
+(https://github.com/xippios/sdk-faostat/issues/32). ``get_series`` takes none either:
+it takes any number of codes and years, so one answer has no bound of its own and can pass
+the cache's 8 MiB, past which a continuation would send its request again (conventions
+§8; https://github.com/xippios/sdk-faostat/issues/80).
 """
 
 LANG: Final = "en"
@@ -195,15 +228,30 @@ Codes = str | int | Sequence[str | int]
 def _joined(codes: Codes | None, name: str) -> str | None:
     """``codes`` as upstream's comma list, ``None`` when not given.
 
+    Several codes are a list, ``["231", "79"]``, for every domain and filter alike: a code
+    given as a text with a comma is refused, since a comma-separated text is no argument form
+    (conventions §2).
+
     Raises:
-        InvalidRequestError: ``codes`` is empty, a text or a list without a code.
+        InvalidRequestError: ``codes`` is empty, a text or a list without a code, or a code
+            holds a comma.
     """
     if codes is None:
         return None
-    text = str(codes) if isinstance(codes, str | int) else ",".join(str(code) for code in codes)
+    given = [codes] if isinstance(codes, str | int) else list(codes)
+    if any("," in str(code) for code in given):
+        listed = [part.strip() for code in given for part in str(code).split(",") if part.strip()]
+        given = [] if not listed else given  # commas alone: no code, refused below
+        if listed:
+            raise InvalidRequestError(
+                f"{name} takes several codes as a list, {json.dumps(listed)}, not a text with "
+                f"commas, {codes!r}. {NOTHING_SENT}",
+                source=SOURCE,
+            )
+    text = ",".join(str(code) for code in given)
     if not text:
         raise InvalidRequestError(
-            f"{name} lists no code: give one code or several, or leave {name} out",
+            f"{name} lists no code: give one code or several, or leave {name} out. {NOTHING_SENT}",
             source=SOURCE,
         )
     return text
@@ -221,14 +269,6 @@ LIST_TASKS: Mapping[str, str] = {
 """The task that lists each packaged dimension's codes, for a refusal to name."""
 
 
-def _tool(task: str) -> str:
-    """The MCP tool that serves ``task``, ``faostat_list_areas`` for ``list_areas``.
-
-    A refusal that names another task names its tool too (conventions §8).
-    """
-    return f"{SOURCE}_{task}"
-
-
 UNKNOWN_CODE_REASON = (
     "FAOSTAT answers a code it does not know with no rows, as it answers a query without "
     "data, so the package refuses it before sending;"
@@ -236,52 +276,45 @@ UNKNOWN_CODE_REASON = (
 """Why ``get_data`` refuses a code the domain's packaged table lacks (conventions §5)."""
 
 
-def _check_codes(dimension: str, codes: str | None, domain: str) -> None:
-    """Refuse a code of ``codes`` that the packaged table of ``dimension`` in ``domain`` lacks.
+def _check(dimension: str, codes: Codes | None, domain_code: str) -> None:
+    """Refuse the first code of ``codes`` that the packaged table of ``dimension`` lacks.
 
-    ``codes`` is the filter as sent, a comma list (``"231,79"``); each code is checked as
-    given. A domain without a packaged table, or a filter not given, is not checked.
+    One call of core's ``check`` on the table's declaration, the codes as the text they are
+    sent as, in their order. A domain without a packaged table, or a filter not given, is
+    not checked; an empty filter is ``_joined``'s to refuse.
 
     Raises:
-        UnknownCode: Naming the table (``"element_QCL"``), its fetch date, the closest
-            codes by code and then by label, and the task that lists the codes.
+        UnknownCode: Naming the table (``"element_QCL"``), its fetch date, that nothing
+            was sent, the closest codes by code and then by label, and the task that lists
+            the codes.
     """
-    if codes is None or domain not in params.DOMAINS:
+    if codes is None or domain_code not in params.DOMAINS:
         return
-    name = params.table_name(dimension, domain)
-    labels = params.labels(name)
-    for code in codes.split(","):
-        if code in labels:
-            continue
-        task = LIST_TASKS[dimension]
-        reason = f'{UNKNOWN_CODE_REASON} {task}("{domain}") lists the codes'
-        if dimension == "element":
-            reason += " a filter takes"
-        reason += f" (over MCP, the tool {_tool(task)})"
-        if dimension == "element":
-            reason += ", which are not the element_code the rows print"
-        raise UnknownCode(
-            dimension,
-            code,
-            list_name=name,
-            fetched=params.packaged(name).fetched,
-            closest=closest(code, labels),
-            reason=f"{reason}.",
-            source=SOURCE,
-        )
+    given = [str(code) for code in ([codes] if isinstance(codes, str | int) else codes)]
+    task = LIST_TASKS[dimension]
+    reason = f'{UNKNOWN_CODE_REASON} {task}("{domain_code}") lists the codes'
+    if dimension == "element":
+        reason += " a filter takes"
+    reason += f" (over MCP, the tool {tool_name(SOURCE, task)})"
+    if dimension == "element":
+        reason += ", which are not the element_code the rows print"
+    params.table(params.table_name(dimension, domain_code)).check(
+        dimension, given, reason=f"{reason}."
+    )
 
 
-async def _date_update(domain: str) -> str | None:
-    """The domain's ``date_update`` as ``get_groupsanddomains`` prints it, else ``None``."""
+async def _date_update(domain_code: str) -> str | None:
+    """The domain's ``date_update`` as ``get_groupsanddomains`` prints it, else ``None``.
+
+    The text as FAOSTAT sent it, which the wrapper hands beside the parsed answer, since
+    the model reads the date into a ``date`` (conventions §4).
+    """
     answer = await api.get_groupsanddomains.get_groupsanddomains(LANG)
-    for row in answer.payload.data:
-        if row.domain_code == domain:
-            return row.date_update
-    return None
+    return answer.payload.printed.get(domain_code)
 
 
 async def get_data_async(
-    domain: str,
+    domain_code: str,
     *,
     area: Codes | None = None,
     item: Codes | None = None,
@@ -294,43 +327,34 @@ async def get_data_async(
 ) -> Result[list[DataRecord]]:
     """Get one FAOSTAT domain's rows for the areas, items, elements and years given.
 
-    One request to FAOSTAT's data endpoint, rows in upstream's order (area, item, year
-    ascending in the recorded answers), every row with its codes and names, unit, value,
-    flag and note. Give at least one of ``area``, ``item``, ``element`` and ``year``:
-    FAOSTAT refuses a query without a filter ("Please add at least one filter."), and
-    so does this task, before any request, with ``InvalidRequestError``. Without
-    ``page_size`` every matching row comes in one answer, which for a whole domain runs
-    to millions of rows: keep the filters narrow, or page. The element codes a query
-    filters by are not those the rows print: ``element="2510"`` (Production Quantity)
-    answers rows with ``element_code`` ``"5510"`` (Production), and ``5510`` as a filter
-    matches nothing; ``list_elements`` lists the filter codes. FAOSTAT answers a code it
-    does not know with no rows, so for QCL, TCL, FBS, PP and RL, whose code tables the
-    package carries (``list_areas``, ``list_elements``, ``list_items``), every area,
-    element and item code is checked before the request: one the domain's table lacks
-    raises ``UnknownCode`` naming the table, its fetch date and the closest codes, so
-    ``element="5510"`` on QCL is refused naming ``2510`` (Production Quantity). Area
-    codes are checked when ``area_cs`` is ``None`` or ``"FAO"``, item codes when
-    ``item_cs`` is, since the tables list FAO's codes; years are never checked. Any
-    other domain's codes are sent unchecked, and a code that matches nothing there gives
-    an empty list, not an error; an unknown domain raises ``NotFoundError``.
-    ``meta.vintage`` is the domain's last update as ``list_domains`` prints it
-    (``"2025-12-31"``); the release date is there, ``meta.published_at`` stays ``None``.
-    ``value`` is a number where upstream's text is one.
+    One request to FAOSTAT's data endpoint; the rows come in upstream's order (area, item,
+    year ascending), each with its codes and names, unit, flag, and value as printed with
+    its number beside it. Give at least one of area, item, element and year, as FAOSTAT
+    asks, or the task refuses before any request. Without page_size every matching row
+    comes in one answer: keep the filters narrow, or page.
+    For QCL, TCL, FBS, PP and RL, whose code lists the package carries, every area,
+    element and item code is checked first, and one the domain lacks raises UnknownCode
+    naming the closest codes; another domain's unknown code gives an empty list.
+    meta.vintage is the domain's last update as list_domains prints it. A call sends the
+    data and the domain's release date, each tried up to four times, a login where the
+    process holds no token, and a login and the request again where FAOSTAT refuses with
+    401 or 403.
 
     Args:
-        domain: The domain's code, as ``list_domains`` lists it, e.g. ``"QCL"`` (Crops
+        domain_code: The domain's code, as ``list_domains`` lists it, e.g. ``"QCL"`` (Crops
             and livestock products), ``"TCL"`` (trade in crops and livestock products),
             ``"FBS"`` (Food Balances, 2010-), ``"PP"`` (Producer Prices) or ``"RL"``
-            (Land Use).
+            (Land Use); one FAOSTAT does not have raises ``NotFoundError``.
         area: One area code or several, FAO's codes unless ``area_cs`` says otherwise,
             as ``list_areas`` lists them, e.g. ``"231"`` (United States of America) or
-            ``["231", "79"]``.
+            ``["231", "79"]``; checked when ``area_cs`` is ``None`` or ``"FAO"``.
         item: One item code or several, as ``list_items`` lists them, e.g. ``"15"``
-            (Wheat) or ``["15", "27"]``.
+            (Wheat) or ``["15", "27"]``; checked when ``item_cs`` is ``None`` or ``"FAO"``.
         element: One element code or several, the filter codes ``list_elements`` lists,
-            e.g. ``"2510"`` (Production Quantity in QCL), not the ``5510`` the rows
-            print, which is refused.
-        year: One year or several, e.g. ``2020`` or ``[2015, 2016, 2017]``.
+            e.g. ``"2510"`` (Production Quantity in QCL), which answers rows whose
+            ``element_code`` is ``"5510"`` (Production); ``5510`` as a filter matches
+            nothing and is refused.
+        year: One year or several, e.g. ``2020`` or ``[2015, 2016, 2017]``; never checked.
         area_cs: The coding system of ``area``, one the domain's dimensions list
             (``"M49"``, ``"FAO"``, ``"ISO2"``, ``"ISO3"`` in QCL); ``None`` sends FAO's
             codes, which the rows print under ``area_code``. Given, the rows print the
@@ -357,14 +381,14 @@ async def get_data_async(
     if all(value is None for value in filters.values()):
         raise InvalidRequestError(
             f'FAOSTAT refuses a data query without a filter ("{FILTER_REFUSAL}"): pass '
-            "area, item, element or year",
+            f"area, item, element or year. {NOTHING_SENT}",
             source=SOURCE,
         )
     if area_cs is None or area_cs == FAO_CODES:
-        _check_codes("area", filters["area"], domain)
+        _check("area", area, domain_code)
     if item_cs is None or item_cs == FAO_CODES:
-        _check_codes("item", filters["item"], domain)
-    _check_codes("element", filters["element"], domain)
+        _check("item", item, domain_code)
+    _check("element", element, domain_code)
     sent: dict[str, Any] = {
         **filters,
         "area_cs": area_cs,
@@ -373,15 +397,15 @@ async def get_data_async(
         "page_number": page_number,
         **OUTPUT_OPTIONS,
     }
-    answer = await api.get_data.get_data(LANG, domain, **sent)
-    vintage = await _date_update(domain)
+    answer = await api.get_data.get_data(LANG, domain_code, **sent)
+    vintage = await _date_update(domain_code)
     meta = ResultMeta(
         source=SOURCE,
         endpoint=api.get_data.ENDPOINT,
         retrieved_at=answer.retrieved_at,
         published_at=None,
         vintage=vintage,
-        request={"lang": LANG, "domain_code": domain, **sent},
+        request={"lang": LANG, "domain_code": domain_code, **sent},
         total=None,
     )
     return Result(data=answer.payload.data, meta=meta)
@@ -404,70 +428,61 @@ def _series_years(since: int | None, until: int | None) -> list[int] | None:
         raise InvalidRequestError(
             "since and until go together: give both, the first and the last year of the "
             "series (since=2015, until=2021), or neither, for every year the domain holds; "
-            f"{alone} came alone",
+            f"{alone} came alone. {NOTHING_SENT}",
             source=SOURCE,
         )
     if since > until:
         raise InvalidRequestError(
             f"since {since} is after until {until}: since is the first year of the series "
-            "and until the last",
+            f"and until the last. {NOTHING_SENT}",
             source=SOURCE,
         )
     return list(range(since, until + 1))
 
 
 async def get_series_async(
-    domain: str,
+    domain_code: str,
+    *,
     area: Codes,
     item: Codes,
     element: Codes,
-    *,
     since: int | None = None,
     until: int | None = None,
 ) -> Result[list[DataRecord]]:
     """Get a FAOSTAT domain's yearly series for an area, an item and an element over a year range.
 
-    One request to FAOSTAT's data endpoint, as ``get_data`` sends it, with the years
-    ``since`` to ``until`` as its year filter (``since=2015, until=2021`` asks for the
-    seven years 2015 to 2021); without ``since`` and ``until`` there is no year filter,
-    and the answer holds every year the domain has. Give both or neither: one without the
-    other, or ``since`` after ``until``, is refused with ``InvalidRequestError`` before
-    any request. Rows come in upstream's order, area, item, year ascending in the
-    recorded answers, so one area, item and element give one series, oldest year first;
-    lists of codes give several series in one list, in upstream's order. A year the
-    domain does not hold, not yet released or without a value, has no row: nothing is
-    filled in. ``list_domains`` prints each domain's latest year as ``year_current``
-    (``"2024"`` for QCL on 2026-10-29). The element codes a query filters by are not
-    those the rows print: ``element="2510"`` (Production Quantity) answers rows with
-    ``element_code`` ``"5510"`` (Production), and ``list_elements`` lists the filter
-    codes. For QCL, TCL, FBS, PP and RL every area, element and item code is checked
-    against the package's code tables before the request, as ``get_data`` checks them:
-    one the domain's table lacks raises ``UnknownCode`` naming the closest codes, so
-    ``element="5510"`` on QCL is refused naming ``2510``. Another domain's codes are sent
-    unchecked, and a code that matches nothing there gives an empty list; an unknown
-    domain raises ``NotFoundError``. ``meta`` is ``get_data``'s: ``meta.vintage`` the
-    domain's last update as ``list_domains`` prints it (``"2025-12-31"``),
-    ``meta.published_at`` ``None``, ``meta.request`` the year list sent, plus ``since``
-    and ``until`` as given. ``value`` is a number where upstream's text is one.
+    One get_data request with the years since to until as its year filter; without either
+    there is no year filter, and every year the domain holds comes. Give both or neither:
+    one alone, or since after until, is refused before any request. Rows come in
+    upstream's order, area, item, year ascending, so one code of each gives one series,
+    oldest year first, and lists give several. A year the domain does not hold, not yet
+    released or without a value, has no row: nothing is filled in. The codes are checked
+    as get_data checks them, and meta is get_data's, with since and until added to
+    meta.request. A call sends the data and the domain's release date, each tried up to
+    four times, a login where the process holds no token, and a login and the request
+    again where FAOSTAT refuses with 401 or 403.
 
     Args:
-        domain: The domain's code, as ``list_domains`` lists it, e.g. ``"QCL"`` (Crops
+        domain_code: The domain's code, as ``list_domains`` lists it, e.g. ``"QCL"`` (Crops
             and livestock products), ``"TCL"`` (trade in crops and livestock products),
             ``"FBS"`` (Food Balances, 2010-), ``"PP"`` (Producer Prices) or ``"RL"``
-            (Land Use).
+            (Land Use); one FAOSTAT does not have raises ``NotFoundError``.
         area: The area's code, FAO's, as ``list_areas`` lists it, e.g. ``"231"`` (United
             States of America), or several, ``["231", "79"]``.
         item: The item's code, as ``list_items`` lists it, e.g. ``"15"`` (Wheat), or
             several, ``["15", "56"]``.
         element: The element's filter code, as ``list_elements`` lists it, e.g.
-            ``"2510"`` (Production Quantity in QCL), not the ``5510`` the rows print,
-            which is refused; or several, ``["2510", "2312"]``.
+            ``"2510"`` (Production Quantity in QCL), which answers rows whose
+            ``element_code`` is ``"5510"`` (Production); ``5510`` is refused naming
+            ``2510``. Or several, ``["2510", "2312"]``.
         since: The first year, included, e.g. ``2015``; with ``until``. ``None`` with
             ``until`` ``None`` asks for every year the domain holds.
-        until: The last year, included, e.g. ``2021``; with ``since``.
+        until: The last year, included, e.g. ``2021``; with ``since``. ``list_domains``
+            prints each domain's latest year as ``year_current`` (``"2024"`` for QCL on
+            2026-10-29).
     """
     years = _series_years(since, until)
-    answer = await get_data_async(domain, area=area, item=item, element=element, year=years)
+    answer = await get_data_async(domain_code, area=area, item=item, element=element, year=years)
     meta = ResultMeta(
         **answer.meta.model_dump(exclude={"request"}),
         request={**answer.meta.request, "since": since, "until": until},
@@ -494,7 +509,7 @@ async def list_domains_async(*, search: str | None = None) -> Result[list[Domain
     answer = await api.get_groupsanddomains.get_groupsanddomains(LANG)
     rows = [
         row
-        for row in answer.payload.data
+        for row in answer.payload.response.data
         if matches(search, row.domain_code, row.domain_name, row.group_name)
     ]
     meta = ResultMeta(
@@ -512,29 +527,36 @@ async def list_domains_async(*, search: str | None = None) -> Result[list[Domain
 list_domains = sync(list_domains_async)
 
 
-def _code_list(dimension: str, domain: str, search: str | None) -> Result[list[CodeItem]]:
-    """The packaged codes of ``dimension`` in ``domain`` that ``search`` keeps, with meta.
+def _code_list(dimension: str, domain_code: str, search: str | None) -> Result[list[CodeItem]]:
+    """The packaged codes of ``dimension`` in ``domain_code`` that ``search`` keeps, with meta.
 
     Raises:
-        InvalidRequestError: The package carries no table for ``domain``.
+        InvalidRequestError: The package carries no table for ``domain_code``.
     """
-    if domain not in params.DOMAINS:
-        near = closest(domain, {code: code for code in params.DOMAINS}, n=1)
+    if domain_code not in params.DOMAINS:
+        near = closest(domain_code, {code: code for code in params.DOMAINS}, n=1)
         hint = f" Did you mean {near[0][0]}?" if near else ""
         raise InvalidRequestError(
             f"{LIST_TASKS[dimension]} answers for the domains whose code tables the package "
-            f"carries, {', '.join(params.DOMAINS)}, not {domain!r}.{hint} get_data sends "
-            f"another domain's codes unchecked (over MCP, the tool {_tool('get_data')}), and "
-            f"its rows print each {dimension}'s code.",
+            f"carries, {', '.join(params.DOMAINS)}, not {domain_code!r}. {NOTHING_SENT}{hint} "
+            "get_data sends the codes of another domain unchecked (over MCP, the tool "
+            f"{tool_name(SOURCE, 'get_data')}).",
             source=SOURCE,
         )
-    name = params.table_name(dimension, domain)
+    name = params.table_name(dimension, domain_code)
     found = [code for code in params.codes(name) if matches(search, code.code, code.label)]
-    request = {"lang": LANG, "dimension_id": dimension, "domain_code": domain, "search": search}
+    request = {
+        "lang": LANG,
+        "dimension_id": dimension,
+        "domain_code": domain_code,
+        "search": search,
+    }
     return Result(data=found, meta=params.packaged(name).meta(SOURCE, request=request))
 
 
-async def list_areas_async(domain: str, *, search: str | None = None) -> Result[list[CodeItem]]:
+async def list_areas_async(
+    domain_code: str, *, search: str | None = None
+) -> Result[list[CodeItem]]:
     """List a FAOSTAT domain's area codes, the codes ``get_data``'s ``area`` filter takes.
 
     Answered from the package's copy of FAOSTAT's code list ``codes/area/<domain>``
@@ -548,19 +570,21 @@ async def list_areas_async(domain: str, *, search: str | None = None) -> Result[
     is missing until the package is refreshed.
 
     Args:
-        domain: The domain's code, ``"QCL"`` (Crops and livestock products), ``"TCL"``
+        domain_code: The domain's code, ``"QCL"`` (Crops and livestock products), ``"TCL"``
             (trade in crops and livestock products), ``"FBS"`` (Food Balances, 2010-),
             ``"PP"`` (Producer Prices) or ``"RL"`` (Land Use).
         search: Text to look for in the code or the label, ignoring case, e.g.
             ``"united"``, ``"231"`` or ``"africa"``; ``None`` lists every code.
     """
-    return _code_list("area", domain, search)
+    return _code_list("area", domain_code, search)
 
 
 list_areas = sync(list_areas_async)
 
 
-async def list_elements_async(domain: str, *, search: str | None = None) -> Result[list[CodeItem]]:
+async def list_elements_async(
+    domain_code: str, *, search: str | None = None
+) -> Result[list[CodeItem]]:
     """List a FAOSTAT domain's element codes, the codes ``get_data``'s ``element`` filter takes.
 
     Answered from the package's copy of FAOSTAT's code list ``codes/element/<domain>``
@@ -576,19 +600,21 @@ async def list_elements_async(domain: str, *, search: str | None = None) -> Resu
     list no release identifier.
 
     Args:
-        domain: The domain's code, ``"QCL"`` (Crops and livestock products), ``"TCL"``
+        domain_code: The domain's code, ``"QCL"`` (Crops and livestock products), ``"TCL"``
             (trade in crops and livestock products), ``"FBS"`` (Food Balances, 2010-),
             ``"PP"`` (Producer Prices) or ``"RL"`` (Land Use).
         search: Text to look for in the code or the label, ignoring case, e.g.
             ``"production"``, ``"2510"`` or ``"export"``; ``None`` lists every code.
     """
-    return _code_list("element", domain, search)
+    return _code_list("element", domain_code, search)
 
 
 list_elements = sync(list_elements_async)
 
 
-async def list_items_async(domain: str, *, search: str | None = None) -> Result[list[CodeItem]]:
+async def list_items_async(
+    domain_code: str, *, search: str | None = None
+) -> Result[list[CodeItem]]:
     """List a FAOSTAT domain's item codes, the codes ``get_data``'s ``item`` filter takes.
 
     Answered from the package's copy of FAOSTAT's code list ``codes/item/<domain>``
@@ -603,13 +629,13 @@ async def list_items_async(domain: str, *, search: str | None = None) -> Result[
     ``meta.vintage`` is empty, as upstream gives the list no release identifier.
 
     Args:
-        domain: The domain's code, ``"QCL"`` (Crops and livestock products), ``"TCL"``
+        domain_code: The domain's code, ``"QCL"`` (Crops and livestock products), ``"TCL"``
             (trade in crops and livestock products), ``"FBS"`` (Food Balances, 2010-),
             ``"PP"`` (Producer Prices) or ``"RL"`` (Land Use).
         search: Text to look for in the code or the label, ignoring case, e.g.
             ``"wheat"``, ``"15"`` or ``"cereals"``; ``None`` lists every code.
     """
-    return _code_list("item", domain, search)
+    return _code_list("item", domain_code, search)
 
 
 list_items = sync(list_items_async)
@@ -618,40 +644,6 @@ list_items = sync(list_items_async)
 NORMALIZED_TABLE: Final = "All_Data_(Normalized).csv"
 """The file kind ``download_dataset`` names in ``meta.endpoint``: the normalized table, as
 upstream names its member, ``<Name>_E_All_Data_(Normalized).csv``."""
-
-
-def _target(dest: str | os.PathLike[str]) -> Path:
-    """``dest`` as a path, refused when it is a directory or its directory is missing.
-
-    Core's ``download`` refuses the same with the same text and error, but only once the
-    catalogue has answered; this check refuses before any request.
-
-    Raises:
-        InvalidRequestError: ``dest`` is a directory, or its directory does not exist.
-    """
-    target = Path(dest)
-    if target.is_dir():
-        raise InvalidRequestError("dest is a directory; name the file to write", source=SOURCE)
-    if not target.parent.is_dir():
-        raise InvalidRequestError("dest's directory does not exist; create it first", source=SOURCE)
-    return target
-
-
-def _released(dataset: BulkDataset) -> datetime:
-    """The dataset's ``DateUpdate`` as a time, without a zone where the catalogue prints none.
-
-    Raises:
-        ValidationError: The catalogue's ``DateUpdate`` is not an ISO 8601 time.
-    """
-    try:
-        return datetime.fromisoformat(dataset.date_update)
-    except ValueError:
-        raise ValidationError(
-            f"{SOURCE} {api.datasets_e.ENDPOINT}: the DateUpdate of {dataset.dataset_code} is "
-            "not printed as an ISO 8601 time (2026-10-02T00:00:00)",
-            raw=dataset.date_update,
-            source=SOURCE,
-        ) from None
 
 
 async def list_bulk_datasets_async(*, search: str | None = None) -> Result[list[BulkDataset]]:
@@ -677,7 +669,7 @@ async def list_bulk_datasets_async(*, search: str | None = None) -> Result[list[
     answer = await api.datasets_e.datasets_e()
     rows = [
         dataset
-        for dataset in answer.payload.datasets.dataset
+        for dataset in answer.payload.catalogue.datasets.dataset
         if matches(search, dataset.dataset_code, dataset.dataset_name)
     ]
     meta = ResultMeta(
@@ -695,52 +687,56 @@ async def list_bulk_datasets_async(*, search: str | None = None) -> Result[list[
 list_bulk_datasets = sync(list_bulk_datasets_async)
 
 
-async def download_dataset_async(domain: str, dest: str | os.PathLike[str]) -> Result[Downloaded]:
+async def download_dataset_async(
+    dataset_code: str, *, dest: str | os.PathLike[str]
+) -> Result[Downloaded]:
     """Download a FAOSTAT dataset's bulk file, a ZIP holding its normalized table as CSV.
 
     Python only, no MCP tool or HTTP route (a bulk task). Two requests, neither with the
-    account: the bulk catalogue, as ``list_bulk_datasets`` reads it (cached for five
-    minutes), for the dataset's ``FileLocation``, and the ZIP there, streamed to ``dest``
-    by core's ``download``, never held in memory or cached; nothing in it is read.
-    ``parse_bulk_csv(result.data.path)`` from ``xippios.faostat.parse`` reads its
-    normalized table, the member ``<Name>_E_All_Data_(Normalized).csv``, row by row. The
-    files are large: TCL's (trade in crops and livestock products) is 267 MB, TM's (the
-    detailed trade matrix) 410 MB, QCL's 33 MB, RL's 3 MB, MDDW's 12 KB, the smallest;
-    the table inside is larger still (RL's 50 MB); ``list_bulk_datasets`` prints each
-    ``file_size`` and ``file_rows``. ``result.data`` is core's ``Downloaded``: the path,
-    its size, the content type, ``ETag`` and ``Last-Modified``. ``meta.vintage`` is the
-    catalogue's ``date_update`` for the dataset as printed (``"2026-10-02T00:00:00"``)
-    and ``meta.published_at`` the same time, which the catalogue prints without a zone
-    (``meta.published_at_naive``): a time, unlike ``get_data``'s ``meta.vintage``, the
-    API's ``date_update``, a date, which stays out of ``published_at``.
-    ``meta.endpoint`` is ``"All_Data_(Normalized).csv"``, the file kind as upstream names
-    its member; ``meta.request`` the domain and the file's URL. A code the catalogue does
-    not list raises ``NotFoundError`` naming the closest; ``dest`` must name a file in a
-    directory that exists, and a directory, or a missing one, is refused with
-    ``InvalidRequestError``, both before the file is requested.
+    account, each tried up to four times: the bulk catalogue, as ``list_bulk_datasets``
+    reads it (cached for five minutes), for the dataset's ``FileLocation``, and the ZIP
+    there, streamed to ``dest`` by core's ``download``, never held in memory or cached;
+    nothing in it is read. ``parse_bulk_csv(result.data.path)`` from
+    ``xippios.faostat.parse`` reads its normalized table, the member
+    ``<Name>_E_All_Data_(Normalized).csv``, row by row. The files are large: TCL's (trade
+    in crops and livestock products) is 267 MB, TM's (the detailed trade matrix) 410 MB,
+    QCL's 33 MB, RL's 3 MB, MDDW's 12 KB, the smallest; the table inside is larger still
+    (RL's 50 MB); ``list_bulk_datasets`` prints each ``file_size`` and ``file_rows``.
+    ``result.data`` is core's ``Downloaded``: the path, its size, the content type,
+    ``ETag`` and ``Last-Modified``. ``meta.vintage`` is the catalogue's ``DateUpdate`` for
+    the dataset as printed (``"2026-10-02T00:00:00"``) and ``meta.published_at`` that
+    time, which the catalogue prints without a zone (``meta.published_at_naive``): a time,
+    unlike ``get_data``'s ``meta.vintage``, the API's ``date_update``, a date, which stays
+    out of ``published_at``. ``meta.endpoint`` is ``"All_Data_(Normalized).csv"``, the
+    file kind as upstream names its member; ``meta.request`` the dataset's code and the
+    file's URL. A code the catalogue does not list raises ``NotFoundError`` naming the
+    closest, once the catalogue is read and before the file is requested; ``dest`` must
+    name a file in a directory that exists, and a directory, or a missing one, is refused
+    with ``InvalidRequestError`` before any request.
 
     Args:
-        domain: The dataset's code, as ``list_bulk_datasets`` lists it (its
-            ``dataset_code``, the domain code ``get_data`` takes), e.g. ``"RL"`` (Land
-            Use), ``"QCL"`` (Crops and livestock products), ``"MDDW"`` (Minimum Dietary
+        dataset_code: The dataset's code, as ``list_bulk_datasets`` lists it, upstream's
+            ``DatasetCode``, the domain code ``get_data`` takes, e.g. ``"RL"`` (Land Use),
+            ``"QCL"`` (Crops and livestock products), ``"MDDW"`` (Minimum Dietary
             Diversity for Women) or ``"TCL"`` (trade in crops and livestock products).
         dest: The file to write, e.g. ``"RL.zip"`` or ``Path("data") / "QCL.zip"``, in a
             directory that exists; a file there is replaced once the download is
             complete.
     """
-    target = _target(dest)
+    target = check_dest(dest, source=SOURCE)
     answer = await api.datasets_e.datasets_e()
-    listed = {dataset.dataset_code: dataset for dataset in answer.payload.datasets.dataset}
-    dataset = listed.get(domain)
+    datasets = answer.payload.catalogue.datasets.dataset
+    listed = {dataset.dataset_code: dataset for dataset in datasets}
+    dataset = listed.get(dataset_code)
     if dataset is None:
-        near = closest(domain, {code: entry.dataset_name for code, entry in listed.items()})
+        near = closest(dataset_code, {code: entry.dataset_name for code, entry in listed.items()})
         hint = f" Did you mean {', '.join(code for code, _ in near)}?" if near else ""
         raise NotFoundError(
-            f"FAOSTAT's bulk catalogue lists no dataset {domain!r}.{hint} list_bulk_datasets "
-            "lists them",
+            f"FAOSTAT's bulk catalogue lists no dataset {dataset_code!r}. The catalogue was "
+            f"requested and no file was.{hint} list_bulk_datasets lists them.",
             source=SOURCE,
         )
-    released = _released(dataset)
+    released = dataset.date_update
     downloaded = await client.download(dataset.file_location, target, auth=None)
     meta = ResultMeta(
         source=SOURCE,
@@ -748,8 +744,8 @@ async def download_dataset_async(domain: str, dest: str | os.PathLike[str]) -> R
         retrieved_at=downloaded.retrieved_at,
         published_at=released,
         published_at_naive=released.tzinfo is None,
-        vintage=dataset.date_update,
-        request={"domain": domain, "url": dataset.file_location},
+        vintage=answer.payload.printed[dataset_code],
+        request={"dataset_code": dataset_code, "url": dataset.file_location},
         total=None,
     )
     return Result(data=downloaded, meta=meta)

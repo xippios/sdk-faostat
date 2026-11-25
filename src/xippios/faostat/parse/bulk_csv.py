@@ -20,8 +20,8 @@ its last four columns ``Unit``, ``Value``, ``Flag`` and ``Note`` (``"1000 ha"``,
 Level Code``, ``Geographic Level``, ``Element Code``, ``Element``, ``Unit``, ``Value``
 and ``Flag``. Each row becomes a ``models.BulkRecord``, the
 columns it names as fields and every other under its header in ``columns``, nothing
-renamed or computed (sdk-core ADR-0020, decision 2); ``Value`` is parsed as a ``Decimal`` where its
-text is a number.
+renamed or computed (sdk-core ADR-0020, decision 2); ``Value`` is kept as printed, with its
+reading as a ``Decimal`` beside it in ``value_number``.
 
 The member is chosen by its name, the one ending in ``_All_Data_(Normalized).csv``;
 none, or more than one, is refused. Its rows are read lazily from the archive, through

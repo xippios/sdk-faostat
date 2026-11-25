@@ -9,7 +9,8 @@ header (area with its M49 code, item, element, year, unit, value, flag, note).
 ``tests/fixtures/files/README.md`` gives their provenance (sdk-core ADR-0020, decision
 6). The tests assert the parser's shape against the samples' own text, read here with
 the standard library's ``zipfile`` and ``csv``, never values or sizes typed into a test
-(conventions §10). ``NOT RECORDED`` marks a sample changed in memory to show a refusal.
+(conventions §10). A sample changed in memory to show a refusal is an input of its test,
+which its docstring says in conventions §10's sentence.
 """
 
 import csv
@@ -100,10 +101,10 @@ def test_samples_are_the_recorded_body_and_a_real_cut() -> None:
     catalogue = DatasetsCatalogue.model_validate_json(load_fixture(CATALOGUE).response.body)
     listed = {dataset.dataset_code: dataset for dataset in catalogue.datasets.dataset}
     assert fixture.request.url == listed["MDDW"].file_location
-    assert f"| `{listed['MDDW'].date_update}` (DateUpdate) |" in line
+    assert f"| `{listed['MDDW'].date_update.isoformat()}` (DateUpdate) |" in line
     line = provenance(readme, RL)
     assert f"| {listed['RL'].file_location} |" in line, "the full file's URL"
-    assert f"| `{listed['RL'].date_update}` (DateUpdate) |" in line
+    assert f"| `{listed['RL'].date_update.isoformat()}` (DateUpdate) |" in line
     assert f"first {len(table_of(RL)[1])} rows" in line, "the rows kept"
     assert list(members_of(RL)) == [table_name(RL)], "one member of the archive"
     for sample in (MDDW, RL):
@@ -122,8 +123,9 @@ def test_parse_bulk_csv_reads_every_row_as_printed(sample: Path) -> None:
         assert isinstance(row, BulkRecord)
         for column, text in record.items():
             if column == "Value":
-                assert isinstance(row.value, Decimal)
-                assert str(row.value) == text, "the number as printed, its decimals kept"
+                assert row.value == text, "the text as printed"
+                assert isinstance(row.value_number, Decimal)
+                assert str(row.value_number) == text, "its reading keeps the decimals printed"
             elif column in NAMED:
                 assert getattr(row, NAMED[column]) == text, column
         assert list(row.columns) == others, "the other columns, in the header's order"
@@ -174,21 +176,28 @@ def test_parse_bulk_csv_is_a_generator(tmp_path: Path) -> None:
     assert list(parse_bulk_csv(empty)) == [], "an empty table yields nothing"
 
 
-def test_parse_bulk_csv_reads_an_empty_value_as_none(tmp_path: Path) -> None:
-    """NOT RECORDED: RL's first row with its ``Value`` cell emptied in memory, as RL prints
-    the values it flags ``L``, missing (85 rows on 2026-10-29)."""
+def test_parse_bulk_csv_reads_an_empty_value_as_printed_and_no_number(tmp_path: Path) -> None:
+    """RL's first row with its ``Value`` cell emptied in memory, as RL prints
+    the values it flags ``L``, missing (85 rows on 2026-10-29).
+
+    The sample so changed is an input of the test, not an answer from FAOSTAT.
+    """
     lines = rl_lines()
     header = lines[0].decode().split(",")
     cells = lines[1].split(b",")
     cells[header.index("Value")] = b""
     lines[1] = b",".join(cells)
     first = next(parse_bulk_csv(rl_with(tmp_path / "missing.zip", lines)))
-    assert first.value is None
+    assert first.value == "", "the empty cell as printed"
+    assert first.value_number is None
     assert first.flag == cells[header.index("Flag")].decode().strip('"')
 
 
 def test_parse_bulk_csv_refuses_an_archive_without_a_normalized_table(tmp_path: Path) -> None:
-    """NOT RECORDED: MDDW's four code lists alone, in a new ZIP."""
+    """MDDW's four code lists alone, in a new ZIP.
+
+    The sample so changed is an input of the test, not an answer from FAOSTAT.
+    """
     lists = {name: data for name, data in members_of(MDDW).items() if name != table_name(MDDW)}
     path = zipped(tmp_path / "lists.zip", lists)
     with pytest.raises(ValidationError) as refused:
@@ -200,7 +209,10 @@ def test_parse_bulk_csv_refuses_an_archive_without_a_normalized_table(tmp_path: 
 
 
 def test_parse_bulk_csv_refuses_two_normalized_tables(tmp_path: Path) -> None:
-    """NOT RECORDED: RL's table and MDDW's in one new ZIP."""
+    """RL's table and MDDW's in one new ZIP.
+
+    The sample so changed is an input of the test, not an answer from FAOSTAT.
+    """
     path = zipped(
         tmp_path / "two.zip",
         {table_name(RL): members_of(RL)[table_name(RL)], table_name(MDDW): b""},
@@ -211,7 +223,10 @@ def test_parse_bulk_csv_refuses_two_normalized_tables(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("cut", ["half", "table"])
 def test_parse_bulk_csv_refuses_a_file_that_is_no_whole_zip(tmp_path: Path, cut: str) -> None:
-    """NOT RECORDED: MDDW's ZIP cut to its first half, and RL's table on its own, no ZIP."""
+    """MDDW's ZIP cut to its first half, and RL's table on its own, no ZIP.
+
+    The sample so changed is an input of the test, not an answer from FAOSTAT.
+    """
     path = tmp_path / "cut.zip"
     data = MDDW.read_bytes()
     path.write_bytes(data[: len(data) // 2] if cut == "half" else members_of(RL)[table_name(RL)])
@@ -220,9 +235,12 @@ def test_parse_bulk_csv_refuses_a_file_that_is_no_whole_zip(tmp_path: Path, cut:
 
 
 def test_parse_bulk_csv_refuses_a_damaged_member(tmp_path: Path) -> None:
-    """NOT RECORDED: MDDW's ZIP with the first byte of its table's deflated data set, in
+    """MDDW's ZIP with the first byte of its table's deflated data set, in
     memory, to a block type deflate does not have (RFC 1951: ``BTYPE`` 11); the archive's
-    directory still reads, the table's first read does not."""
+    directory still reads, the table's first read does not.
+
+    The sample so changed is an input of the test, not an answer from FAOSTAT.
+    """
     data = bytearray(MDDW.read_bytes())
     with zipfile.ZipFile(MDDW) as archive:
         member = archive.getinfo(table_name(MDDW))
@@ -238,7 +256,10 @@ def test_parse_bulk_csv_refuses_a_damaged_member(tmp_path: Path) -> None:
 
 
 def test_parse_bulk_csv_refuses_a_row_that_does_not_match_its_header(tmp_path: Path) -> None:
-    """NOT RECORDED: RL's table with its second row's last two cells cut in memory."""
+    """RL's table with its second row's last two cells cut in memory.
+
+    The sample so changed is an input of the test, not an answer from FAOSTAT.
+    """
     lines = rl_lines()
     lines[2] = lines[2].rsplit(b",", 2)[0]
     rows = parse_bulk_csv(rl_with(tmp_path / "short.zip", lines))
@@ -251,8 +272,11 @@ def test_parse_bulk_csv_refuses_a_row_that_does_not_match_its_header(tmp_path: P
 
 
 def test_parse_bulk_csv_refuses_a_header_naming_a_column_twice(tmp_path: Path) -> None:
-    """NOT RECORDED: RL's header with ``Note`` renamed ``Flag`` in memory; a second
-    ``Flag`` would drop the first."""
+    """RL's header with ``Note`` renamed ``Flag`` in memory; a second
+    ``Flag`` would drop the first.
+
+    The sample so changed is an input of the test, not an answer from FAOSTAT.
+    """
     lines = rl_lines()
     lines[0] = lines[0].replace(b",Note", b",Flag")
     with pytest.raises(ValidationError) as refused:
@@ -263,8 +287,11 @@ def test_parse_bulk_csv_refuses_a_header_naming_a_column_twice(tmp_path: Path) -
 
 
 def test_parse_bulk_csv_refuses_text_that_is_not_utf8(tmp_path: Path) -> None:
-    """NOT RECORDED: RL's rows repeated past 64 KiB, the last row with a byte that is no
-    UTF-8, in memory: the header and first rows read, the decoder refuses it later."""
+    """RL's rows repeated past 64 KiB, the last row with a byte that is no
+    UTF-8, in memory: the header and first rows read, the decoder refuses it later.
+
+    The sample so changed is an input of the test, not an answer from FAOSTAT.
+    """
     lines = rl_lines()
     rows = [line for line in lines[1:] if line]
     body = rows * (64 * 1024 // len(b"\r\n".join(rows)) + 1)
@@ -279,8 +306,11 @@ def test_parse_bulk_csv_refuses_text_that_is_not_utf8(tmp_path: Path) -> None:
 
 
 def test_parse_bulk_csv_refuses_csv_the_csv_module_cannot_read(tmp_path: Path) -> None:
-    """NOT RECORDED: RL's table with one ``Note`` cell made longer than the csv module's
-    field limit (131,072 characters) in memory."""
+    """RL's table with one ``Note`` cell made longer than the csv module's
+    field limit (131,072 characters) in memory.
+
+    The sample so changed is an input of the test, not an answer from FAOSTAT.
+    """
     lines = rl_lines()
     lines[1] = lines[1] + b'"' + b"n" * (csv.field_size_limit() + 1) + b'"'
     with pytest.raises(ValidationError) as refused:

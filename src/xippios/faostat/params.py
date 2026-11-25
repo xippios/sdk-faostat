@@ -13,20 +13,18 @@ filter that takes its codes (``"element"``), its ``endpoint`` ``getCodeList``, a
 records ``models.CodeItem``'s fields under upstream's names, in upstream's order
 (sdk-core ADR-0041). ``list_areas``, ``list_elements`` and ``list_items`` answer from
 them, and ``get_data`` checks the codes of a packaged domain against them before it
-sends.
+sends, by core's ``check`` on each table's declaration, ``table(name)``.
 
 The element tables hold the codes a query filters by (``2510`` Production Quantity in
 QCL), which are not the ``Element Code`` the data rows print (``5510`` Production);
 nothing is translated between the two (sdk-core ADR-0028).
-No enum is generated from the tables; ``enums.py`` holds none. ``reference/README.md``
+No enum is generated from the tables, so the package has no ``enums.py``. ``reference/README.md``
 carries the provenance of every file.
 """
 
 import functools
-from collections.abc import Mapping
-from types import MappingProxyType
 
-from xippios.core import PackagedList
+from xippios.core import PackagedCodes, PackagedList
 
 from xippios.faostat._client import SOURCE
 from xippios.faostat.models import CodeItem
@@ -37,8 +35,8 @@ __all__ = [
     "PACKAGE",
     "PACKAGED_LISTS",
     "codes",
-    "labels",
     "packaged",
+    "table",
     "table_name",
 ]
 
@@ -62,7 +60,7 @@ PACKAGED_LISTS: tuple[str, ...] = tuple(
     table_name(dimension, domain) for domain in DOMAINS for dimension in DIMENSIONS
 )
 """The lists that ship inside the package, ``reference/<name>.json``; the refresh script
-writes exactly these, its ``TABLES``: ``area_QCL``, ``element_QCL``, ``item_QCL``,
+declares exactly these in its one ``LISTS``: ``area_QCL``, ``element_QCL``, ``item_QCL``,
 ``area_TCL`` and so on, domain by domain."""
 
 
@@ -94,10 +92,13 @@ def codes(name: str) -> list[CodeItem]:
 
 
 @functools.cache
-def labels(name: str) -> Mapping[str, str]:
-    """The packaged table ``name``'s codes to their labels, read once per process.
+def table(name: str) -> PackagedCodes:
+    """The packaged table ``name`` (``"element_QCL"``) declared once, for core's ``check``.
+
+    Its codes under ``code`` and their names under ``label``, compared as given, the table
+    named by its file in a refusal (conventions §5; sdk-core ADR-0045).
 
     Raises:
         FileNotFoundError: The package ships no such table.
     """
-    return MappingProxyType({code.code: code.label for code in _codes(name)})
+    return packaged(name).codes("code", "label", list_name=name, source=SOURCE)
