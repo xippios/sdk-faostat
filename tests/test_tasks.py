@@ -49,7 +49,7 @@ import importlib.util
 import inspect
 import json
 from collections.abc import Iterator
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -62,6 +62,7 @@ from fastapi.testclient import TestClient
 from xippios.core import (
     Downloaded,
     InvalidRequestError,
+    MemoryCache,
     NamedBy,
     NotFoundError,
     UnknownCode,
@@ -93,7 +94,7 @@ from xippios.faostat import (
     params,
     tasks,
 )
-from xippios.faostat._client import BASE_URL, FILTER_REFUSAL, SOURCE, auth
+from xippios.faostat._client import BASE_URL, FILTER_REFUSAL, SOURCE, auth, config
 from xippios.faostat.http import router
 from xippios.faostat.mcp import server
 from xippios.faostat.models import (
@@ -242,6 +243,33 @@ def test_get_data_dates_its_answer_by_the_older_of_its_two_reads(
     assert result.meta.vintage == date_update("QCL")
     assert result.meta.retrieved_at == kept.meta.retrieved_at, "the older read's time"
     assert result.meta.retrieved_at <= between, "older than the data request"
+
+
+def test_a_later_data_call_is_dated_by_the_release_date_an_earlier_call_kept(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """The order of a live run: a first ``get_data`` keeps the domains' release dates, and a
+    later one of another domain reads its data fresh and its release date from the cache.
+
+    The later answer is dated by the kept read, before the later call's window began and
+    within the cache's lifetime of it (conventions §4); a test that asserted the call's own
+    window would fail once the window begins past its slack.
+    """
+    replay_fixture(GET_DATA, QCL)
+    replay_fixture(GET_DATA, "PP_231_2020_page_size_2")
+    domains = replay_fixture(DOMAINS, "all")
+    get_data("QCL", **QCL_ARGUMENTS)
+    before = datetime.now(UTC)
+    later = get_data("PP", area=231, year=2020, page_size=2, page_number=1)
+    after = datetime.now(UTC)
+    kept = list_domains()
+    assert domains.call_count == 1, "the release dates are read once and kept"
+    assert later.meta.retrieved_at == kept.meta.retrieved_at, "dated by the kept read"
+    assert later.meta.retrieved_at < before, "before the later call's window"
+    cache = config.cache
+    assert isinstance(cache, MemoryCache)
+    lifetime = timedelta(seconds=max(seconds for seconds in cache.lifetimes.values() if seconds))
+    assert before - lifetime <= later.meta.retrieved_at <= after, "within the cache's lifetime"
 
 
 def test_get_data_page(replay_fixture: ReplayFixture) -> None:
