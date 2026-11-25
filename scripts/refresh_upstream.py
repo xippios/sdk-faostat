@@ -71,7 +71,6 @@ from xippios.core.refresh import (
     parse_json,
     run,
 )
-from xippios.core.refresh.upstream import INFO_TERMS
 
 from xippios.faostat._client import BASE_URL, PASSWORD_ENV, USERNAME_ENV, client
 
@@ -604,14 +603,20 @@ def terms_markdown(response: Response) -> str:
 # --- the pages' checks and notes -------------------------------------------------------
 
 
+INFO_FIELDS = ("license", "termsOfService", "contact")
+"""The fields of an API document's ``info`` that state a licence, terms or whom to ask, as
+conventions §3 and sdk-core ADR-0062, decision 10, name them: the frame reads them from a
+document in JSON alone, and FAOSTAT's is YAML."""
+
+
 def check_info(url: str, info: str) -> None:
     """Stop when the OpenAPI document's ``info`` names a licence, terms of service or contact.
 
     The frame reads the ``info`` of an API document in JSON alone, and FAOSTAT's is YAML,
-    so the script reads the block itself: each of ``INFO_TERMS`` it names is read by hand and
+    so the script reads the block itself: each of ``INFO_FIELDS`` it names is read by hand and
     recorded in the attribution (conventions §3).
     """
-    stated = re.findall(rf"^  ({'|'.join(INFO_TERMS)}):", info, re.MULTILINE)
+    stated = re.findall(rf"^  ({'|'.join(INFO_FIELDS)}):", info, re.MULTILINE)
     if stated:
         raise changed(
             url, f"its `info` now names {stated}: read it by hand and record it in ATTRIBUTION"
