@@ -23,29 +23,24 @@ trade), FBS (Food Balances, 2010-), PP (Producer Prices) and RL (Land Use), each
 English, `show_lists` left to upstream's default (true). A file is named
 `<dimension>_<domain>.json`, the domain's code as upstream writes it; its `param` is the
 dimension, the data endpoint's filter that takes the codes, and its records carry `code`,
-`label` and `aggregate_type`, and `parent` in QCL's, TCL's and RL's item tables (RL's on
-51 of 57 records) and in TCL's and RL's element tables, in upstream's order and as
-upstream sends them: QCL's item list names its five top groups (`QC>`, "Crops, primary >
-(List)", and four more) twice, and so does the table. `list_areas`, `list_elements` and
-`list_items` answer from them, and `get_data` checks a packaged domain's area, element
-and item codes against them before it sends.
+`label` and `aggregate_type`, and `parent` where upstream sends it, in upstream's order
+and as upstream sends them: a list that names a code twice, as QCL's item list names its
+five top groups (`QC>`, "Crops, primary > (List)", and four more), is packaged so.
+`list_areas`, `list_elements` and `list_items` answer from them, and `get_data` checks a
+packaged domain's area, element and item codes against them before it sends. An element
+table holds the codes a data query filters by, and nothing is translated to the codes
+the data rows print (sdk-core ADR-0028).
 
-The element tables hold the codes a data query filters by (`2510` Production Quantity
-in QCL), not the `Element Code` the data rows print (`5510` Production); nothing is
-translated between the two (sdk-core ADR-0028).
+The tables come from the dimension ids, which the data endpoint filters by, not from the
+subdimension ids that the OpenAPI document's examples of `dimension_id` name
+(`countries`, `items`, `elements`): `codes/area/QCL` lists the regions and special groups
+beside the countries that `codes/countries/QCL` lists, so the dimension's list is
+packaged and the check passes a region's code. The recorded answers of both are under
+`tests/fixtures/get_code_list/`, and `tests/test_refresh_reference.py` checks the one
+against the other.
 
-The tables come from the dimension ids, not the subdimension ids. `get_dimensions`
-answers for QCL the dimensions `area`, `element`, `item` and `year`, the names
-of the data endpoint's filters, each with its subdimensions
-(`docs/upstream/samples/dimensions_QCL.json`: `countries`, `regions` and
-`specialgroups` under `area`); the OpenAPI document's examples of `dimension_id` name
-subdimension ids (`countries`, `items`, `elements`). Both answer `getCodeList`, recorded
-for QCL on 2026-10-29 (`tests/fixtures/get_code_list/`): `codes/area/QCL` lists 278
-codes, the 210 countries `codes/countries/QCL` lists with the same labels, and 68
-aggregates beside them, the totals and lists of regions and special groups (`5000`
-World + (Total), `5000>` World > (List)). The data endpoint filters by the dimension,
-`area`, and `getCodeList` lists all 278 as that dimension's codes, so the dimension's
-answer is packaged: a check against the countries alone would refuse a region's code.
+What FAOSTAT was seen to answer, the two element code systems among it, is noted with its
+probe in `docs/upstream/OBSERVED.md`.
 
 | File | Origin | Fetched |
 | --- | --- | --- |
