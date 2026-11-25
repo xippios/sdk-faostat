@@ -229,8 +229,8 @@ def test_no_dated_note_of_what_faostat_answered_stands_outside_observed_md(path:
     value as printed, an amendment's date cites a record, and a recording's date is its
     fixture's provenance. A size of what upstream serves, which moves with each release, is
     such a note too, while the family's bound of an answer is none.
-    ``src/xippios/faostat/reference/README.md``, the packaged tables' provenance, is not
-    read yet (https://github.com/xippios/sdk-faostat/issues/75).
+    ``src/xippios/faostat/reference/README.md``, the packaged tables' provenance, is read
+    once https://github.com/xippios/sdk-faostat/pull/76 takes the dates out of its prose.
     """
     text = RECORDED.sub("", CODE_SPAN.sub("", prose(path)))
     running = AMENDMENT.sub("", " ".join(text.split()))
