@@ -1,7 +1,7 @@
 {
   "param": "area",
   "endpoint": "getCodeList",
-  "fetched": "2026-10-29T07:06:49Z",
+  "fetched": "2026-11-25T06:09:52Z",
   "records": [
     {
       "code": "2",
@@ -89,6 +89,11 @@
       "aggregate_type": "0"
     },
     {
+      "code": "53",
+      "label": "Benin",
+      "aggregate_type": "0"
+    },
+    {
       "code": "18",
       "label": "Bhutan",
       "aggregate_type": "0"
@@ -141,6 +146,11 @@
     {
       "code": "33",
       "label": "Canada",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "39",
+      "label": "Chad",
       "aggregate_type": "0"
     },
     {
@@ -236,6 +246,11 @@
     {
       "code": "72",
       "label": "Djibouti",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "55",
+      "label": "Dominica",
       "aggregate_type": "0"
     },
     {
@@ -409,6 +424,11 @@
       "aggregate_type": "0"
     },
     {
+      "code": "110",
+      "label": "Japan",
+      "aggregate_type": "0"
+    },
+    {
       "code": "112",
       "label": "Jordan",
       "aggregate_type": "0"
@@ -496,6 +516,11 @@
     {
       "code": "132",
       "label": "Maldives",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "133",
+      "label": "Mali",
       "aggregate_type": "0"
     },
     {
@@ -724,11 +749,6 @@
       "aggregate_type": "0"
     },
     {
-      "code": "196",
-      "label": "Seychelles",
-      "aggregate_type": "0"
-    },
-    {
       "code": "197",
       "label": "Sierra Leone",
       "aggregate_type": "0"
@@ -764,6 +784,11 @@
       "aggregate_type": "0"
     },
     {
+      "code": "276",
+      "label": "Sudan",
+      "aggregate_type": "0"
+    },
+    {
       "code": "207",
       "label": "Suriname",
       "aggregate_type": "0"
@@ -796,6 +821,11 @@
     {
       "code": "176",
       "label": "Timor-Leste",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "217",
+      "label": "Togo",
       "aggregate_type": "0"
     },
     {

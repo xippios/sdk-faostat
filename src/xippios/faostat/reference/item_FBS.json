@@ -1,7 +1,7 @@
 {
   "param": "item",
   "endpoint": "getCodeList",
-  "fetched": "2026-10-29T07:06:53Z",
+  "fetched": "2026-11-25T06:09:56Z",
   "records": [
     {
       "code": "2501",
@@ -440,7 +440,7 @@
     },
     {
       "code": "2761",
-      "label": "Freshwater Fish",
+      "label": "Freshwater and Diadromous Fish",
       "aggregate_type": "0"
     },
     {
@@ -475,7 +475,7 @@
     },
     {
       "code": "2769",
-      "label": "Aquatic Animals, Others",
+      "label": "Aquatic Animals, Other",
       "aggregate_type": "0"
     },
     {
@@ -609,6 +609,11 @@
       "aggregate_type": ">"
     },
     {
+      "code": "2920",
+      "label": "Fruits and Vegetables - Excluding Wine",
+      "aggregate_type": "0"
+    },
+    {
       "code": "2918",
       "label": "Vegetables + (Total)",
       "aggregate_type": "+"
@@ -710,12 +715,12 @@
     },
     {
       "code": "2960",
-      "label": "Fish, Seafood + (Total)",
+      "label": "Aquatic Animals + (Total)",
       "aggregate_type": "+"
     },
     {
       "code": "2960>",
-      "label": "Fish, Seafood > (List)",
+      "label": "Aquatic Animals > (List)",
       "aggregate_type": ">"
     },
     {

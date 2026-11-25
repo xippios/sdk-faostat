@@ -32,13 +32,15 @@ is not paced, since it runs inside the client's auth flow. A request refused wit
 or 403 logs in once more and is sent again once, so a run sends at most 46 requests, 16
 of them logins, all to the API's host under the account. Core's count of the run holds
 every request the client hands its transport, the logins and the resends after a refused
-token among them, and the script names the logins among it (``counted_logins``, sdk-core
-ADR-0062).
+token among them, and the script names the logins among it in a line after that count
+(``counted_logins``, sdk-core ADR-0062), where the frame fetched: the frame calls the
+declaration's ``before`` hook before its first request alone.
 """
 
 import sys
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
+from dataclasses import replace
 
 import httpx
 from xippios.core.refresh import Listed, Lists, run
@@ -85,14 +87,20 @@ class Logins:
 
     Attributes:
         logins: The logins the client's auth flow built, a refused one too.
+        fetched: Whether core's frame began to fetch, and so prints its count of the run.
     """
 
     def __init__(self) -> None:
         self.logins = 0
+        self.fetched = False
 
     def built(self, request: httpx.Request) -> None:
         """Count a login built ahead of ``request``."""
         self.logins += 1
+
+    def fetching(self) -> None:
+        """Mark the run as one that fetches: the frame calls it before its first request."""
+        self.fetched = True
 
     def report(self) -> str:
         """The logins, one line after core's count."""
@@ -105,7 +113,8 @@ def counted_logins(login: LoginAuth) -> Iterator[Logins]:
 
     The flow builds each login through the instance, so a wrapper of ``token_request`` sees
     every one, a refused one too; the method is restored after the block, a failed run's
-    too.
+    too. The count is printed where the frame began to fetch alone, after its own count,
+    which it prints for a run that fails as well.
     """
     counted = Logins()
     build = login.token_request
@@ -120,20 +129,20 @@ def counted_logins(login: LoginAuth) -> Iterator[Logins]:
         yield counted
     finally:
         del login.token_request
-        print(counted.report())  # noqa: T201
+        if counted.fetched:
+            print(counted.report())  # noqa: T201
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Run core's frame on ``LISTS`` and name the logins among the requests it counts.
 
-    ``--render-only`` sends nothing and the frame prints no count for it, so the line of
-    logins belongs to a run that fetches alone.
+    The frame calls the declaration's ``before`` once before its first request and never in
+    a run that sends nothing, which ``--render-only``, ``--help`` and a list that ``--only``
+    does not know are, so ``before`` marks the run whose count the line of logins follows.
     """
     given = list(sys.argv[1:] if argv is None else argv)
-    if "--render-only" in given:
-        return run(LISTS, given)
-    with counted_logins(auth):
-        return run(LISTS, given)
+    with counted_logins(auth) as counted:
+        return run(replace(LISTS, before=counted.fetching), given)
 
 
 if __name__ == "__main__":
