@@ -25,8 +25,9 @@ src/xippios/faostat/
   tasks.py         also get_series, which composes get_data, one request with a year list,
                    and list_bulk_datasets and download_dataset over the bulk catalogue
   params.py        also DIMENSIONS and DOMAINS, the axes of the fifteen tables, and table,
-                   each table's declaration, which core's check reads
-  enums.py         empty, since no table makes an enum
+                   each table's declaration, which core's check reads; the package holds
+                   no errors.py and no enums.py, since it refuses with core's errors and no
+                   table makes an enum
   reference/       fifteen code tables, <dimension>_<domain>.json: the dimensions area,
                    element and item of QCL, TCL, FBS, PP and RL
 tests/
