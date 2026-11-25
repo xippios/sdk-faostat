@@ -208,5 +208,5 @@ Probe: 2026-10-29, 2026-11-20 and 2026-11-25, `GET production/datasets_E.json`, 
 MDDW's ZIP on 2026-10-29; samples `tests/fixtures/datasets_e/all.json`,
 `docs/upstream/bulk/datasets_E.json` as the capture of 2026-11-25 wrote it, the capture
 of 2026-11-20 in
-https://github.com/xippios/sdk-faostat/commit/3df299939b1b7a91facd3474725fd4ac879caec6,
+[3df2999](https://github.com/xippios/sdk-faostat/commit/3df299939b1b7a91facd3474725fd4ac879caec6),
 and `tests/fixtures/files/bulk-csv/MDDW.zip`.
