@@ -10,9 +10,12 @@ notes of the pages' rows, the check of the OpenAPI document's ``info`` and the f
 ``docs/upstream/`` or from a literal of the page's shape, never one fetched.
 """
 
+import ast
 import importlib.util
+import io
 import json
 import re
+import tokenize
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -166,13 +169,47 @@ CODE_SPAN = re.compile(r"``[^`]*``|`[^`\n]*`")
 """A code span, a value as upstream prints it, ``"2025-12-31"`` say, which dates nothing."""
 AMENDMENT = re.compile(r"amendment \d{4}-\d{2}-\d{2}")
 """An ADR's amendment cited by its date, which dates a record, not an observation."""
+RECORDED = re.compile(r"recorded[^.;]{0,60}?\d{4}-\d{2}-\d{2}", re.IGNORECASE)
+"""A recording's date, a fixture's provenance, which dates the file and not what it holds."""
 DATE = re.compile(r".{0,40}\d{4}-\d{2}-\d{2}.{0,20}")
 """A date in running text, with the words around it for the failure's message."""
 PACKAGE_TEXT = sorted(
-    [*(ROOT / "src").rglob("*.py"), ROOT / "README.md", ROOT / "CLAUDE.md"],
+    [
+        *(ROOT / "src").rglob("*.py"),
+        *(ROOT / "tests").glob("*.py"),
+        *(ROOT / "scripts").glob("*.py"),
+        ROOT / "README.md",
+        ROOT / "CLAUDE.md",
+    ],
     key=lambda path: path.relative_to(ROOT).as_posix(),
 )
-"""The package's own text: its code's docstrings and comments, the README and CLAUDE.md."""
+"""The package's own text: the docstrings and comments of its code, its tests and its scripts,
+the README and CLAUDE.md."""
+
+
+def prose(path: Path) -> str:
+    """The text of ``path`` that a reader reads: a Python file's docstrings and comments.
+
+    A string that stands as a statement of its own is a docstring, a module's, a class's, a
+    function's or an attribute's; every other string is a value of the code, a date in it
+    among them, which dates nothing.
+    """
+    text = path.read_text(encoding="utf-8")
+    if path.suffix != ".py":
+        return FENCE.sub("", text)
+    strings = [
+        node.value.value
+        for node in ast.walk(ast.parse(text))
+        if isinstance(node, ast.Expr)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    ]
+    comments = [
+        token.string
+        for token in tokenize.generate_tokens(io.StringIO(text).readline)
+        if token.type == tokenize.COMMENT
+    ]
+    return "\n".join([*strings, *comments])
 
 
 @pytest.mark.parametrize(
@@ -182,13 +219,14 @@ def test_no_dated_note_of_what_faostat_answered_stands_outside_observed_md(path:
     """What FAOSTAT was seen to do stands in ``OBSERVED.md`` alone, each note with its probe.
 
     That no dated note of what upstream answered stands outside the file is the source's own
-    test (conventions §3), so the package's text points to the notes and dates none. A date
-    in a code span or a fenced example is a value as printed, and an amendment's date cites
-    a record. ``src/xippios/faostat/reference/README.md`` is the packaged tables' provenance,
-    which the reference refresh writes.
+    test (conventions §3), so the package's text points to the notes and dates none, the
+    tests' comments and docstrings included. A date in a code span or a fenced example is a
+    value as printed, an amendment's date cites a record, and a recording's date is its
+    fixture's provenance. ``src/xippios/faostat/reference/README.md``, the packaged tables'
+    provenance, is not read yet (https://github.com/xippios/sdk-faostat/issues/75).
     """
-    text = FENCE.sub("", path.read_text(encoding="utf-8"))
-    running = AMENDMENT.sub("", " ".join(CODE_SPAN.sub("", text).split()))
+    text = RECORDED.sub("", CODE_SPAN.sub("", prose(path)))
+    running = AMENDMENT.sub("", " ".join(text.split()))
     assert DATE.findall(running) == []
 
 
