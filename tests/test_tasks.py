@@ -52,6 +52,7 @@ from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import httpx
@@ -270,6 +271,51 @@ def test_a_later_data_call_is_dated_by_the_release_date_an_earlier_call_kept(
     assert isinstance(cache, MemoryCache)
     lifetime = timedelta(seconds=max(seconds for seconds in cache.lifetimes.values() if seconds))
     assert before - lifetime <= later.meta.retrieved_at <= after, "within the cache's lifetime"
+
+
+def load_live() -> ModuleType:
+    """``tests/test_live.py`` as a module, for its helpers; none of its tests runs here."""
+    spec = importlib.util.spec_from_file_location("live", Path(__file__).parent / "test_live.py")
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.anyio
+async def test_the_live_assertion_refuses_an_answer_dated_by_its_data_read_alone(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """In the order of a live run, the live tests' assertion holds the answer to the older of
+    its two reads, which the cache gives back without a request, and refuses the data read's
+    own time, the fault of https://github.com/xippios/sdk-faostat/issues/68."""
+    live = load_live()
+    replay_fixture(GET_DATA, QCL)
+    data_route = replay_fixture(GET_DATA, "PP_231_2020_page_size_2")
+    domains = replay_fixture(DOMAINS, "all")
+    await tasks.get_data_async("QCL", **QCL_ARGUMENTS)
+    later = await tasks.get_data_async("PP", area="231", year=2020, page_size=2, page_number=1)
+    data = await api.get_data.get_data(
+        "en",
+        "PP",
+        area="231",
+        year="2020",
+        page_size=2,
+        page_number=1,
+        show_codes=True,
+        show_unit=True,
+        show_flags=True,
+        show_notes=True,
+        null_values=False,
+        output_type="objects",
+    )
+    kept = await api.get_groupsanddomains.get_groupsanddomains("en")
+    assert (data_route.call_count, domains.call_count) == (1, 1), "both read back from the cache"
+    assert kept.retrieved_at < data.retrieved_at, "the release date is the older read"
+    live.assert_dated_by_its_reads(later.meta.retrieved_at, data.retrieved_at, kept.retrieved_at)
+    with pytest.raises(AssertionError):
+        live.assert_dated_by_its_reads(data.retrieved_at, data.retrieved_at, kept.retrieved_at)
 
 
 def test_get_data_page(replay_fixture: ReplayFixture) -> None:
