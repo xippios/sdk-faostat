@@ -33,19 +33,19 @@ import io
 import re
 import zipfile
 from collections.abc import Awaitable, Callable
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
-from xippios.core import PackagedCodes
+from xippios.core import MemoryCache, PackagedCodes
 from xippios.core.testing import assert_time_between
 from xippios.core.testing.live import *  # noqa: F403
 
 from xippios.faostat import api, params, tasks
-from xippios.faostat._client import auth
+from xippios.faostat._client import auth, config
 from xippios.faostat.models import BulkDataset, BulkRecord, CodeItem, DataRecord, Domain
 from xippios.faostat.parse import parse_bulk_csv
 from xippios.faostat.parse.bulk_csv import MEMBER_SUFFIX
@@ -87,6 +87,24 @@ HEADERS = {
 """The columns ``DataRecord`` reads, under the headers upstream prints."""
 
 
+def kept_for() -> timedelta:
+    """The longest that the client's cache keeps an answer, its longest lifetime."""
+    cache = config.cache
+    assert isinstance(cache, MemoryCache)
+    return timedelta(seconds=max(seconds for seconds in cache.lifetimes.values() if seconds))
+
+
+def assert_dated_by_its_reads(retrieved_at: datetime, before: datetime, after: datetime) -> None:
+    """An answer's time where a read may come from the client's cache, which lives for the run.
+
+    A task that assembles several reads gives the oldest of their times, a kept answer's the
+    time it was stored (conventions §4), so whichever test of the run read it first, the
+    answer is dated no later than the call ended and no earlier than the cache keeps an
+    answer before the call began.
+    """
+    assert_time_between(retrieved_at, before - kept_for(), after)
+
+
 @pytest.mark.parametrize("domain", DOMAINS)
 async def test_get_data(domain: str) -> None:
     before = datetime.now(UTC)
@@ -106,7 +124,7 @@ async def test_get_data(domain: str) -> None:
     assert DATE.fullmatch(meta.vintage)
     assert meta.published_at is None
     assert meta.total is None
-    assert_time_between(meta.retrieved_at, before, after)
+    assert_dated_by_its_reads(meta.retrieved_at, before, after)
     # The same request through the wrapper: a cache hit, no request; its columns.
     answer = await api.get_data.get_data(
         "en",
@@ -122,6 +140,7 @@ async def test_get_data(domain: str) -> None:
         null_values=False,
         output_type="objects",
     )
+    assert meta.retrieved_at <= answer.retrieved_at, "never newer than its data read"
     printed = {column.key for column in answer.payload.metadata.dsd}
     assert all(printed - HEADERS <= set(row.columns) for row in answer.payload.data), (
         f"{domain}: a column neither named nor kept in columns"
@@ -154,7 +173,7 @@ async def test_get_series() -> None:
     assert DATE.fullmatch(meta.vintage)
     assert meta.published_at is None
     assert meta.total is None
-    assert_time_between(meta.retrieved_at, before, after)
+    assert_dated_by_its_reads(meta.retrieved_at, before, after)
 
 
 async def test_list_domains() -> None:
@@ -237,7 +256,7 @@ async def test_list_bulk_datasets() -> None:
     assert result.meta.endpoint == "production/datasets_E.json"
     assert result.meta.vintage is None
     assert result.meta.total is None
-    assert_time_between(result.meta.retrieved_at, before, after)
+    assert_dated_by_its_reads(result.meta.retrieved_at, before, after)
 
 
 @pytest.mark.usefixtures("without_the_account")
