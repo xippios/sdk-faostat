@@ -1368,10 +1368,14 @@ def test_get_series_is_unpaged_since_one_answer_can_pass_the_caches_bound() -> N
 
 
 @pytest.mark.parametrize("name", ["get_data", "get_series"])
-def test_the_description_states_the_most_a_call_sends_with_a_renewed_login(name: str) -> None:
-    from xippios.core.mcp.server import _description
-
-    described = _description(getattr(tasks, name))
+@pytest.mark.anyio
+async def test_the_description_states_the_most_a_call_sends_with_a_renewed_login(
+    name: str,
+) -> None:
+    """The description the package's server lists for the tool, as an endpoint shows it."""
+    tools = {tool.name: tool for tool in await server.list_tools()}
+    described = tools[f"faostat_{name}"].description
+    assert described is not None
     assert "refuses with 401 or 403" in " ".join(described.split())
     assert len(described) < 1000
 
