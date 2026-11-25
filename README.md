@@ -86,7 +86,7 @@ from xippios.faostat import download_dataset, list_bulk_datasets
 from xippios.faostat.parse import parse_bulk_csv
 
 list_bulk_datasets(search="land use").data[0]  # dataset_code "RL", file_size "2902KB", ...
-land = download_dataset("RL", dest=Path("RL.zip"))  # 3 MB; TCL's ZIP is 267 MB
+land = download_dataset("RL", dest=Path("RL.zip"))  # Land Use's ZIP, written whole
 land.data.path  # PosixPath("RL.zip"): the ZIP as FAOSTAT serves it
 land.meta.vintage  # "2026-10-02T00:00:00": the catalogue's DateUpdate as printed
 land.meta.published_at  # 2026-10-02 00:00 without a zone, meta.published_at_naive set
@@ -106,7 +106,8 @@ table; `search` keeps the datasets whose code or name contains the text.
 ZIP to `dest`, without the account, never holding it in memory or caching it; it returns
 core's `Downloaded` (path, size, content type, `ETag`, `Last-Modified`, retrieval time).
 It is a bulk task: Python only, so the MCP server and the router skip it and no agent is
-handed a file path. The files run from 12 KB (MDDW) to 410 MB (TM); TCL's is 267 MB.
+handed a file path. The files run from MDDW's, the smallest, to TM's, the largest, and
+`list_bulk_datasets` prints each one's `file_size`.
 `meta.vintage` is the catalogue's `DateUpdate` as printed and `meta.published_at` the
 same time, which the catalogue prints without a zone. `parse_bulk_csv(path)` reads the
 ZIP's normalized table, the member `<Name>_E_All_Data_(Normalized).csv`, row by row,

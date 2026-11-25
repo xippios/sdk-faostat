@@ -159,11 +159,15 @@ The bulk host, which the OpenAPI document does not name, serves its catalogue,
 without the account. The catalogue listed 69 datasets, each code a domain that
 `get_groupsanddomains` lists, every one a `zip` of `csv`, its `DateUpdate` a time without
 a zone (`2026-10-02T00:00:00` for RL) and its `FileSize` text in kilobytes (`2902KB`).
-Its `Topic` was `null` for 12 datasets and its `DatasetDescription` for 3.
+Its `Topic` was `null` for 12 datasets and its `DatasetDescription` for 3. The ZIPs ran
+from `12KB`, MDDW's, to `410792KB`, TM's, with TCL's `267104KB`, QCL's `33127KB` and
+RL's `2902KB`; on 2026-11-25 MDDW's, still the smallest, printed `19KB` after its
+release of 2026-11-23, and TM's was still the largest.
 
-Probe: 2026-10-29, `GET production/datasets_E.json` without the account, and
-`get_groupsanddomains`; samples `tests/fixtures/datasets_e/all.json` and
-`tests/fixtures/get_groupsanddomains/all.json`.
+Probe: 2026-10-29 and 2026-11-25, `GET production/datasets_E.json` without the account,
+and `get_groupsanddomains` on 2026-10-29; samples `tests/fixtures/datasets_e/all.json`,
+`tests/fixtures/get_groupsanddomains/all.json` and `docs/upstream/bulk/datasets_E.json`
+as the capture of 2026-11-25 wrote it.
 
 ### A ZIP holds one normalized table and its code lists
 

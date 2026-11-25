@@ -54,8 +54,8 @@ five minutes for every path, ``{"/": 300.0}``, up to core's ``cache_max_bytes`` 
 body (sdk-core ADR-0040, decision 3), once ``get_answer`` has decoded them, and an entry
 whose five minutes have passed is dropped at the cache's next read or write:
 ``tasks.get_data``'s look-up of a domain's release date in ``get_groupsanddomains`` costs
-one request per process per five minutes, as does the bulk catalogue (``datasets_E.json``,
-107 KB), a larger data answer is returned and fetched again the next time, and an answer
+one request per process per five minutes, as does the bulk catalogue (``datasets_E.json``),
+a larger data answer is returned and fetched again the next time, and an answer
 that is not JSON is asked again. A bulk file goes through ``download`` and is never cached.
 """
 

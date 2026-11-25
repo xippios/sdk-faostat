@@ -16,7 +16,7 @@ answer from the client's cache, which lives for the run, and each ``get_data`` t
 that every column the answer prints is named or kept in ``columns`` reads its data request
 from the cache as well. The bulk tasks have one each, without the account:
 ``list_bulk_datasets``'s fetches the catalogue, and ``download_dataset``'s downloads
-MDDW's ZIP, the smallest dataset's (12 KB), to a temporary file and reads it with
+MDDW's ZIP, the smallest dataset's, to a temporary file and reads it with
 ``parse_bulk_csv``, the live parser test of the file kind ``bulk-csv`` (sdk-core ADR-0020,
 decision 6), its look-up in the catalogue a cache hit, and a guard fails either test if a
 request goes through the account's login.

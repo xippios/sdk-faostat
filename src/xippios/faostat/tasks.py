@@ -660,9 +660,9 @@ async def list_bulk_datasets_async(*, search: str | None = None) -> Result[list[
     description, contact, last update as printed (``date_update``,
     ``"2026-10-02T00:00:00"``), the ZIP's size as printed (``file_size``, ``"2902KB"``),
     the normalized table's rows (``file_rows``) and the ZIP's URL (``file_location``).
-    The files run from 12 KB (MDDW) to 410,792 KB (TM, the detailed trade matrix; TCL,
-    trade in crops and livestock products, is 267,104 KB) and are downloaded in Python
-    only, with ``download_dataset``; no tool returns a file. ``meta.vintage`` is empty,
+    The files run from MDDW's, the smallest, to TM's, the detailed trade matrix, the
+    largest, and are downloaded in Python only, with ``download_dataset``; no tool returns
+    a file. ``meta.vintage`` is empty,
     as the catalogue carries no version.
 
     Args:
@@ -702,10 +702,10 @@ async def download_dataset_async(
     there, streamed to ``dest`` by core's ``download``, never held in memory or cached;
     nothing in it is read. ``parse_bulk_csv(result.data.path)`` from
     ``xippios.faostat.parse`` reads its normalized table, the member
-    ``<Name>_E_All_Data_(Normalized).csv``, row by row. The files are large: TCL's (trade
-    in crops and livestock products) is 267 MB, TM's (the detailed trade matrix) 410 MB,
-    QCL's 33 MB, RL's 3 MB, MDDW's 12 KB, the smallest; the table inside is larger still
-    (RL's 50 MB); ``list_bulk_datasets`` prints each ``file_size`` and ``file_rows``.
+    ``<Name>_E_All_Data_(Normalized).csv``, row by row. The files can be large, TM's (the
+    detailed trade matrix) the largest and TCL's (trade in crops and livestock products)
+    next, MDDW's the smallest, and the table inside is larger still;
+    ``list_bulk_datasets`` prints each ``file_size`` and ``file_rows``.
     ``result.data`` is core's ``Downloaded``: the path, its size, the content type,
     ``ETag`` and ``Last-Modified``. ``meta.vintage`` is the catalogue's ``DateUpdate`` for
     the dataset as printed (``"2026-10-02T00:00:00"``) and ``meta.published_at`` that
