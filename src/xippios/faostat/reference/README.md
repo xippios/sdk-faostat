@@ -49,18 +49,18 @@ answer is packaged: a check against the countries alone would refuse a region's 
 
 | File | Origin | Fetched |
 | --- | --- | --- |
-| `area_QCL.json` | `getCodeList`, `GET /en/codes/area/QCL` | 2026-10-29T07:06:41Z |
-| `element_QCL.json` | `getCodeList`, `GET /en/codes/element/QCL` | 2026-10-29T07:06:42Z |
-| `item_QCL.json` | `getCodeList`, `GET /en/codes/item/QCL` | 2026-10-29T07:06:44Z |
-| `area_TCL.json` | `getCodeList`, `GET /en/codes/area/TCL` | 2026-10-29T07:06:46Z |
-| `element_TCL.json` | `getCodeList`, `GET /en/codes/element/TCL` | 2026-10-29T07:06:48Z |
-| `item_TCL.json` | `getCodeList`, `GET /en/codes/item/TCL` | 2026-10-29T07:06:47Z |
-| `area_FBS.json` | `getCodeList`, `GET /en/codes/area/FBS` | 2026-10-29T07:06:49Z |
-| `element_FBS.json` | `getCodeList`, `GET /en/codes/element/FBS` | 2026-10-29T07:06:51Z |
-| `item_FBS.json` | `getCodeList`, `GET /en/codes/item/FBS` | 2026-10-29T07:06:53Z |
-| `area_PP.json` | `getCodeList`, `GET /en/codes/area/PP` | 2026-10-29T07:06:55Z |
-| `element_PP.json` | `getCodeList`, `GET /en/codes/element/PP` | 2026-10-29T07:06:57Z |
-| `item_PP.json` | `getCodeList`, `GET /en/codes/item/PP` | 2026-10-29T07:06:59Z |
-| `area_RL.json` | `getCodeList`, `GET /en/codes/area/RL` | 2026-10-29T07:07:01Z |
-| `element_RL.json` | `getCodeList`, `GET /en/codes/element/RL` | 2026-10-29T07:07:03Z |
-| `item_RL.json` | `getCodeList`, `GET /en/codes/item/RL` | 2026-10-29T07:07:05Z |
+| `area_QCL.json` | `getCodeList`, `GET /en/codes/area/QCL` | 2026-11-25T06:09:40Z |
+| `element_QCL.json` | `getCodeList`, `GET /en/codes/element/QCL` | 2026-11-25T06:09:41Z |
+| `item_QCL.json` | `getCodeList`, `GET /en/codes/item/QCL` | 2026-11-25T06:09:44Z |
+| `area_TCL.json` | `getCodeList`, `GET /en/codes/area/TCL` | 2026-11-25T06:09:46Z |
+| `element_TCL.json` | `getCodeList`, `GET /en/codes/element/TCL` | 2026-11-25T06:09:48Z |
+| `item_TCL.json` | `getCodeList`, `GET /en/codes/item/TCL` | 2026-11-25T06:09:50Z |
+| `area_FBS.json` | `getCodeList`, `GET /en/codes/area/FBS` | 2026-11-25T06:09:52Z |
+| `element_FBS.json` | `getCodeList`, `GET /en/codes/element/FBS` | 2026-11-25T06:09:54Z |
+| `item_FBS.json` | `getCodeList`, `GET /en/codes/item/FBS` | 2026-11-25T06:09:56Z |
+| `area_PP.json` | `getCodeList`, `GET /en/codes/area/PP` | 2026-11-25T06:09:58Z |
+| `element_PP.json` | `getCodeList`, `GET /en/codes/element/PP` | 2026-11-25T06:10:03Z |
+| `item_PP.json` | `getCodeList`, `GET /en/codes/item/PP` | 2026-11-25T06:10:05Z |
+| `area_RL.json` | `getCodeList`, `GET /en/codes/area/RL` | 2026-11-25T06:10:07Z |
+| `element_RL.json` | `getCodeList`, `GET /en/codes/element/RL` | 2026-11-25T06:10:09Z |
+| `item_RL.json` | `getCodeList`, `GET /en/codes/item/RL` | 2026-11-25T06:10:11Z |

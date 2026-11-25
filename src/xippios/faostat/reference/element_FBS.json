@@ -1,111 +1,174 @@
 {
   "param": "element",
   "endpoint": "getCodeList",
-  "fetched": "2026-10-29T07:06:51Z",
+  "fetched": "2026-11-25T06:09:54Z",
   "records": [
     {
       "code": "511",
       "label": "Total Population - Both sexes",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "2510",
       "label": "Production Quantity",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "2610",
       "label": "Import quantity",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "2071",
       "label": "Stock Variation",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "2910",
       "label": "Export quantity",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "2300",
       "label": "Domestic supply quantity",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "2520",
       "label": "Feed",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "2525",
       "label": "Seed",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "2120",
       "label": "Losses",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "2130",
       "label": "Processed",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "2151",
       "label": "Other uses (non-food)",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "5171",
       "label": "Tourist consumption",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "5170",
       "label": "Residuals",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "2141",
       "label": "Food",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "645",
       "label": "Food supply quantity (kg/capita/yr)",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "664",
       "label": "Food supply (kcal/capita/day)",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "661",
       "label": "Food supply (kcal)",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "674",
       "label": "Protein supply quantity (g/capita/day)",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "671",
       "label": "Protein supply quantity (t)",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "684",
       "label": "Fat supply quantity (g/capita/day)",
+      "parent": "#",
       "aggregate_type": "0"
     },
     {
       "code": "681",
       "label": "Fat supply quantity (t)",
+      "parent": "#",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "72003>",
+      "label": "Indicators > (List)",
+      "parent": "#",
+      "aggregate_type": ">"
+    },
+    {
+      "code": "501",
+      "label": "Import dependency ratio",
+      "parent": "72003>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "502",
+      "label": "Exports to supply ratio",
+      "parent": "72003>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "503",
+      "label": "Sourcing Flexibility Indicator (quantity)",
+      "parent": "72003>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "504",
+      "label": "Sourcing Flexibility Indicator (calories)",
+      "parent": "72003>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "505",
+      "label": "Sourcing Flexibility Indicator (proteins)",
+      "parent": "72003>",
+      "aggregate_type": "0"
+    },
+    {
+      "code": "506",
+      "label": "Sourcing Flexibility Indicator (fats)",
+      "parent": "72003>",
       "aggregate_type": "0"
     }
   ]
