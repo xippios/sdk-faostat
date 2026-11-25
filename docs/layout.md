@@ -43,8 +43,9 @@ tests/
   test_refresh_upstream.py   the snapshot script's declaration and hooks, offline: its
                    pages, the keyed samples, the attribution, the terms page's converter,
                    the pages' notes and the ReDoc page's check against the document in
-                   sections; and that no docstring of src/, README.md or
-                   CLAUDE.md dates an observation, which OBSERVED.md alone holds
+                   sections; and that no docstring or comment of src/, tests/ or scripts/,
+                   and no line of README.md or CLAUDE.md, dates an observation, which
+                   OBSERVED.md alone holds
 docs/
   upstream/        also OBSERVED.md, the notes by hand on what FAOSTAT does but never
                    documents; openapi/, the OpenAPI document; pages/, the terms of use in

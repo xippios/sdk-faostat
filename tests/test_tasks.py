@@ -436,8 +436,9 @@ def test_the_recorded_rows_print_no_column_beyond_the_named_ones(case: str) -> N
 def test_get_data_with_a_coding_system(replay_fixture: ReplayFixture) -> None:
     """``area_cs=M49``: the recorded answer names the code column ``Area Code (M49)``.
 
-    United States of America's M49 code, 840, matched no rows on 2026-10-29; the answer's
-    ``metadata.dsd`` still names its columns, which the next test applies to a row.
+    United States of America's M49 code, 840, matched no rows, as ``docs/upstream/OBSERVED.md``
+    notes; the answer's ``metadata.dsd`` still names its columns, which the next test applies
+    to a row.
     """
     case = "QCL_840_M49_15_2510_2020"
     route = replay_fixture(GET_DATA, case)
