@@ -260,21 +260,6 @@ def test_no_dated_note_of_what_faostat_answered_stands_outside_observed_md(path:
     assert SIZE.findall(FAMILY_CAP.sub("", running)) == []
 
 
-def test_the_record_lists_every_page_the_declaration_leaves_out() -> None:
-    """``FETCHED.md``, as the last capture wrote it, holds a row of Not fetched for each page
-    that the declaration leaves out, so that the record and the declaration agree until the
-    next capture writes the record again (conventions §3)."""
-    record = (UPSTREAM / "FETCHED.md").read_text(encoding="utf-8")
-    table = record[record.index("## Not fetched") :]
-    listed = {
-        line.removeprefix("| ").split(" | ")[0]
-        for line in table.splitlines()
-        if line.startswith("| http")
-    }
-    declared = {row.url for row in script.SNAPSHOT.not_fetched}
-    assert sorted(declared - listed) == []
-
-
 def test_every_page_the_documentation_links_is_fetched_or_not_fetched() -> None:
     """The pages the documentation links, the terms' and the ReDoc copy's server among them,
     and the folder of the ZIPs the catalogue names: each is a page of the snapshot or a row

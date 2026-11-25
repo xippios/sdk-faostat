@@ -44,10 +44,10 @@ tests/
                    pages, the keyed samples, the attribution and vocabulary, the fields
                    of the document's info, the terms page's converter, the pages' notes,
                    the ReDoc page's check against the document in sections and the form
-                   in which --check compares a sample; the record's Not fetched rows
-                   against the declaration; and that no docstring or comment of src/,
-                   tests/ or scripts/, and no line of README.md or CLAUDE.md, dates an
-                   observation or states a size of upstream's, which OBSERVED.md holds
+                   in which --check compares a sample; and that no docstring or comment
+                   of src/, tests/ or scripts/, and no line of README.md or CLAUDE.md,
+                   dates an observation or states a size of upstream's, which
+                   OBSERVED.md holds
 docs/
   upstream/        also OBSERVED.md, the notes by hand on what FAOSTAT does but never
                    documents; openapi/, the OpenAPI document; pages/, the terms of use in
