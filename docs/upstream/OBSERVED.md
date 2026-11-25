@@ -13,7 +13,7 @@ Each note ends with its probe: the date, the operation and the sample. A sample 
 as a fixture is named by its path under `tests/fixtures/`, a sample file of the bulk
 downloads by its path under `tests/fixtures/files/`, whose `README.md` gives its
 provenance, and a file of this snapshot by its path under `docs/upstream/`, as the capture
-of 2026-11-20 wrote it. The first probes of 2026-10-29, sent before the recordings, kept no
+of 2026-11-25 wrote it, an earlier capture by the commit that holds it. The first probes of 2026-10-29, sent before the recordings, kept no
 answer: their notes name the request.
 
 ## The data endpoint
@@ -192,15 +192,21 @@ for RL and MDDW, RL's whole table read at the recording; samples
 `tests/fixtures/files/bulk-csv/RL_first_rows.zip`, that table cut to its first 20 rows,
 and `tests/fixtures/files/bulk-csv/MDDW.zip`.
 
-### `FileRows` is recounted without a new release
+### `FileRows` and `FileSize` move without a new release
 
 The catalogue's `FileRows` is its own count of a table's rows, which changes while the
-dataset's `DateUpdate` and `FileSize` stay as they were. On 2026-10-29 it counted RL's
+dataset's `DateUpdate` and `FileSize` stay as they were, and its `FileSize` moves while
+the other two stay. On 2026-10-29 it counted RL's
 table, 421,850 rows, but not MDDW's: it printed 2,035 where the table held 1,223 rows. On
 2026-11-20 it printed 1,223 for MDDW, and the `FileRows` of eight datasets, CB, EA, FBS,
 FO, HCES, MDDW, SCL and SUA, had changed with their `DateUpdate` and `FileSize` unchanged
-(FBS from 5,878,736 to 4,820,497). Only RL's and MDDW's tables were read.
+(FBS from 5,878,736 to 4,820,497). On 2026-11-25 FBSH's `FileSize` had moved from
+`70769KB` to `70486KB` with its `DateUpdate` and `FileRows` unchanged. Only RL's and
+MDDW's tables were read.
 
-Probe: 2026-10-29 and 2026-11-20, `GET production/datasets_E.json`, and MDDW's ZIP on
-2026-10-29; samples `tests/fixtures/datasets_e/all.json`,
-`docs/upstream/bulk/datasets_E.json` and `tests/fixtures/files/bulk-csv/MDDW.zip`.
+Probe: 2026-10-29, 2026-11-20 and 2026-11-25, `GET production/datasets_E.json`, and
+MDDW's ZIP on 2026-10-29; samples `tests/fixtures/datasets_e/all.json`,
+`docs/upstream/bulk/datasets_E.json` as the capture of 2026-11-25 wrote it, the capture
+of 2026-11-20 in
+https://github.com/xippios/sdk-faostat/commit/3df299939b1b7a91facd3474725fd4ac879caec6,
+and `tests/fixtures/files/bulk-csv/MDDW.zip`.
