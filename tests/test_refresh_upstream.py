@@ -13,21 +13,18 @@ notes of the pages' rows, the check of the OpenAPI document's ``info`` and the f
 import importlib.util
 import json
 import re
-from dataclasses import replace
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
 import pytest
 from xippios.core.refresh import Page, Response, Row
-from xippios.core.refresh.upstream import check_attribution, render_fetched
 
 from xippios.faostat._client import BASE_URL, PASSWORD_ENV, USERNAME_ENV, client
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "refresh_upstream.py"
 UPSTREAM = ROOT / "docs" / "upstream"
-FETCHED = "2026-11-24T09:00:00Z"
 
 
 def load_script() -> ModuleType:
@@ -128,26 +125,28 @@ def test_the_attribution_stands_on_the_terms_page_which_is_the_terms() -> None:
         assert statement.where
 
 
-def test_the_kept_document_and_catalogue_pass_the_frames_attribution_check() -> None:
+def test_the_vocabulary_reads_past_the_catalogues_public_domain() -> None:
     """The catalogue's description of the census dataset WCAD says census reports are
     "available in the public domain", which states nothing about the catalogue: the
-    vocabulary reads past it, and without it the frame's check stops the run."""
-    snapshot = script.SNAPSHOT
-    for url in (script.SPEC_URL, script.CATALOGUE_URL):
-        page = declared(url)
-        check_attribution(snapshot, page, kept(page))
-    catalogue = declared(script.CATALOGUE_URL)
-    with pytest.raises(SystemExit, match="'public domain'"):
-        check_attribution(replace(snapshot, vocabulary=()), catalogue, kept(catalogue))
+    declaration's vocabulary holds the phrase as the kept catalogue prints it. The frame's
+    check of it runs at a refresh, with its request alone (sdk-core ADR-0062, decision 9)."""
+    catalogue = (UPSTREAM / declared(script.CATALOGUE_URL).file).read_text(encoding="utf-8")
+    assert script.SNAPSHOT.vocabulary == script.VOCABULARY
+    for phrase in script.VOCABULARY:
+        assert phrase in catalogue
+        assert "public domain" in phrase
 
 
 def test_the_script_keeps_no_observed_notes() -> None:
     """The notes moved to ``OBSERVED.md``: neither the script nor its declaration holds them."""
     assert not hasattr(script, "OBSERVED")
-    # No row is read here, so the check of the ReDoc page against the document, which stops
-    # a run without its two rows, gives way to none.
-    rowless = replace(script.SNAPSHOT, sections=lambda rows: ())
-    text = " ".join(render_fetched(rowless, [], FETCHED, observed=True).split())
+    snapshot = script.SNAPSHOT
+    declared_text = [
+        *snapshot.capture,
+        *(row.reason for row in snapshot.not_fetched),
+        *(statement.text for statement in snapshot.attribution),
+    ]
+    text = " ".join(" ".join(declared_text).split())
     source = SCRIPT.read_text(encoding="utf-8")
     for note in ("observed in probes", "no_records"):
         assert note not in text
@@ -185,6 +184,11 @@ def test_the_documents_note_names_its_version_operations_and_server() -> None:
     assert f"OpenAPI 3.0.0, {len(operations)} operations by `operationId`" in note
     assert f"`servers` {BASE_URL}" in note
     assert "`info` names no licence, terms of service or contact" in note
+
+
+def test_the_info_fields_are_the_three_the_conventions_name() -> None:
+    """Conventions §3 and sdk-core ADR-0062, decision 10, name the fields of ``info``."""
+    assert script.INFO_FIELDS == ("license", "termsOfService", "contact")
 
 
 @pytest.mark.parametrize("term", ["license", "termsOfService", "contact"])
