@@ -133,7 +133,6 @@ MCP_CAPS: Mapping[str, ResultCap] = {
     ),
     "get_series": ResultCap(
         max_rows=200,
-        paged=True,
         note=(
             "rows run area, item, year ascending; narrow since and until, or one code per "
             "dimension, to see the rest"
@@ -194,13 +193,16 @@ ADR-0038): on 2026-10-29 it measured 69 datasets and 107,481 bytes as compact JS
 dataset 399 to 4,104 bytes, its description the most of it, where the family's 64 KB
 would cut it at 39 rows. The note names ``search`` for a catalogue grown past the bound.
 
-Six caps are paged, ``ResultCap(paged=True)``, so their tools take ``offset`` and a cut
+Five caps are paged, ``ResultCap(paged=True)``, so their tools take ``offset`` and a cut
 answer's note names the offset to continue with: the next page runs the task again and
-sends nothing new, since the three code lists read packaged tables, and ``list_domains``,
-``list_bulk_datasets`` and ``get_series`` read answers that the client's cache keeps for
-five minutes (sdk-core ADR-0047, as amended). ``get_data`` takes none: it pages by
-FAOSTAT's own ``page_size`` and ``page_number``, which its note names
-(https://github.com/xippios/sdk-faostat/issues/32).
+sends nothing new, since the three code lists read packaged tables, and ``list_domains``
+and ``list_bulk_datasets`` read answers that the client's cache keeps for five minutes,
+each far under its bound of 8 MiB (sdk-core ADR-0047, as amended). ``get_data`` takes
+none: it pages by FAOSTAT's own ``page_size`` and ``page_number``, which its note names
+(https://github.com/xippios/sdk-faostat/issues/32). ``get_series`` takes none either:
+it takes any number of codes and years, so one answer has no bound of its own and can pass
+the cache's 8 MiB, past which a continuation would send its request again (conventions
+§8; https://github.com/xippios/sdk-faostat/issues/80).
 """
 
 LANG: Final = "en"
@@ -326,15 +328,16 @@ async def get_data_async(
 
     One request to FAOSTAT's data endpoint; the rows come in upstream's order (area, item,
     year ascending), each with its codes and names, unit, flag, and value as printed with
-    its number beside it. Give at least one of area, item, element and year: FAOSTAT
-    refuses a query without a filter, and so does this task, before any request. Without
-    page_size every matching row comes in one answer: keep the filters narrow, or page.
+    its number beside it. Give at least one of area, item, element and year, as FAOSTAT
+    asks, or the task refuses before any request. Without page_size every matching row
+    comes in one answer: keep the filters narrow, or page.
     For QCL, TCL, FBS, PP and RL, whose code lists the package carries, every area,
     element and item code is checked first, and one the domain lacks raises UnknownCode
     naming the closest codes; another domain's unknown code gives an empty list.
-    meta.vintage is the domain's last update as list_domains prints it. A call sends at
-    most two requests, the data and the domain's release date, each tried up to four
-    times, and the account's login before them where the process holds no token.
+    meta.vintage is the domain's last update as list_domains prints it. A call sends the
+    data and the domain's release date, each tried up to four times, a login where the
+    process holds no token, and a login and the request again where FAOSTAT refuses with
+    401 or 403.
 
     Args:
         domain_code: The domain's code, as ``list_domains`` lists it, e.g. ``"QCL"`` (Crops
@@ -454,9 +457,9 @@ async def get_series_async(
     oldest year first, and lists give several. A year the domain does not hold, not yet
     released or without a value, has no row: nothing is filled in. The codes are checked
     as get_data checks them, and meta is get_data's, with since and until added to
-    meta.request. A call sends at most two requests, the data and the domain's release
-    date, each tried up to four times, and the account's login before them where the
-    process holds no token.
+    meta.request. A call sends the data and the domain's release date, each tried up to
+    four times, a login where the process holds no token, and a login and the request
+    again where FAOSTAT refuses with 401 or 403.
 
     Args:
         domain_code: The domain's code, as ``list_domains`` lists it, e.g. ``"QCL"`` (Crops

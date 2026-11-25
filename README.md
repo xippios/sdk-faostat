@@ -133,9 +133,9 @@ food groups.
 Tools are read-only and named `faostat_<verb>_<noun>`. Results are capped, at 200 rows or
 64 KB unless a tool has a cap of its own, with a note on how to see the rest, after the
 client fetched the whole answer. The tools whose next page sends nothing new, the code
-lists, `faostat_list_domains`, `faostat_list_bulk_datasets` and `faostat_get_series`, take
-`offset`, which the note names; `faostat_get_data` pages by FAOSTAT's `page_size` and
-`page_number`. `--http` serves streamable HTTP instead of stdio.
+lists, `faostat_list_domains` and `faostat_list_bulk_datasets`, take `offset`, which the
+note names; `faostat_get_data` pages by FAOSTAT's `page_size` and `page_number`, and
+`faostat_get_series` is narrowed by its years and codes. `--http` serves streamable HTTP instead of stdio.
 
 ## Status
 
