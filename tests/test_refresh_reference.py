@@ -1,8 +1,9 @@
 """``scripts/refresh_reference.py``'s declaration on the recorded answers, and the packaged files.
 
 The script declares fifteen tables in one ``Lists`` and hands it to core's ``run``, which
-fetches, writes the files, the provenance rows and ``enums.py`` (sdk-core ADR-0062): core
-tests that frame, and these tests hold what the script declares. Each table is fetched
+fetches and writes the files and the provenance rows, and no ``enums.py``, since no list
+declares an enum (sdk-core ADR-0062): core tests that frame, and these tests hold what the
+script declares. Each table is fetched
 through ``api.get_code_list`` (``getCodeList``): the codes of ``area``, ``element`` and
 ``item`` in QCL, TCL, FBS, PP and RL. QCL's three answers are recorded
 (``tests/fixtures/get_code_list/area_QCL``, ``element_QCL`` and ``item_QCL``, 2026-10-29),
