@@ -141,8 +141,9 @@ special groups, such as `5000` World + (Total) and `5000>` World > (List). The O
 document's examples of `dimension_id` name the subdimension ids alone. On 2026-11-25 the
 area list still held 278 codes.
 
-Probe: 2026-10-29 and 2026-11-25, `getCodeList` for `codes/area/QCL` and
-`codes/countries/QCL`; samples `tests/fixtures/get_code_list/area_QCL.json` and
+Probe: 2026-10-29, `getCodeList` for `codes/area/QCL` and `codes/countries/QCL`, and
+2026-11-25 for `codes/area/QCL` alone; samples
+`tests/fixtures/get_code_list/area_QCL.json` and
 `tests/fixtures/get_code_list/countries_QCL.json`, and the table of the reference
 refresh of 2026-11-25 in https://github.com/xippios/sdk-faostat/pull/76.
 
