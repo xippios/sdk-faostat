@@ -130,7 +130,9 @@ def test_the_vocabulary_reads_past_the_catalogues_public_domain() -> None:
     "available in the public domain", which states nothing about the catalogue: the
     declaration's vocabulary holds the phrase as the kept catalogue prints it. The frame's
     check of it runs at a refresh, with its request alone (sdk-core ADR-0062, decision 9)."""
-    catalogue = (UPSTREAM / declared(script.CATALOGUE_URL).file).read_text(encoding="utf-8")
+    kept_file = declared(script.CATALOGUE_URL).file
+    assert kept_file is not None
+    catalogue = (UPSTREAM / kept_file).read_text(encoding="utf-8")
     assert script.SNAPSHOT.vocabulary == script.VOCABULARY
     for phrase in script.VOCABULARY:
         assert phrase in catalogue
