@@ -178,9 +178,9 @@ data, and
 since they serve FAOSTAT's portal: its search, its suggestions, its list of documents, its
 printable metadata and its ping. A caller cannot set yet these documented parameters of
 the wrapped operations: `lang` on every operation, which the package sends as `en`
-(https://github.com/xippios/sdk-faostat/issues/64); `datasource` and `List1Codes` to
-`List9Codes` on `get_data` (https://github.com/xippios/sdk-faostat/issues/22) and the
-value `csv` of its `output_type` (https://github.com/xippios/sdk-faostat/issues/41);
+(https://github.com/xippios/sdk-faostat/issues/64); `List1Codes` to `List9Codes` on
+`get_data` (https://github.com/xippios/sdk-faostat/issues/22), the value `csv` of its
+`output_type` (https://github.com/xippios/sdk-faostat/issues/41) and its `datasource`;
 and `datasource` and `section` on `get_groupsanddomains` and `show_lists` on
 `getCodeList`, which the packaged tables leave at upstream's default
 (https://github.com/xippios/sdk-faostat/issues/72).
