@@ -16,12 +16,13 @@ import io
 import json
 import re
 import tokenize
+from dataclasses import replace
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
 import pytest
-from xippios.core.refresh import Page, Response, Row
+from xippios.core.refresh import Page, Response, Row, Snapshot
 
 from xippios.faostat._client import BASE_URL, PASSWORD_ENV, USERNAME_ENV, client
 
@@ -142,20 +143,40 @@ def test_the_vocabulary_reads_past_the_catalogues_public_domain() -> None:
         assert "public domain" in phrase
 
 
-def test_the_script_keeps_no_observed_notes() -> None:
-    """The notes moved to ``OBSERVED.md``: neither the script nor its declaration holds them."""
-    assert not hasattr(script, "OBSERVED")
-    snapshot = script.SNAPSHOT
+OLD_NOTES = ("observed in probes", "no_records")
+"""Words of the notes that moved from the script to ``OBSERVED.md``."""
+
+
+def old_notes(snapshot: Snapshot) -> list[str]:
+    """The words of ``OLD_NOTES`` that the text ``snapshot`` declares names."""
     declared_text = [
         *snapshot.capture,
         *(row.reason for row in snapshot.not_fetched),
         *(statement.text for statement in snapshot.attribution),
     ]
     text = " ".join(" ".join(declared_text).split())
+    return [note for note in OLD_NOTES if note in text]
+
+
+def test_the_script_keeps_no_observed_notes() -> None:
+    """The notes moved to ``OBSERVED.md``: neither the script nor its declaration holds them."""
+    assert not hasattr(script, "OBSERVED")
+    assert old_notes(script.SNAPSHOT) == []
     source = SCRIPT.read_text(encoding="utf-8")
-    for note in ("observed in probes", "no_records"):
-        assert note not in text
+    for note in OLD_NOTES:
         assert note not in source
+
+
+@pytest.mark.parametrize("note", OLD_NOTES)
+def test_an_old_note_in_the_capture_text_or_a_statements_where_is_found(note: str) -> None:
+    """The declaration's capture text is read as one text, and each statement's ``where``
+    beside its text, so an old note in either is found (https://github.com/xippios/sdk-faostat/issues/77)."""
+    snapshot = script.SNAPSHOT
+    capture = replace(snapshot, capture=f"{snapshot.capture} A note {note}.")
+    first, *rest = snapshot.attribution
+    where = replace(snapshot, attribution=(replace(first, where=f"{first.where}, {note}"), *rest))
+    assert old_notes(capture) == [note]
+    assert old_notes(where) == [note]
 
 
 def page_of(url: str) -> str:
