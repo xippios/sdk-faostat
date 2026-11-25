@@ -173,6 +173,11 @@ RECORDED = re.compile(r"recorded[^.;]{0,60}?\d{4}-\d{2}-\d{2}", re.IGNORECASE)
 """A recording's date, a fixture's provenance, which dates the file and not what it holds."""
 DATE = re.compile(r".{0,40}\d{4}-\d{2}-\d{2}.{0,20}")
 """A date in running text, with the words around it for the failure's message."""
+SIZE = re.compile(r".{0,40}\b\d[\d,.]* ?[KMG]B\b.{0,20}")
+"""A size in kilobytes or more in running text, a file's or an answer's, which upstream
+moves with each release, with the words around it for the failure's message."""
+FAMILY_CAP = re.compile(r"\b64 KB\b")
+"""The family's cap of an answer over MCP, a bound of core's and no size of upstream's."""
 PACKAGE_TEXT = sorted(
     [
         *(ROOT / "src").rglob("*.py"),
@@ -222,12 +227,15 @@ def test_no_dated_note_of_what_faostat_answered_stands_outside_observed_md(path:
     test (conventions §3), so the package's text points to the notes and dates none, the
     tests' comments and docstrings included. A date in a code span or a fenced example is a
     value as printed, an amendment's date cites a record, and a recording's date is its
-    fixture's provenance. ``src/xippios/faostat/reference/README.md``, the packaged tables'
-    provenance, is not read yet (https://github.com/xippios/sdk-faostat/issues/75).
+    fixture's provenance. A size of what upstream serves, which moves with each release, is
+    such a note too, while the family's bound of an answer is none.
+    ``src/xippios/faostat/reference/README.md``, the packaged tables' provenance, is not
+    read yet (https://github.com/xippios/sdk-faostat/issues/75).
     """
     text = RECORDED.sub("", CODE_SPAN.sub("", prose(path)))
     running = AMENDMENT.sub("", " ".join(text.split()))
     assert DATE.findall(running) == []
+    assert SIZE.findall(FAMILY_CAP.sub("", running)) == []
 
 
 def test_the_record_lists_every_page_the_declaration_leaves_out() -> None:
