@@ -18,7 +18,7 @@ sends, by core's ``check`` on each table's declaration, ``table(name)``.
 The element tables hold the codes a query filters by (``2510`` Production Quantity in
 QCL), which are not the ``Element Code`` the data rows print (``5510`` Production);
 nothing is translated between the two (sdk-core ADR-0028).
-No enum is generated from the tables; ``enums.py`` holds none. ``reference/README.md``
+No enum is generated from the tables, so the package has no ``enums.py``. ``reference/README.md``
 carries the provenance of every file.
 """
 
