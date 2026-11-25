@@ -368,12 +368,19 @@ def test_the_sync_flow_is_not_served() -> None:
 def test_a_login_answer_not_auth_is_validation_error_quoting_nothing(
     respx_mock: respx.MockRouter,
 ) -> None:
-    """A 200 that is not ``Auth``: the recorded groupsanddomains answer, served at the login.
+    """A 200 that is not ``Auth``: the recorded login without its ``AuthenticationResult``.
 
-    NOT RECORDED: a body of no shape the login sends, to show that the source refuses it
-    without quoting it (conventions §10, kind 5).
+    NOT RECORDED: the recorded login changed in memory, its tokens' field removed, a form the
+    login was not seen to send, to show that the source refuses it without quoting it
+    (conventions §10, kind 4).
     """
-    respx_mock.post(LOGIN_URL).mock(return_value=answer(recorded("get_groupsanddomains", "all")))
+    login = recorded("auth_login", "login").response
+    changed = {
+        key: value for key, value in json.loads(login.body).items() if key != "AuthenticationResult"
+    }
+    respx_mock.post(LOGIN_URL).mock(
+        return_value=httpx.Response(200, headers=login.headers, json=changed)
+    )
     with pytest.raises(ValidationError) as raised:
         tasks.get_data("QCL", **QCL_ARGUMENTS)
     assert "not the documented Auth answer" in str(raised.value)

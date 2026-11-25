@@ -10,8 +10,8 @@ with ``countries_QCL``, the subdimension's answer the packaged ``area`` table is
 the other twelve domains' answers are packaged, not recorded. The tests replay QCL's answers
 through the declared fetches, check that a packaged record is upstream's record as sent, and
 check the committed files and the provenance rows against the declaration. They read the
-committed files' counts and fetch times, never pinning them. The logins that core's count of
-a run leaves out, since they run inside the client's auth flow, are counted by the script.
+committed files' counts and fetch times, never pinning them. Core's count of a run holds
+every request the client sends, a login among them, and the script names the logins.
 """
 
 import importlib.util
