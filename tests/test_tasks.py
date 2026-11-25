@@ -45,6 +45,7 @@ to the API's host, so no login was sent either.
 """
 
 import dataclasses
+import importlib.util
 import inspect
 import json
 from collections.abc import Iterator
@@ -1373,3 +1374,9 @@ def test_the_description_states_the_most_a_call_sends_with_a_renewed_login(name:
     described = _description(getattr(tasks, name))
     assert "refuses with 401 or 403" in " ".join(described.split())
     assert len(described) < 1000
+
+
+@pytest.mark.parametrize("module", ["errors", "enums"])
+def test_the_package_keeps_no_empty_stub_of_the_scaffold(module: str) -> None:
+    """A stub that the package never filled says nothing, and the update leaves it deleted."""
+    assert importlib.util.find_spec(f"xippios.faostat.{module}") is None
