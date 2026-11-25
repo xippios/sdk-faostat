@@ -150,9 +150,10 @@ OLD_NOTES = ("observed in probes", "no_records")
 def old_notes(snapshot: Snapshot) -> list[str]:
     """The words of ``OLD_NOTES`` that the text ``snapshot`` declares names."""
     declared_text = [
-        *snapshot.capture,
+        snapshot.capture,
         *(row.reason for row in snapshot.not_fetched),
         *(statement.text for statement in snapshot.attribution),
+        *(statement.where for statement in snapshot.attribution),
     ]
     text = " ".join(" ".join(declared_text).split())
     return [note for note in OLD_NOTES if note in text]
