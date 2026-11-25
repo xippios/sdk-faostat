@@ -59,3 +59,5 @@ Both the Terms and Conditions regarding the Reuse of Web content and these Datab
 - [Hand-in-Hand (HiH) Geospatial Platform](https://www.fao.org/hih-geospatial-platform/en)
 - [WaPOR](https://data.apps.fao.org/wapor/?lang=en)
 - [World Information and Early Warning System on Plant Genetic Resources for Food and Agriculture (WIEWS)](https://www.fao.org/wiews/data/domains/monitoring-framework/en/)
+- [FAO Food Price Index](https://www.fao.org/worldfoodsituation/foodpricesindex)
+- [FAO Cereal Supply and Demand](https://www.fao.org/worldfoodsituation/csdb)

@@ -559,12 +559,12 @@ paths:
         schema:
           description: ID of the FAOSTAT codelist to be retrieved.
           enum:
-          - areas
+          - area
           - countries
           - regions
           - specialgroups
           - items
-          - itemsaggregated
+          - itemsagg
           - elements
           - years
           title: Codelist ID
