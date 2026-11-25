@@ -765,12 +765,9 @@ async def test_get_series_tool_cap_note_names_since_and_until(
     payload = await mcp_call(narrow, "faostat_get_series", {**SERIES, "since": 2015, "until": 2021})
     assert [row["year"] for row in payload["data"]] == ["2015", "2016"]
     shown = f"showing 2 of 7 rows (cap: 2 rows or {cap.max_bytes} bytes)"
-    assert payload["note"] == f"{shown}; {cap.note}; continue with offset=2"
+    assert payload["note"] == f"{shown}; {cap.note}"
     assert "narrow since and until, or one code per dimension" in payload["note"]
-    rest = await mcp_call(
-        narrow, "faostat_get_series", {**SERIES, "since": 2015, "until": 2021, "offset": 2}
-    )
-    assert [row["year"] for row in rest["data"]] == ["2017", "2018"], "the next page, rerun"
+    assert "offset" not in payload["note"], "unpaged: its answer can pass the cache's bound"
 
 
 def test_list_domains(replay_fixture: ReplayFixture) -> None:
@@ -1244,7 +1241,6 @@ def test_get_series_takes_its_codes_by_keyword(respx_mock: respx.MockRouter) -> 
 
 
 PAGED_TOOLS = (
-    "get_series",
     "list_areas",
     "list_bulk_datasets",
     "list_domains",
@@ -1354,3 +1350,26 @@ def test_get_data_vintage_is_the_date_update_as_faostat_sends_it(
     )
     result = get_data("QCL", **QCL_ARGUMENTS)
     assert result.meta.vintage == "2025-12-31T00:00:00", "the text as sent, not re-printed"
+
+
+def test_get_series_is_unpaged_since_one_answer_can_pass_the_caches_bound() -> None:
+    """A continuation reads the cache only under ``cache_max_bytes`` (conventions §8).
+
+    The task takes any number of codes and years, so one answer has no bound of its own: a
+    recorded row takes more than 300 bytes, and 50 areas of QCL by ten items over its 64
+    years already pass 8 MiB.
+    """
+    printed = json.loads(recorded(GET_DATA, QCL).response.body)["data"]
+    smallest_row = min(len(json.dumps(row, separators=(",", ":"))) for row in printed)
+    rows = 50 * 10 * 64
+    assert rows * smallest_row > 8 * 1024 * 1024
+    assert not tasks.MCP_CAPS["get_series"].paged
+
+
+@pytest.mark.parametrize("name", ["get_data", "get_series"])
+def test_the_description_states_the_most_a_call_sends_with_a_renewed_login(name: str) -> None:
+    from xippios.core.mcp.server import _description
+
+    described = _description(getattr(tasks, name))
+    assert "refuses with 401 or 403" in " ".join(described.split())
+    assert len(described) < 1000
