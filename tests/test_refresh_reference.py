@@ -18,6 +18,7 @@ core's frame on a copy of the packaged files, so that the repository's stay as c
 
 import importlib.util
 import json
+import re
 import shutil
 from collections.abc import Iterator
 from dataclasses import replace
@@ -162,6 +163,20 @@ def test_the_committed_provenance_rows_are_the_declared_origins() -> None:
         for listed in script.LISTS.lists
     ]
     assert "| File | Origin | Fetched |" in readme, "the one header core's frame knows"
+
+
+def test_the_folder_readme_dates_nothing_beside_its_provenance_rows() -> None:
+    """The folder's README says what the packaged files hold, and its provenance rows, which
+    core's frame writes, date each fetch: what FAOSTAT was seen to answer is a note of
+    ``docs/upstream/OBSERVED.md`` with its probe, which the README points to (conventions
+    §3). A fenced example's values and a code span date nothing."""
+    readme = (REFERENCE / "README.md").read_text(encoding="utf-8")
+    prose = re.sub(r"^```.*?^```", "", readme, flags=re.MULTILINE | re.DOTALL)
+    running = " ".join(
+        re.sub(r"`[^`\n]*`", "", line) for line in prose.splitlines() if not line.startswith("|")
+    )
+    assert re.findall(r".{0,40}\d{4}-\d{2}-\d{2}.{0,20}", running) == []
+    assert "docs/upstream/OBSERVED.md" in readme
 
 
 @pytest.fixture
