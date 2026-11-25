@@ -181,7 +181,8 @@ printable metadata and its ping. A caller cannot set yet these documented parame
 the wrapped operations: `lang` on every operation, which the package sends as `en`
 (https://github.com/xippios/sdk-faostat/issues/64); `List1Codes` to `List9Codes` on
 `get_data` (https://github.com/xippios/sdk-faostat/issues/22), the value `csv` of its
-`output_type` (https://github.com/xippios/sdk-faostat/issues/41) and its `datasource`;
+`output_type` (https://github.com/xippios/sdk-faostat/issues/41) and its `datasource`
+(https://github.com/xippios/sdk-faostat/issues/72);
 and `datasource` and `section` on `get_groupsanddomains` and `show_lists` on
 `getCodeList`, which the packaged tables leave at upstream's default
 (https://github.com/xippios/sdk-faostat/issues/72).
