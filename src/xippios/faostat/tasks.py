@@ -502,8 +502,9 @@ async def list_domains_async(*, search: str | None = None) -> Result[list[Domain
 
     One request to ``groupsanddomains``, cached for five minutes. Each row is a domain
     (``domain_level`` 2 or 3) or a subgroup of domains (``domain_level`` 1,
-    ``subgroup_flag`` ``"1"``, no dates), with its group, its last update
-    (``date_update``), its current and next release and its contact, all as printed.
+    ``subgroup_flag`` ``"1"``, no dates), with its group, its last update, a date
+    (``date_update``, ``2025-12-31``), its current and next release as printed
+    (``release_current``, ``release_next``) and its contact.
 
     Args:
         search: Text to look for, ignoring case, in a row's ``domain_code``,
@@ -657,9 +658,10 @@ async def list_bulk_datasets_async(*, search: str | None = None) -> Result[list[
     (``https://bulks-faostat.fao.org/production/datasets_E.json``), cached for five
     minutes: every dataset FAOSTAT publishes as a file, each with its
     code (``dataset_code``, the domain code ``get_data`` takes), name, topic and
-    description, contact, last update as printed (``date_update``,
-    ``"2026-10-02T00:00:00"``), the ZIP's size as printed (``file_size``, ``"2902KB"``),
-    the normalized table's rows (``file_rows``) and the ZIP's URL (``file_location``).
+    description, contact, last update, a time without a zone, since the catalogue prints
+    none (``date_update``, ``2026-10-02T00:00:00``), the ZIP's size as printed
+    (``file_size``, ``"2902KB"``), the normalized table's rows (``file_rows``) and the
+    ZIP's URL (``file_location``).
     The files run from MDDW's, the smallest, to TM's, the detailed trade matrix, the
     largest, and are downloaded in Python only, with ``download_dataset``; no tool returns
     a file. ``meta.vintage`` is empty,
