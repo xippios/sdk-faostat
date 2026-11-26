@@ -49,9 +49,10 @@ import importlib.util
 import inspect
 import json
 from collections.abc import Iterator
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import httpx
@@ -62,6 +63,7 @@ from fastapi.testclient import TestClient
 from xippios.core import (
     Downloaded,
     InvalidRequestError,
+    MemoryCache,
     NamedBy,
     NotFoundError,
     UnknownCode,
@@ -93,7 +95,7 @@ from xippios.faostat import (
     params,
     tasks,
 )
-from xippios.faostat._client import BASE_URL, FILTER_REFUSAL, SOURCE, auth
+from xippios.faostat._client import BASE_URL, FILTER_REFUSAL, SOURCE, auth, config
 from xippios.faostat.http import router
 from xippios.faostat.mcp import server
 from xippios.faostat.models import (
@@ -222,6 +224,98 @@ def test_get_data_qcl(replay_fixture: ReplayFixture) -> None:
         "year": "2015,2016,2017,2018,2019,2020,2021",
         **SENT_OPTIONS,
     }
+
+
+def test_get_data_dates_its_answer_by_the_older_of_its_two_reads(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """``meta.retrieved_at`` is the time of the older read, here the kept release date.
+
+    ``list_domains`` keeps the ``groupsanddomains`` answer in the client's cache first, so
+    the data answer that ``get_data`` reads after it is the newer of the two, and the
+    envelope states the time of the kept one (conventions §4).
+    """
+    replay_fixture(GET_DATA, QCL)
+    domains = replay_fixture(DOMAINS, "all")
+    kept = list_domains()
+    between = datetime.now(UTC)
+    result = get_data("QCL", **QCL_ARGUMENTS)
+    assert domains.call_count == 1, "the release date is read from the kept answer"
+    assert result.meta.vintage == date_update("QCL")
+    assert result.meta.retrieved_at == kept.meta.retrieved_at, "the older read's time"
+    assert result.meta.retrieved_at <= between, "older than the data request"
+
+
+def test_a_later_data_call_is_dated_by_the_release_date_an_earlier_call_kept(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """The order of a live run: a first ``get_data`` keeps the domains' release dates, and a
+    later one of another domain reads its data fresh and its release date from the cache.
+
+    The later answer is dated by the kept read, before the later call's window began and
+    within the cache's lifetime of it (conventions §4); a test that asserted the call's own
+    window would fail once the window begins past its slack.
+    """
+    replay_fixture(GET_DATA, QCL)
+    replay_fixture(GET_DATA, "PP_231_2020_page_size_2")
+    domains = replay_fixture(DOMAINS, "all")
+    get_data("QCL", **QCL_ARGUMENTS)
+    before = datetime.now(UTC)
+    later = get_data("PP", area=231, year=2020, page_size=2, page_number=1)
+    after = datetime.now(UTC)
+    kept = list_domains()
+    assert domains.call_count == 1, "the release dates are read once and kept"
+    assert later.meta.retrieved_at == kept.meta.retrieved_at, "dated by the kept read"
+    assert later.meta.retrieved_at < before, "before the later call's window"
+    cache = config.cache
+    assert isinstance(cache, MemoryCache)
+    lifetime = timedelta(seconds=max(seconds for seconds in cache.lifetimes.values() if seconds))
+    assert before - lifetime <= later.meta.retrieved_at <= after, "within the cache's lifetime"
+
+
+def load_live() -> ModuleType:
+    """``tests/test_live.py`` as a module, for its helpers; none of its tests runs here."""
+    spec = importlib.util.spec_from_file_location("live", Path(__file__).parent / "test_live.py")
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.anyio
+async def test_the_live_assertion_refuses_an_answer_dated_by_its_data_read_alone(
+    replay_fixture: ReplayFixture,
+) -> None:
+    """In the order of a live run, the live tests' assertion holds the answer to the older of
+    its two reads, which the cache gives back without a request, and refuses the data read's
+    own time, the fault of https://github.com/xippios/sdk-faostat/issues/68."""
+    live = load_live()
+    replay_fixture(GET_DATA, QCL)
+    data_route = replay_fixture(GET_DATA, "PP_231_2020_page_size_2")
+    domains = replay_fixture(DOMAINS, "all")
+    await tasks.get_data_async("QCL", **QCL_ARGUMENTS)
+    later = await tasks.get_data_async("PP", area="231", year=2020, page_size=2, page_number=1)
+    data = await api.get_data.get_data(
+        "en",
+        "PP",
+        area="231",
+        year="2020",
+        page_size=2,
+        page_number=1,
+        show_codes=True,
+        show_unit=True,
+        show_flags=True,
+        show_notes=True,
+        null_values=False,
+        output_type="objects",
+    )
+    kept = await api.get_groupsanddomains.get_groupsanddomains("en")
+    assert (data_route.call_count, domains.call_count) == (1, 1), "both read back from the cache"
+    assert kept.retrieved_at < data.retrieved_at, "the release date is the older read"
+    live.assert_dated_by_its_reads(later.meta.retrieved_at, data.retrieved_at, kept.retrieved_at)
+    with pytest.raises(AssertionError):
+        live.assert_dated_by_its_reads(data.retrieved_at, data.retrieved_at, kept.retrieved_at)
 
 
 def test_get_data_page(replay_fixture: ReplayFixture) -> None:
@@ -416,8 +510,9 @@ def test_the_recorded_rows_print_no_column_beyond_the_named_ones(case: str) -> N
 def test_get_data_with_a_coding_system(replay_fixture: ReplayFixture) -> None:
     """``area_cs=M49``: the recorded answer names the code column ``Area Code (M49)``.
 
-    United States of America's M49 code, 840, matched no rows on 2026-10-29; the answer's
-    ``metadata.dsd`` still names its columns, which the next test applies to a row.
+    United States of America's M49 code, 840, matched no rows, as ``docs/upstream/OBSERVED.md``
+    notes; the answer's ``metadata.dsd`` still names its columns, which the next test applies
+    to a row.
     """
     case = "QCL_840_M49_15_2510_2020"
     route = replay_fixture(GET_DATA, case)
@@ -1168,6 +1263,26 @@ def test_download_dataset_mddw(
     rows = list(parse_bulk_csv(dest))
     assert rows, "the downloaded ZIP reads"
     assert rows == list(parse_bulk_csv(Path(__file__).parent / "fixtures/files/bulk-csv/MDDW.zip"))
+
+
+def test_download_dataset_dates_its_answer_by_the_older_of_its_two_reads(
+    replay_fixture: ReplayFixture, tmp_path: Path
+) -> None:
+    """``meta.retrieved_at`` is the time of the older read, here the kept catalogue.
+
+    ``list_bulk_datasets`` keeps the catalogue in the client's cache first, so the ZIP that
+    ``download_dataset`` streams after it is the newer read, and the envelope, whose
+    vintage the catalogue gives, states the kept catalogue's time (conventions §4).
+    """
+    catalogue = replay_fixture(CATALOGUE, "all")
+    replay_fixture(DOWNLOAD, "MDDW")
+    kept = list_bulk_datasets()
+    between = datetime.now(UTC)
+    result = download_dataset("MDDW", dest=tmp_path / "MDDW.zip")
+    assert catalogue.call_count == 1, "the catalogue is read from the kept answer"
+    assert_time_between(result.data.retrieved_at, between, datetime.now(UTC))
+    assert result.meta.retrieved_at == kept.meta.retrieved_at, "the older read's time"
+    assert result.meta.retrieved_at <= between, "older than the download"
 
 
 def test_download_dataset_refuses_a_domain_the_catalogue_lacks(

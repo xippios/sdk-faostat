@@ -178,7 +178,7 @@ def test_parse_bulk_csv_is_a_generator(tmp_path: Path) -> None:
 
 def test_parse_bulk_csv_reads_an_empty_value_as_printed_and_no_number(tmp_path: Path) -> None:
     """RL's first row with its ``Value`` cell emptied in memory, as RL prints
-    the values it flags ``L``, missing (85 rows on 2026-10-29).
+    the values it flags ``L``, missing, as ``docs/upstream/OBSERVED.md`` notes.
 
     The sample so changed is an input of the test, not an answer from FAOSTAT.
     """

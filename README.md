@@ -86,7 +86,7 @@ from xippios.faostat import download_dataset, list_bulk_datasets
 from xippios.faostat.parse import parse_bulk_csv
 
 list_bulk_datasets(search="land use").data[0]  # dataset_code "RL", file_size "2902KB", ...
-land = download_dataset("RL", dest=Path("RL.zip"))  # 3 MB; TCL's ZIP is 267 MB
+land = download_dataset("RL", dest=Path("RL.zip"))  # Land Use's ZIP, written whole
 land.data.path  # PosixPath("RL.zip"): the ZIP as FAOSTAT serves it
 land.meta.vintage  # "2026-10-02T00:00:00": the catalogue's DateUpdate as printed
 land.meta.published_at  # 2026-10-02 00:00 without a zone, meta.published_at_naive set
@@ -96,8 +96,8 @@ first.area, first.area_code_m49, first.item, first.year  # ("Afghanistan", "'004
 first.value, first.value_number  # ("65286.000000", Decimal("65286.000000"))
 ```
 
-`list_bulk_datasets(*, search)` lists the datasets FAOSTAT publishes as files, 69 on
-2026-10-29, from the bulk downloads' catalogue (`production/datasets_E.json` on
+`list_bulk_datasets(*, search)` lists the datasets FAOSTAT publishes as files, from the
+bulk downloads' catalogue (`production/datasets_E.json` on
 `bulks-faostat.fao.org`), fetched without the account: each with its code, the domain
 code `get_data` takes, its name, last update, the ZIP's size and URL and the rows of its
 table; `search` keeps the datasets whose code or name contains the text.
@@ -106,7 +106,8 @@ table; `search` keeps the datasets whose code or name contains the text.
 ZIP to `dest`, without the account, never holding it in memory or caching it; it returns
 core's `Downloaded` (path, size, content type, `ETag`, `Last-Modified`, retrieval time).
 It is a bulk task: Python only, so the MCP server and the router skip it and no agent is
-handed a file path. The files run from 12 KB (MDDW) to 410 MB (TM); TCL's is 267 MB.
+handed a file path. The files run from MDDW's, the smallest, to TM's, the largest, and
+`list_bulk_datasets` prints each one's `file_size`.
 `meta.vintage` is the catalogue's `DateUpdate` as printed and `meta.published_at` the
 same time, which the catalogue prints without a zone. `parse_bulk_csv(path)` reads the
 ZIP's normalized table, the member `<Name>_E_All_Data_(Normalized).csv`, row by row,
@@ -159,6 +160,32 @@ exactly tasks.__all__, and tasks_write.__all__ where the package has write tasks
 Every request to the API logs in first where the process has no current token
 (`auth_login`, `POST /auth/login`); the login is the client's, no task's. The bulk
 downloads' catalogue and files are fetched without it.
+
+## Scope
+
+FAOSTAT's OpenAPI document holds 24 operations, and the package's scope is its data, its
+lists and its releases, sixteen of them: the login, `auth_login`; `get_data`, with
+`post_datasize` as its count; the code lists `getCodeList`, `get_codes` and
+`get_dimensions`; the domains and their groups, `get_groupsanddomains`, `get_domains` and
+`get_groups`; `get_bulkdownloads`, beside the bulk catalogue and its ZIPs; the history of
+updates, `get_updates`; the four definitions, `get_definitions_domain`,
+`get_definitions_domain_by_type`, `get_definitions_types` and `get_definitions_by_type`;
+and `get_metadata`. Four of them are wrapped today, the login, the data, the groups and
+domains, and the code list, the last for the packaged tables alone, as the status table
+above names them. Eight are left out: `post_rankings`, `post_reportdata` and
+`post_reportheaders`, since they are FAOSTAT's computed rankings and report tables of the
+data, and
+`get_search`, `get_suggestions`, `get_documents`, `get_metadata_print` and `get_ping`,
+since they serve FAOSTAT's portal: its search, its suggestions, its list of documents, its
+printable metadata and its ping. A caller cannot set yet these documented parameters of
+the wrapped operations: `lang` on every operation, which the package sends as `en`
+(https://github.com/xippios/sdk-faostat/issues/64); `List1Codes` to `List9Codes` on
+`get_data` (https://github.com/xippios/sdk-faostat/issues/22), the value `csv` of its
+`output_type` (https://github.com/xippios/sdk-faostat/issues/41) and its `datasource`
+(https://github.com/xippios/sdk-faostat/issues/72);
+and `datasource` and `section` on `get_groupsanddomains` and `show_lists` on
+`getCodeList`, which the packaged tables leave at upstream's default
+(https://github.com/xippios/sdk-faostat/issues/72).
 
 ## Upstream terms and attribution
 

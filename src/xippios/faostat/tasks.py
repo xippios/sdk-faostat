@@ -7,13 +7,14 @@ given and returns the answer's rows; every request of the package to the API car
 FAO account's bearer token, ``_client.LoginAuth``'s. It sends ``lang=en`` and the output
 options the portal sends, fixed (``OUTPUT_OPTIONS``: ``show_codes``, ``show_unit``,
 ``show_flags`` and ``show_notes`` true, ``null_values`` false, ``output_type`` objects;
-not in the OpenAPI document, observed on 2026-10-29, ``docs/upstream/OBSERVED.md``),
+not in the OpenAPI document, as ``docs/upstream/OBSERVED.md`` notes),
 and ``page_size`` and ``page_number`` only when given: the default is one
 request for every row the query matches. Release metadata: the data answer carries no
 date, so ``meta.vintage`` is the domain's ``date_update`` as ``get_groupsanddomains``
 prints it (``"2025-12-31"``), read after the data answer through the cache (one request
 per process per five minutes), ``None`` for a domain the list lacks; ``meta.published_at``
-stays ``None``, since a date is no release time (conventions §4).
+stays ``None``, since a date is no release time (conventions §4). ``meta.retrieved_at`` is
+the older of the two reads' times, the kept release date's where the cache served it.
 ``meta.total`` is ``None``: the answer counts no rows (sdk-core ADR-0034).
 
 ``get_series`` is one ``get_data`` request for an area, item and element over a year
@@ -45,9 +46,9 @@ and item codes of those five domains before it sends, since FAOSTAT answers an u
 code with no rows: a code the domain's table lacks is refused with core's
 ``UnknownCode`` by one ``check`` of the codes given on the table's declaration,
 ``params.table``, naming the table, its fetch date and the closest codes (conventions §5;
-sdk-core ADR-0045). The element tables hold the filter codes, not the codes
-the rows print, and nothing is translated between the two (sdk-core ADR-0028;
-https://github.com/xippios/sdk-faostat/pull/3).
+sdk-core ADR-0045). The element tables hold the filter codes, and nothing is translated
+into the codes the rows print, which ``docs/upstream/OBSERVED.md`` notes as the two element
+code systems (sdk-core ADR-0028; https://github.com/xippios/sdk-faostat/pull/3).
 
 ``list_bulk_datasets`` answers from the bulk downloads' catalogue, ``datasets_E.json`` on
 ``bulks-faostat.fao.org`` (``api.datasets_e``), fetched without the account and cached for
@@ -75,6 +76,7 @@ names the member it holds, ``All_Data_(Normalized).csv`` (sdk-core ADR-0020, dec
 import json
 import os
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any, Final
 
 from xippios.core import (
@@ -178,19 +180,19 @@ its filters; a row of the recorded answers is served as 380 (QCL) to 407 (PP) by
 compact JSON, ``value_number`` among them, so the bytes cut a page at about 160 rows.
 ``get_series`` keeps the same cap, its note naming ``since`` and ``until`` and one code
 per dimension, since it does not page.
-``list_domains`` keeps the family's cap too: its 78 rows of 2026-10-29 fit; the note
+``list_domains`` keeps the family's cap too: the 78 rows of its recording fit; the note
 names ``search``.
 
 The three code lists take up to 1,000 rows within the family's 64 KB (sdk-core ADR-0038,
 decision 4), as sdk-eurostat's ``list_codes`` does, so a table an agent needs whole
 comes whole up to the byte bound: a code is about 85 to 110 bytes as compact JSON, and
-of the fifteen tables packaged on 2026-10-29 fourteen fit, the largest QCL's 338 items
+of the fifteen packaged tables fourteen fit, the largest QCL's 338 items
 at 32,872 bytes; TCL's 674 items, 66,970 bytes, are cut by the bytes at 657 rows, with
 the note naming ``search``.
 
 ``list_bulk_datasets`` takes a cap of its own, 100 rows and 160 KiB (163,840 bytes), so
 the whole catalogue, which an agent needs to choose a dataset, comes uncut (sdk-core
-ADR-0038): on 2026-10-29 it measured 69 datasets and 107,481 bytes as compact JSON, a
+ADR-0038): its recording measures 69 datasets and 107,481 bytes as compact JSON, a
 dataset 399 to 4,104 bytes, its description the most of it, where the family's 64 KB
 would cut it at 39 rows. The note names ``search`` for a catalogue grown past the bound.
 
@@ -217,9 +219,9 @@ OUTPUT_OPTIONS: Mapping[str, bool | str] = {
     "null_values": False,
     "output_type": "objects",
 }
-"""The output options ``get_data`` sends, those the portal sends (observed 2026-10-29,
-``docs/upstream/OBSERVED.md``; not in the OpenAPI document): an answer without them
-carried the same 15 columns."""
+"""The output options ``get_data`` sends, those the portal sends, which
+``docs/upstream/OBSERVED.md`` notes beside the same 15 columns of an answer without them;
+not in the OpenAPI document."""
 
 Codes = str | int | Sequence[str | int]
 """One code or several: ``"231"``, ``2020`` or ``["15", "27"]``."""
@@ -303,14 +305,16 @@ def _check(dimension: str, codes: Codes | None, domain_code: str) -> None:
     )
 
 
-async def _date_update(domain_code: str) -> str | None:
-    """The domain's ``date_update`` as ``get_groupsanddomains`` prints it, else ``None``.
+async def _date_update(domain_code: str) -> tuple[str | None, datetime]:
+    """The domain's ``date_update`` as ``get_groupsanddomains`` prints it, and the read's time.
 
     The text as FAOSTAT sent it, which the wrapper hands beside the parsed answer, since
-    the model reads the date into a ``date`` (conventions §4).
+    the model reads the date into a ``date``; ``None`` for a domain the list lacks. The
+    time is the answer's ``retrieved_at``, a kept answer's where the cache served it, so
+    that the task can give the older of its two reads (conventions §4).
     """
     answer = await api.get_groupsanddomains.get_groupsanddomains(LANG)
-    return answer.payload.printed.get(domain_code)
+    return answer.payload.printed.get(domain_code), answer.retrieved_at
 
 
 async def get_data_async(
@@ -360,7 +364,7 @@ async def get_data_async(
             codes, which the rows print under ``area_code``. Given, the rows print the
             codes under a header naming the system (``Area Code (FAO)``), kept in
             ``columns``, and ``area_code`` is ``None``. ``area="840"`` with
-            ``area_cs="M49"`` answered no rows on 2026-10-29; the bulk files print M49
+            ``area_cs="M49"`` answered no rows when observed; the bulk files print M49
             codes with a leading apostrophe (``'004``), and whether the M49 filter wants
             that form is not established.
         item_cs: The coding system of ``item``, ``"CPC"`` or ``"FAO"`` in QCL; ``None``
@@ -398,11 +402,11 @@ async def get_data_async(
         **OUTPUT_OPTIONS,
     }
     answer = await api.get_data.get_data(LANG, domain_code, **sent)
-    vintage = await _date_update(domain_code)
+    vintage, dated_at = await _date_update(domain_code)
     meta = ResultMeta(
         source=SOURCE,
         endpoint=api.get_data.ENDPOINT,
-        retrieved_at=answer.retrieved_at,
+        retrieved_at=min(answer.retrieved_at, dated_at),
         published_at=None,
         vintage=vintage,
         request={"lang": LANG, "domain_code": domain_code, **sent},
@@ -478,8 +482,8 @@ async def get_series_async(
         since: The first year, included, e.g. ``2015``; with ``until``. ``None`` with
             ``until`` ``None`` asks for every year the domain holds.
         until: The last year, included, e.g. ``2021``; with ``since``. ``list_domains``
-            prints each domain's latest year as ``year_current`` (``"2024"`` for QCL on
-            2026-10-29).
+            prints each domain's latest year as ``year_current`` (``"2024"`` for QCL in
+            its recording).
     """
     years = _series_years(since, until)
     answer = await get_data_async(domain_code, area=area, item=item, element=element, year=years)
@@ -651,14 +655,14 @@ async def list_bulk_datasets_async(*, search: str | None = None) -> Result[list[
 
     One request, without the account, to the bulk downloads' catalogue
     (``https://bulks-faostat.fao.org/production/datasets_E.json``), cached for five
-    minutes: every dataset FAOSTAT publishes as a file, 69 on 2026-10-29, each with its
+    minutes: every dataset FAOSTAT publishes as a file, each with its
     code (``dataset_code``, the domain code ``get_data`` takes), name, topic and
     description, contact, last update as printed (``date_update``,
     ``"2026-10-02T00:00:00"``), the ZIP's size as printed (``file_size``, ``"2902KB"``),
     the normalized table's rows (``file_rows``) and the ZIP's URL (``file_location``).
-    The files run from 12 KB (MDDW) to 410,792 KB (TM, the detailed trade matrix; TCL,
-    trade in crops and livestock products, is 267,104 KB) and are downloaded in Python
-    only, with ``download_dataset``; no tool returns a file. ``meta.vintage`` is empty,
+    The files run from MDDW's, the smallest, to TM's, the detailed trade matrix, the
+    largest, and are downloaded in Python only, with ``download_dataset``; no tool returns
+    a file. ``meta.vintage`` is empty,
     as the catalogue carries no version.
 
     Args:
@@ -698,16 +702,18 @@ async def download_dataset_async(
     there, streamed to ``dest`` by core's ``download``, never held in memory or cached;
     nothing in it is read. ``parse_bulk_csv(result.data.path)`` from
     ``xippios.faostat.parse`` reads its normalized table, the member
-    ``<Name>_E_All_Data_(Normalized).csv``, row by row. The files are large: TCL's (trade
-    in crops and livestock products) is 267 MB, TM's (the detailed trade matrix) 410 MB,
-    QCL's 33 MB, RL's 3 MB, MDDW's 12 KB, the smallest; the table inside is larger still
-    (RL's 50 MB); ``list_bulk_datasets`` prints each ``file_size`` and ``file_rows``.
+    ``<Name>_E_All_Data_(Normalized).csv``, row by row. The files can be large, TM's (the
+    detailed trade matrix) the largest and TCL's (trade in crops and livestock products)
+    next, MDDW's the smallest, and the table inside is larger still;
+    ``list_bulk_datasets`` prints each ``file_size`` and ``file_rows``.
     ``result.data`` is core's ``Downloaded``: the path, its size, the content type,
     ``ETag`` and ``Last-Modified``. ``meta.vintage`` is the catalogue's ``DateUpdate`` for
     the dataset as printed (``"2026-10-02T00:00:00"``) and ``meta.published_at`` that
     time, which the catalogue prints without a zone (``meta.published_at_naive``): a time,
     unlike ``get_data``'s ``meta.vintage``, the API's ``date_update``, a date, which stays
-    out of ``published_at``. ``meta.endpoint`` is ``"All_Data_(Normalized).csv"``, the
+    out of ``published_at``. ``meta.retrieved_at`` is the older of the two reads' times,
+    the kept catalogue's where the cache served it, and ``result.data.retrieved_at`` the
+    file's. ``meta.endpoint`` is ``"All_Data_(Normalized).csv"``, the
     file kind as upstream names its member; ``meta.request`` the dataset's code and the
     file's URL. A code the catalogue does not list raises ``NotFoundError`` naming the
     closest, once the catalogue is read and before the file is requested; ``dest`` must
@@ -741,7 +747,7 @@ async def download_dataset_async(
     meta = ResultMeta(
         source=SOURCE,
         endpoint=NORMALIZED_TABLE,
-        retrieved_at=downloaded.retrieved_at,
+        retrieved_at=min(answer.retrieved_at, downloaded.retrieved_at),
         published_at=released,
         published_at_naive=released.tzinfo is None,
         vintage=answer.payload.printed[dataset_code],

@@ -7,8 +7,8 @@ operation ``get_data`` ("FAOSTAT data."): the path parameters ``lang`` and
 or ``csv``). The answer is the document's ``DataResponse`` as the recorded answers spell
 it (``models.DataResponse``; ``docs/upstream/samples/data_QCL_231_2510_15_2015-2021.json``).
 
-The document does not list the other parameters this wrapper sends, observed on
-2026-10-29 (``docs/upstream/OBSERVED.md``): ``page_size`` with ``page_number``,
+The document does not list the other parameters this wrapper sends, which
+``docs/upstream/OBSERVED.md`` notes: ``page_size`` with ``page_number``,
 which page the answer; ``area_cs`` and ``item_cs``, the coding system of the codes sent;
 ``show_codes``, ``show_unit``, ``show_flags``, ``show_notes`` and ``null_values``, the
 options the portal sends. Each filter is a comma list of codes, as upstream takes it

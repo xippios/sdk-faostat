@@ -14,7 +14,7 @@ belong to". The answer is the document's ``CodeResponse`` (``models.CodeResponse
 ``area``, ``element``, ``item`` and ``year`` of QCL, which the data endpoint's filters
 are named after, and their subdimensions, ``countries``, ``regions`` and
 ``specialgroups`` under ``area`` (``docs/upstream/samples/dimensions_QCL.json``).
-Recorded on 2026-10-29 for QCL (``tests/fixtures/get_code_list/``): ``codes/area/QCL``,
+Recorded for QCL (``tests/fixtures/get_code_list/``): ``codes/area/QCL``,
 ``codes/element/QCL``, ``codes/item/QCL`` and ``codes/countries/QCL``.
 
 The document's other operation on codes, ``get_codes`` (``/{lang}/codes/{id}/{domain_code}/``),

@@ -996,6 +996,8 @@ ANNEX_1 = (
         "World Information and Early Warning System on Plant Genetic Resources for Food and "
         "Agriculture (WIEWS)",
     ),
+    ("https://www.fao.org/worldfoodsituation/foodpricesindex", "FAO Food Price Index"),
+    ("https://www.fao.org/worldfoodsituation/csdb", "FAO Cereal Supply and Demand"),
 )
 """The databases that Annex 1 of the terms links beside FAOSTAT, whose portal has its row,
 each URL as linked and its name as the annex prints it."""

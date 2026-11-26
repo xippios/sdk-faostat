@@ -16,7 +16,7 @@ answer from the client's cache, which lives for the run, and each ``get_data`` t
 that every column the answer prints is named or kept in ``columns`` reads its data request
 from the cache as well. The bulk tasks have one each, without the account:
 ``list_bulk_datasets``'s fetches the catalogue, and ``download_dataset``'s downloads
-MDDW's ZIP, the smallest dataset's (12 KB), to a temporary file and reads it with
+MDDW's ZIP, the smallest dataset's, to a temporary file and reads it with
 ``parse_bulk_csv``, the live parser test of the file kind ``bulk-csv`` (sdk-core ADR-0020,
 decision 6), its look-up in the catalogue a cache hit, and a guard fails either test if a
 request goes through the account's login.
@@ -26,6 +26,9 @@ packaged tables, all declared in ``LIVE_LISTS``, with the list ``getCodeList`` s
 one request each under the account (sdk-core ADR-0055). Core's testing plugin prints the
 run's requests as ``requests sent by the live run: <n>``, the count that ``live.yml``'s log
 holds. The tests assert shape and release metadata, never values, which FAOSTAT revises.
+A test that checks an answer's time reads the answer's reads back from the client's
+cache, which sends nothing while the run lasts less than the cache keeps an answer, and
+holds the time to the oldest of them (conventions §4).
 """
 
 import csv
@@ -33,7 +36,7 @@ import io
 import re
 import zipfile
 from collections.abc import Awaitable, Callable
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -41,7 +44,6 @@ from typing import Any
 import httpx
 import pytest
 from xippios.core import PackagedCodes
-from xippios.core.testing import assert_time_between
 from xippios.core.testing.live import *  # noqa: F403
 
 from xippios.faostat import api, params, tasks
@@ -87,11 +89,30 @@ HEADERS = {
 """The columns ``DataRecord`` reads, under the headers upstream prints."""
 
 
+OPTIONS: dict[str, Any] = {
+    "show_codes": True,
+    "show_unit": True,
+    "show_flags": True,
+    "show_notes": True,
+    "null_values": False,
+    "output_type": "objects",
+}
+"""The output options that ``get_data`` sends, for reading its data answer back from the cache."""
+
+
+def assert_dated_by_its_reads(retrieved_at: datetime, *reads: datetime) -> None:
+    """An answer's time is the oldest of its reads' times (conventions §4).
+
+    Each read is the answer that the client's cache gives back after the call, the time it
+    was stored, so the test sends nothing more; the cache lives for the run, so a read that an
+    earlier test kept dates a later answer, whatever the order of the run.
+    """
+    assert retrieved_at == min(reads), f"{retrieved_at} is not the oldest of {sorted(reads)}"
+
+
 @pytest.mark.parametrize("domain", DOMAINS)
 async def test_get_data(domain: str) -> None:
-    before = datetime.now(UTC)
     result = await tasks.get_data_async(domain, **SLICE)
-    after = datetime.now(UTC)
     rows = result.data
     assert 0 < len(rows) <= 5, "one page of at most five rows"
     assert all(isinstance(row, DataRecord) for row in rows)
@@ -106,22 +127,12 @@ async def test_get_data(domain: str) -> None:
     assert DATE.fullmatch(meta.vintage)
     assert meta.published_at is None
     assert meta.total is None
-    assert_time_between(meta.retrieved_at, before, after)
-    # The same request through the wrapper: a cache hit, no request; its columns.
+    # The same two reads through the wrappers: cache hits, no request; the time, the columns.
     answer = await api.get_data.get_data(
-        "en",
-        domain,
-        area="231",
-        year="2020",
-        page_size=5,
-        page_number=1,
-        show_codes=True,
-        show_unit=True,
-        show_flags=True,
-        show_notes=True,
-        null_values=False,
-        output_type="objects",
+        "en", domain, area="231", year="2020", page_size=5, page_number=1, **OPTIONS
     )
+    released = await api.get_groupsanddomains.get_groupsanddomains(tasks.LANG)
+    assert_dated_by_its_reads(meta.retrieved_at, answer.retrieved_at, released.retrieved_at)
     printed = {column.key for column in answer.payload.metadata.dsd}
     assert all(printed - HEADERS <= set(row.columns) for row in answer.payload.data), (
         f"{domain}: a column neither named nor kept in columns"
@@ -130,11 +141,9 @@ async def test_get_data(domain: str) -> None:
 
 async def test_get_series() -> None:
     """One data request, the years 2015 to 2021 as the year filter; years oldest first."""
-    before = datetime.now(UTC)
     result = await tasks.get_series_async(
         "QCL", area="231", item="15", element="2510", since=2015, until=2021
     )
-    after = datetime.now(UTC)
     rows = result.data
     years = [row.year for row in rows]
     assert 0 < len(rows) <= 7, "at most one row a year"
@@ -154,7 +163,12 @@ async def test_get_series() -> None:
     assert DATE.fullmatch(meta.vintage)
     assert meta.published_at is None
     assert meta.total is None
-    assert_time_between(meta.retrieved_at, before, after)
+    # The same two reads through the wrappers: cache hits, no request.
+    answer = await api.get_data.get_data(
+        "en", "QCL", area="231", item="15", element="2510", year=meta.request["year"], **OPTIONS
+    )
+    released = await api.get_groupsanddomains.get_groupsanddomains(tasks.LANG)
+    assert_dated_by_its_reads(meta.retrieved_at, answer.retrieved_at, released.retrieved_at)
 
 
 async def test_list_domains() -> None:
@@ -221,9 +235,7 @@ def without_the_account(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.usefixtures("without_the_account")
 async def test_list_bulk_datasets() -> None:
     """The catalogue: one request, without the account."""
-    before = datetime.now(UTC)
     result = await tasks.list_bulk_datasets_async()
-    after = datetime.now(UTC)
     rows = result.data
     assert rows
     assert all(isinstance(row, BulkDataset) for row in rows)
@@ -237,7 +249,8 @@ async def test_list_bulk_datasets() -> None:
     assert result.meta.endpoint == "production/datasets_E.json"
     assert result.meta.vintage is None
     assert result.meta.total is None
-    assert_time_between(result.meta.retrieved_at, before, after)
+    catalogue = await api.datasets_e.datasets_e()  # a cache hit, no request
+    assert_dated_by_its_reads(result.meta.retrieved_at, catalogue.retrieved_at)
 
 
 @pytest.mark.usefixtures("without_the_account")
@@ -269,3 +282,5 @@ async def test_download_dataset_mddw(tmp_path: Path) -> None:
     assert meta.published_at_naive is True
     assert meta.request["dataset_code"] == "MDDW"
     assert meta.request["url"].endswith("_All_Data_(Normalized).zip")
+    catalogue = await api.datasets_e.datasets_e()  # a cache hit, no request
+    assert_dated_by_its_reads(meta.retrieved_at, catalogue.retrieved_at, result.data.retrieved_at)
