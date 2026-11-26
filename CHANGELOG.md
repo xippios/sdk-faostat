@@ -4,6 +4,95 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/) (pre-1.0: breaking changes bump the minor).
 
+## [0.3.0] - 2026-11-26
+
+### Added
+
+- The README states the package's scope: sixteen of the 24 operations of FAOSTAT's OpenAPI
+  document, its data, lists and releases, of which four are wrapped, and the eight it
+  leaves out, each with its reason. It names each documented parameter of the wrapped
+  operations that a caller cannot set yet. (https://github.com/xippios/sdk-faostat/issues/61)
+- A row of `get_data` and `get_series` names its `area_code` by the `area` beside it, which
+  FAOSTAT sends, so `meta.names` takes nothing for it and no answer is withheld.
+  (https://github.com/xippios/sdk-core/issues/478)
+- `faostat_list_areas`, `faostat_list_elements`, `faostat_list_items`,
+  `faostat_list_domains` and `faostat_list_bulk_datasets` take
+  `offset`, the rows of a cut answer already shown, and answer the rows after them by
+  running the task again on a packaged table or a cached answer. The note of every page but
+  the last names the `offset` to continue with. `faostat_get_series` takes none, since one
+  answer of it can pass the response cache's bound of 8 MiB, past which a continuation
+  would send its request again.
+  (https://github.com/xippios/sdk-faostat/issues/32, https://github.com/xippios/sdk-faostat/issues/80)
+
+### Changed
+
+- `meta.retrieved_at` of `get_data`, `get_series` and `download_dataset` is the client's
+  time of the answer, the oldest of the two reads each assembles, so a release date or a
+  catalogue kept in the cache dates the answer where it is older than the data read or
+  the download. (https://github.com/xippios/sdk-core/issues/479, https://github.com/xippios/sdk-faostat/issues/68)
+- The packaged code tables of Food Balances (FBS) follow FAOSTAT's lists of this release:
+  seven areas are added and Seychelles (`196`) is gone, so `get_data` refuses that area on
+  FBS before it sends. Six indicator elements (`501` to `506`) stand under the new list
+  `72003>`, and one item is added (`2920`) and four take new labels, the fish groups among
+  them.
+  (https://github.com/xippios/sdk-faostat/issues/74)
+- The nightly live run compares each of the fifteen packaged tables with the list FAOSTAT
+  serves now, 25 requests where it sent 12, and the refresh scripts run on core's frames
+  through the package's client, so the snapshot's samples log in through its `LoginAuth`.
+  (https://github.com/xippios/sdk-faostat/issues/36, https://github.com/xippios/sdk-faostat/issues/37, https://github.com/xippios/sdk-faostat/issues/38)
+- Every refusal of a call as given says `Nothing was sent.` after its first sentence, the
+  MCP adapter's refusal of an argument among them, and the codes of `get_data` and
+  `get_series` are checked by one call, which names the first code it refuses. The refusal
+  of a dataset the bulk catalogue lacks says that the catalogue was requested and no file
+  was. The refusals' classes are unchanged. (https://github.com/xippios/sdk-core/issues/481)
+- The descriptions of `faostat_get_data` and `faostat_get_series` are their tasks'
+  docstrings before `Args:`, under 1,000 characters, and the text of each of their
+  arguments stands in the input schema. (https://github.com/xippios/sdk-core/issues/485)
+
+### Removed
+
+- `xippios.faostat.errors` and `xippios.faostat.enums` are removed: each held the
+  template's empty `__all__` and no class or enum, since the package refuses with core's
+  errors and generates no enum from its fifteen tables.
+  (https://github.com/xippios/sdk-template/issues/300)
+- `xippios.faostat.params.labels`, the index of a packaged table's codes and labels, is
+  removed: `params.table(name)` declares each table once for core's `check`, whose
+  `name_of` gives a code's label, and `params.codes(name)` lists the codes with their labels.
+  (https://github.com/xippios/sdk-faostat/issues/31)
+- `xippios.faostat._client` no longer declares `API_KEY_ENV`, a key variable that no code
+  read: `ENV_VARS` names the account's two variables. (https://github.com/xippios/sdk-template/issues/300)
+
+### Breaking
+
+- `api.get_groupsanddomains` answers `GroupsAndDomains`, the parsed `response` and each
+  `date_update` as FAOSTAT sent it, and `api.datasets_e` answers `Catalogue`, the parsed
+  `catalogue` and each `DateUpdate` as sent, in place of the bare models, so that
+  `meta.vintage` holds the release as FAOSTAT states it.
+  (https://github.com/xippios/sdk-usda-esr/issues/60)
+- `get_data` and `get_series` refuse a code given as a text with commas, such as
+  `area="231,79"`, before sending, for every domain and filter, and name the whole value as
+  the list that several codes take, `["231", "79"]`. In 0.2.0 such a text was sent as
+  several codes, each checked first where the domain's table is packaged.
+  (https://github.com/xippios/sdk-faostat/pull/67)
+- The package depends on `xippios-core~=0.5.0`, its extras likewise, is updated to
+  sdk-template v0.5.0 and applies conventions 1.30.
+  (https://github.com/xippios/sdk-faostat/issues/60)
+- The tasks take the domain by FAOSTAT's name, `domain_code`, in `get_data`, `get_series`,
+  `list_areas`, `list_elements` and `list_items`, and `download_dataset` takes the
+  catalogue's `dataset_code`, over MCP and HTTP too. `get_series` takes `area`, `item` and
+  `element` by keyword alone and `download_dataset` its `dest`, since the arguments that
+  identify a record are positional and every other is keyword-only.
+  (https://github.com/xippios/sdk-faostat/issues/58, https://github.com/xippios/sdk-usda-esr/issues/60)
+- `Domain.date_update` of `list_domains` is a date, and `BulkDataset.date_update` of
+  `list_bulk_datasets` a time without a zone, as FAOSTAT prints them, in place of their
+  text, and the two tasks' docstrings, their tools' descriptions, say so. `meta.vintage`
+  keeps the text as printed.
+  (https://github.com/xippios/sdk-usda-esr/issues/60, https://github.com/xippios/sdk-faostat/issues/84)
+- A row's `value`, of `get_data`, `get_series` and `parse_bulk_csv`, is the text as FAOSTAT
+  prints it, `""` for an empty cell of a bulk file, with `value_number` beside it, its
+  reading as a number or `None`, a JSON integer over MCP and HTTP where it has no fraction.
+  (https://github.com/xippios/sdk-core/issues/474)
+
 ## [0.2.0] - 2026-11-20
 
 ### Added
