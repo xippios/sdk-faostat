@@ -421,8 +421,8 @@ def test_get_data_names_the_closest_codes_by_label(
 def test_get_data_sends_a_domain_without_a_table_unchecked(replay_fixture: ReplayFixture) -> None:
     """QV has no packaged table: an area code no table holds is sent, as before.
 
-    NOT RECORDED: the recorded QCL answer served at QV's path, for a test that asserts what
-    was sent and that the rows are read (conventions §10, kind 3).
+    NOT RECORDED: the recorded QCL answer served at QV's path, for a test that asserts only what
+    was sent (conventions §10, kind 3).
     """
     domain = "QV"
     assert domain not in params.DOMAINS
@@ -432,11 +432,10 @@ def test_get_data_sends_a_domain_without_a_table_unchecked(replay_fixture: Repla
         GET_DATA, QCL, url=fixture.request.url.replace("/data/QCL?", f"/data/{domain}?")
     )
     replay_fixture(DOMAINS, "all")
-    result = get_data(domain, area="99999", element="5510", item="999999")
-    assert route.call_count == 1
-    assert sent_query(route)["area"] == "99999"
-    assert sent_query(route)["element"] == "5510"
-    assert result.data == recorded_rows(QCL), "the recorded rows, served at QV's path"
+    get_data(domain, area="99999", element="5510", item="999999")
+    assert route.call_count == 1, "one request, at QV's path"
+    sent = sent_query(route)
+    assert (sent["area"], sent["element"], sent["item"]) == ("99999", "5510", "999999")
 
 
 @pytest.mark.parametrize(

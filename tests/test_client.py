@@ -340,8 +340,9 @@ class _Unread(httpx.AsyncByteStream):
 async def test_the_flow_reads_the_login_answer_and_not_the_signed_requests() -> None:
     """``async_auth_flow`` driven by hand, with the recorded answers as unread streams.
 
-    NOT RECORDED: the recorded login and data answers, served in memory as streams
-    (conventions §10, kind 3).
+    The recorded login and data bodies go straight to the flow: no route serves them and
+    ``classify`` reads neither. Each body so handed is an input of the test, not an answer
+    from FAOSTAT.
     """
     flow = LoginAuth(source=SOURCE).async_auth_flow(
         httpx.Request("GET", f"{BASE_URL}/en/data/QCL", headers={"User-Agent": "test"})
